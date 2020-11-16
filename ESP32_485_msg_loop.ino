@@ -9,67 +9,21 @@ HardwareSerial& logger(Serial);
 HardwareSerial& MasterUART(Serial1);
 HardwareSerial& SlaveUART(Serial2);
 
-size_t fWrite (const byte what)
-{
-  return serialIUT.write (what);  
-}
-
-int fAvailable ()
-{
-  return serialIUT.available();
-}
- 
-int fRead ()
-{
-  return serialIUT.read();
-}
- 
-void fTxFlush ()
-{
-#ifdef SoftSer
-    ;   //do nothing, Tx software serial emulation is blocking
-#else 
-    serialIUT.flush();
-#endif
-}
-
-void fRxFlush()
-{
-  // TODO - this is commented for HALF-DUPLEX simulation
-  //while(fAvailable())
-  // fRead();
-}
-
-void 
-f485_receive_mode()
-{
-  // change line dir
-  delay(1);
-  fRxFlush();
-}
-
-void f485_transmit_mode()
-{
-    // change line dir
-  delay(1);
-  fTxFlush();
-}
-
+#include "helpers.h"      // include helper functions. INCLUDE ONLY AFTER SERIAL PORT DEFINITIONS!!!!
 
 
 //this is channel to send/receive packets over serial if. The comm to serial is via fRead, fWrite,...
-RS485 msgChannel (fRead, fAvailable, fWrite, BLOCKSIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
+RS485 MasterMsgChannel (Master_Read, Master_Available, Master_Write, BLOCKSIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
+RS485 SlaveMsgChannel (Slave_Read, Slave_Available, Slave_Write, BLOCKSIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
 
 void setup() {
 
-  logger.begin(BITRATE,SERIAL_8N1,);
+  logger.begin(BITRATE,SERIAL_8N1);
   MasterUART.begin(BITRATE,SERIAL_8N1, 21, 22);  // re-routing RxD to  GPIO21 and TxD to GPIO22
-  SlaveUART.begin(BITRATE,SERIAL_8N1,);
-}
-    logger.begin(9600);
-    serialIUT.begin(IUTBITRATE, swSerialConfig, D5, D6, invert, 2 * BLOCKSIZE);
-    msgChannel.begin ();      
-    logger.println("Loopback example for EspSoftwareSerial+485");
+  SlaveUART.begin(BITRATE,SERIAL_8N1);
+  MasterMsgChannel.begin ();      
+  SlaveMsgChannel.begin ();  
+  logger.println("Loopback example for Esp32+485");
 }
 
 
@@ -89,41 +43,45 @@ void loop ()
   
   // ----------- master simulation -------------------------------------------
   //logger.println("Transmitter:");
-  
+
   if (waiting_for_reply)
   {
-    if (msgChannel.update ())
+    if (MasterMsgChannel.update ())
     {
       // msg received
-      logger.print ("Message received: ");
-      logger.write (msgChannel.getData (), msgChannel.getLength ()); 
+      logger.print ("Master received message: ");
+      logger.write (MasterMsgChannel.getData (), MasterMsgChannel.getLength ()); 
       logger.println ();
       waiting_for_reply = 0;
-      f485_transmit_mode();
+      Master_485_transmit_mode();  // seems redundant
       // process message
     }
     else if((unsigned long)(millis() - last_transmission) > REPLY_TIMEOUT) {
         // reply not received
-        f485_transmit_mode();
+        Master_485_transmit_mode();
         waiting_for_reply = 0;
         // TODO - signal error somehow
-        logger.println ("Reply timeout");
+        logger.println ("Master reply timeout");
     }
-    Serial.print( "!" );
+    logger.print( "!" );
   }     // if (waiting_for_reply)
+
   else if( (unsigned long)(millis() - last_transmission) > TRM_INTERVAL){  // check if it is time for the next comm
-    Serial.println( "\nTime to transmit -------------------------------" );
-    f485_transmit_mode();
-    msgChannel.sendMsg (msg, sizeof (msg));
+    logger.println( "\nMaster:  Time to transmit -------------------------------" );
+    Master_485_transmit_mode();
+    MasterMsgChannel.sendMsg (msg, sizeof (msg));
     last_transmission = millis();    // mark the transmit time so we can calculate the time for the next transmission and check for reply timeout
-    fTxFlush ();                     // make sure the data are transmitted properly befor swithching the line direction
-    f485_receive_mode();
+    // TODO for same channel loopback only, otherwise use Master_Flush()
+    Master_TxFlush ();                     // make sure the data are transmitted properly befor swithching the line direction
+    Master_485_receive_mode();
+    Master_Flush();         // flushes both Tx and Rx
     logger.println("MSG transmitted, receive timeout started");
     waiting_for_reply = 1;
   }
   else {
-    Serial.print( "." );
+    logger.print( "." );
   }
+
 /*
   // ----------- slave simulation -------------------------------------------
   // ---------------- receiver ------------------------------

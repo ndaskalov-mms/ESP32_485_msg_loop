@@ -1,31 +1,8 @@
-#include <SoftwareSerial.h>
 #include <RS485_non_blocking.h>
 
-#define ESP8266
-#define SoftSer
-
-// On ESP8266:
-// Local SoftwareSerial loopback, connect D5 (rx) and D6 (tx).
-// Hint: The logger is run at 9600bps such that enableIntTx(true) can remain unchanged. Blocking
-// interrupts severely impacts the ability of the SoftwareSerial devices to operate concurrently
-// and/or in duplex mode.
-// Operating in software serial full duplex mode, runs at 19200bps and few errors (~2.5%).
-
-
-#ifndef D5
-#if defined(ESP8266)
-#define D5 (14)
-#define D6 (12)
-#define D7 (13)
-#define D8 (15)
-#define TX (1)
-#endif
-#endif
-
-
-constexpr int IUTBITRATE = 19200;
-constexpr SoftwareSerialConfig swSerialConfig = SWSERIAL_8E1;
-constexpr bool invert = false;
+constexpr int BITRATE = 115200;
+//constexpr SoftwareSerialConfig swSerialConfig = SWSERIAL_8E1;
+//constexpr bool invert = false;
 constexpr int BLOCKSIZE = 128; // use fractions of 256
 
 SoftwareSerial serialIUT;
@@ -83,6 +60,11 @@ void f485_transmit_mode()
 RS485 msgChannel (fRead, fAvailable, fWrite, BLOCKSIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
 
 void setup() {
+
+  logger.begin(BITRATE,SERIAL_8N1,);
+  Serial1.begin(BITRATE,SERIAL_8N1, 21, 22);  // re-routing RxD to  GPIO21 and TxD to GPIO22
+  Serial2.begin(BITRATE,SERIAL_8N1,);
+}
     logger.begin(9600);
     serialIUT.begin(IUTBITRATE, swSerialConfig, D5, D6, invert, 2 * BLOCKSIZE);
     msgChannel.begin ();      

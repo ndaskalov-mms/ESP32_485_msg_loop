@@ -5,8 +5,9 @@ constexpr int BITRATE = 115200;
 //constexpr bool invert = false;
 constexpr int BLOCKSIZE = 128; // use fractions of 256
 
-SoftwareSerial serialIUT;
 HardwareSerial& logger(Serial);
+HardwareSerial& MasterUART(Serial1);
+HardwareSerial& SlaveUART(Serial2);
 
 size_t fWrite (const byte what)
 {
@@ -62,8 +63,8 @@ RS485 msgChannel (fRead, fAvailable, fWrite, BLOCKSIZE);   //RS485 myChannel (re
 void setup() {
 
   logger.begin(BITRATE,SERIAL_8N1,);
-  Serial1.begin(BITRATE,SERIAL_8N1, 21, 22);  // re-routing RxD to  GPIO21 and TxD to GPIO22
-  Serial2.begin(BITRATE,SERIAL_8N1,);
+  MasterUART.begin(BITRATE,SERIAL_8N1, 21, 22);  // re-routing RxD to  GPIO21 and TxD to GPIO22
+  SlaveUART.begin(BITRATE,SERIAL_8N1,);
 }
     logger.begin(9600);
     serialIUT.begin(IUTBITRATE, swSerialConfig, D5, D6, invert, 2 * BLOCKSIZE);

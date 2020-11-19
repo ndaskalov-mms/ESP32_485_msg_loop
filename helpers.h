@@ -28,7 +28,7 @@ int Master_Read ()
 // flush transmitter only 
 void Master_TxFlush()
 {
-  while(MasterUART.availableForWrite()!=127) ;
+  while(MasterUART.availableForWrite()!=127) ;  // availableForWrite returns 0x7f - uart->dev->status.txfifo_cnt;
   delay(5);
 }
 

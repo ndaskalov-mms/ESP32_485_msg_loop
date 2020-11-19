@@ -1,6 +1,8 @@
-#include <RS485_non_blocking.h>
+#include "Alarm_RS485.h"
 
-constexpr int BITRATE = 115200;
+constexpr int BITRATE = 1200;
+constexpr int LOG_BITRATE = 115200;
+
 //constexpr SoftwareSerialConfig swSerialConfig = SWSERIAL_8E1;
 //constexpr bool invert = false;
 constexpr int BLOCKSIZE = 128; // use fractions of 256
@@ -18,9 +20,11 @@ RS485 SlaveMsgChannel (Slave_Read, Slave_Available, Slave_Write, BLOCKSIZE);   /
 
 void setup() {
 
-  logger.begin(BITRATE,SERIAL_8N1);
+  logger.begin(LOG_BITRATE,SERIAL_8N1);
+  // set UARTs
   MasterUART.begin(BITRATE,SERIAL_8N1, 21, 22);  // re-routing RxD to  GPIO21 and TxD to GPIO22
   SlaveUART.begin(BITRATE,SERIAL_8N1);
+  // allocate data buffers and init message encoding/decoding engines (485_non_blocking library)
   MasterMsgChannel.begin ();      
   SlaveMsgChannel.begin ();  
   logger.println("Loopback example for Esp32+485");
@@ -38,6 +42,7 @@ void loop ()
   char outBuf[BLOCKSIZE]= "hello world";
   static unsigned long last_transmission = 0;
   static int waiting_for_reply = 0;
+  unsigned long err = 0;
 
 
   
@@ -71,8 +76,8 @@ void loop ()
     Master_485_transmit_mode();
     MasterMsgChannel.sendMsg (msg, sizeof (msg));
     last_transmission = millis();    // mark the transmit time so we can calculate the time for the next transmission and check for reply timeout
-    // TODO for same channel loopback only, otherwise use Master_Flush()
-    Master_TxFlush ();                     // make sure the data are transmitted properly befor swithching the line direction
+    // TODO for same channel loopback use Master_TxFlush only, otherwise use Master_Flush()
+    Master_Flush ();                     // make sure the data are transmitted properly befor swithching the line direction
     Master_485_receive_mode();
     Master_Flush();         // flushes both Tx and Rx
     logger.println("MSG transmitted, receive timeout started");
@@ -82,19 +87,29 @@ void loop ()
     logger.print( "." );
   }
 
-/*
+  if(err = MasterMsgChannel.getErrorCount()) {
+    logger.print("Master errors cnt:");
+    logger.println(err, DEC);
+  }  
   // ----------- slave simulation -------------------------------------------
   // ---------------- receiver ------------------------------
-  if (msgChannel.update ())
+  if (SlaveMsgChannel.update ())
   {
-    logger.print ("Message received: ");
-    logger.write (msgChannel.getData (), msgChannel.getLength ()); 
-    logger.println ();
+    logger.print ("\nSlave message received: ");
+    memcpy (inBuf, SlaveMsgChannel.getData (), SlaveMsgChannel.getLength ()); 
+    logger.write (inBuf); 
+    //logger.println ();
+    // Process message and send reply
+    logger.println( "\nSlave:  Sending reply -------------------------------" );
+    
   }
   else 
     logger.print ("~");
 
-*/
+  if(err = SlaveMsgChannel.getErrorCount()) {
+    logger.print("Slave errors cnt:");
+    logger.println(err, DEC);
+  }
 }  // end of loop
 
 /*  

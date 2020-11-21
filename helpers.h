@@ -10,6 +10,16 @@
 //HardwareSerial& MasterUART(Serial1);
 //HardwareSerial& SlaveUART(Serial2);
 
+size_t Master_Log_Write (char * what)
+{
+  return logger.println (what);  
+}
+
+size_t Slave_Log_Write (char * what)
+{
+  return logger.println (what);  
+}
+
 size_t Master_Write (const byte what)
 {
   return MasterUART.write (what);  
@@ -109,4 +119,3 @@ void Slave_485_transmit_mode()
   delay(1);
   Slave_TxFlush();
 }
-

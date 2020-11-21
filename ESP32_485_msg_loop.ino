@@ -1,10 +1,11 @@
 #include "Alarm_RS485.h"
 
-constexpr int BITRATE = 1200;
+constexpr int BITRATE = 115200;
 constexpr int LOG_BITRATE = 115200;
 
-//constexpr SoftwareSerialConfig swSerialConfig = SWSERIAL_8E1;
-//constexpr bool invert = false;
+#define MASTER
+#define SLAVE
+
 constexpr int BLOCKSIZE = 128; // use fractions of 256
 
 HardwareSerial& logger(Serial);
@@ -15,8 +16,8 @@ HardwareSerial& SlaveUART(Serial2);
 
 
 //this is channel to send/receive packets over serial if. The comm to serial is via fRead, fWrite,...
-RS485 MasterMsgChannel (Master_Read, Master_Available, Master_Write, BLOCKSIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
-RS485 SlaveMsgChannel (Slave_Read, Slave_Available, Slave_Write, BLOCKSIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
+RS485 MasterMsgChannel (Master_Read, Master_Available, Master_Write, Master_Log_Write, BLOCKSIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
+RS485 SlaveMsgChannel (Slave_Read, Slave_Available, Slave_Write, Slave_Log_Write, BLOCKSIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
 
 void setup() {
 
@@ -33,13 +34,13 @@ void setup() {
 
 const byte msg [] = "Hello world";
 #define TRM_INTERVAL  1000  //1 sec
-#define REPLY_TIMEOUT  200  //200 msec
+#define REPLY_TIMEOUT  500  //200 msec
 
 void loop ()
 {
-  // ---------------- transmitter ------------------------------
-  char inBuf[BLOCKSIZE];
-  char outBuf[BLOCKSIZE]= "hello world";
+   // ---------------- transmitter ------------------------------
+  byte inBuf[BLOCKSIZE];
+  const byte outBuf[BLOCKSIZE]= "hello world";
   static unsigned long last_transmission = 0;
   static int waiting_for_reply = 0;
   unsigned long err = 0;
@@ -68,7 +69,7 @@ void loop ()
         // TODO - signal error somehow
         logger.println ("Master reply timeout");
     }
-    logger.print( "!" );
+    //logger.print( "!" );
   }     // if (waiting_for_reply)
 
   else if( (unsigned long)(millis() - last_transmission) > TRM_INTERVAL){  // check if it is time for the next comm
@@ -80,31 +81,40 @@ void loop ()
     Master_Flush ();                     // make sure the data are transmitted properly befor swithching the line direction
     Master_485_receive_mode();
     Master_Flush();         // flushes both Tx and Rx
-    logger.println("MSG transmitted, receive timeout started");
+    logger.println("Master MSG transmitted, receive timeout started");
     waiting_for_reply = 1;
   }
   else {
-    logger.print( "." );
+    //logger.print( "." );
   }
 
   if(err = MasterMsgChannel.getErrorCount()) {
     logger.print("Master errors cnt:");
     logger.println(err, DEC);
+    
   }  
   // ----------- slave simulation -------------------------------------------
   // ---------------- receiver ------------------------------
   if (SlaveMsgChannel.update ())
   {
     logger.print ("\nSlave message received: ");
-    memcpy (inBuf, SlaveMsgChannel.getData (), SlaveMsgChannel.getLength ()); 
-    logger.write (inBuf); 
+	  int len = SlaveMsgChannel.getLength ();
+    memcpy (inBuf, SlaveMsgChannel.getData (), len); 
+    logger.write ((const char *)inBuf); 
     //logger.println ();
+	  for (int i=0; i < len; i++)
+		inBuf[i] = toupper(inBuf[i]);
     // Process message and send reply
     logger.println( "\nSlave:  Sending reply -------------------------------" );
-    
+    Slave_485_transmit_mode();
+    SlaveMsgChannel.sendMsg (inBuf, len);
+    Slave_Flush ();                     // make sure the data are transmitted properly befor swithching the line direction
+    Slave_485_receive_mode();
+    Slave_Flush();         // flushes both Tx and Rx
+    logger.println("Slave reply transmitted, going back to listening mode");
   }
-  else 
-    logger.print ("~");
+  //else 
+    //logger.print ("~");
 
   if(err = SlaveMsgChannel.getErrorCount()) {
     logger.print("Slave errors cnt:");

@@ -43,7 +43,8 @@ void loop ()
   const byte outBuf[BLOCKSIZE]= "hello world";
   static unsigned long last_transmission = 0;
   static int waiting_for_reply = 0;
-  unsigned long err = 0;
+  static unsigned long master_err = 0;
+  static unsigned long slave_err = 0;
 
 
   
@@ -87,11 +88,10 @@ void loop ()
   else {
     //logger.print( "." );
   }
-
-  if(err = MasterMsgChannel.getErrorCount()) {
-    logger.print("Master errors cnt:");
-    logger.println(err, DEC);
-    
+  if(master_err != MasterMsgChannel.getErrorCount()) {
+      master_err = MasterMsgChannel.getErrorCount();
+      logger.print("Master errors cnt now:");
+      logger.println(master_err, DEC);
   }  
   // ----------- slave simulation -------------------------------------------
   // ---------------- receiver ------------------------------
@@ -116,9 +116,10 @@ void loop ()
   //else 
     //logger.print ("~");
 
-  if(err = SlaveMsgChannel.getErrorCount()) {
+  if(slave_err != SlaveMsgChannel.getErrorCount()) {
+    slave_err = SlaveMsgChannel.getErrorCount();
     logger.print("Slave errors cnt:");
-    logger.println(err, DEC);
+    logger.println(slave_err, DEC);
   }
 }  // end of loop
 

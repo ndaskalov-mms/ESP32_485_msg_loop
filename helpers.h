@@ -10,33 +10,50 @@
 //HardwareSerial& MasterUART(Serial1);
 //HardwareSerial& SlaveUART(Serial2);
 
+#define REPLY_OFFSET  0x80
 // COMMAND CODES
 // commands definition
 // high nibble contains command code, while low nibble contains the recipient ID
 // Master ID is always 0x0, while 0xF is reserved for broadcast message (not used so far)
 enum command_codes{
       PING = 0x0,             // ping 
-      POLL_ZONES = 0x1,      // poll the extenders for zones status
-      SET_OUTS = 0x2,     // set output relay
+      POLL_ZONES = 0x1,       // poll the extenders for zones status
+      SET_OUTS = 0x2,         // set output relay
+      FREE_TEXT = 0x3,        // send free text (can be binary too)
 };  // end of enum
 
 // RESULT CODES
-// the result code is simply the command code with MS bit set
+// the result code is simply the command code with MS bit set:  REPLY_OFFSET = 0x80
 enum result_codes{
-      PING_RES = (PING | 0x80),     // ping 
-      POLL_ZONES_RES = (POLL_ZONES | 0x80),      // poll the extenders for zones status
-      SET_OUTS_RES = (SET_OUTS  | 0x80),     // set output relay
+      PING_RES = (PING | REPLY_OFFSET),     // ping 
+      POLL_ZONES_RES = (POLL_ZONES | REPLY_OFFSET),      // poll the extenders for zones status
+      SET_OUTS_RES = (SET_OUTS  | REPLY_OFFSET),         // set output relay
+      FREE_TEXT_RES = (FREE_TEXT  | REPLY_OFFSET),
 };  // end of enum
 
-// compse message containing:
+// compose message containing:
 // first byte:  upper 4 bits - command code 
 //              lower 4 bits  - destination ID
 // the rest:    payload, up to MAX_PAYLOAD_SIZE
+// return: pointer to buffer with the composed message or NULL if error
 byte * compose_msg(byte cmd, byte dest, byte *payload, byte *out_buf, int payload_len) {
   int index = 0;
-  out_buf[index] = ((cmd << 4) | (dest ^ 0x0F));
-  
+  // first byte is COMMMAND/REPLY code combined with the destination address 
+  out_buf[index++] = ((cmd << 4) | (dest & 0x0F));
+  // next comes the payload
+  if ((payload_len + index) > MAX_MSG_LENGHT) {
+    logger.printf("Payload size %d is larger than buffer size %d", payload_len, MAX_MSG_LENGHT);
+    return NULL;
+  }
+  // copy  
+  for (int i =0; i< payload_len; i++) 
+    out_buf[index++] = payload[i];
+    
+  return out_buf;
 }
+
+
+
 size_t Master_Log_Write (char * what)
 {return logger.println (what);}
 

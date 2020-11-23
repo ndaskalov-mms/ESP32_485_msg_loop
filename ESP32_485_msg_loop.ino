@@ -6,13 +6,19 @@ constexpr int LOG_BITRATE = 115200;
 #define MASTER
 #define SLAVE
 
-#define HEADER_SIZE 1   //STX, 1 byte
-#define FOOTER_SIZE 1   //ETX, 1 byte
+#define HEADER_SIZE 1   //STX, 1 byte, no encoding
+#define FOOTER_SIZE 1   //ETX, 1 byte  no encoding
+#define CRC_SIZE    2   //CRC, 1 byte but due to encoding is send as 2 bytes
+#define CMD_SIZE    2   //COMMAND/REPLY + DESTINATION, 1 byte but due to encoding is send as 2 bytes
+#define PAYLOAD_OFFSET  (CMD_SIZE/2) // payload offset in the received buffer 
 #define TxFIFO_SIZE 128 //ESP32 TxFIFO, we expect that whole message get's in FIFO in order not to block loop()
-#define MAX_MSG_LENGHT  ((TxFIFO_SIZE - (HEADER_SIZE + FOOTER_SIZE))/2)  //message encodding doubles every nibble except STX and ETX
-#define CMD_SIZE  1     // 1 byte command lenght
+#define MAX_MSG_LENGHT  ((TxFIFO_SIZE - (HEADER_SIZE + FOOTER_SIZE + CRC_SIZE))/2)  //message encodding doubles every nibble except STX and ETX
 #define MAX_PAYLOAD_SIZE  (MAX_MSG_LENGHT - CMD_SIZE)   // shall be max 112 = ((128-(1+1))/2) - 1
 #define RxBUF_SIZE 128  //no material limit
+#define MASTER_ADDRESS  0
+#define SLAVE1_ADDRESS  1
+#define SLAVE2_ADDRESS  2
+
 
 HardwareSerial& logger(Serial);
 HardwareSerial& MasterUART(Serial1);
@@ -21,9 +27,28 @@ HardwareSerial& SlaveUART(Serial2);
 #include "helpers.h"      // include helper functions. INCLUDE ONLY AFTER SERIAL PORT DEFINITIONS!!!!
 
 
+byte test_msg [MAX_PAYLOAD_SIZE] = "5Hello world;6Hello world;7Hello world;8Hello world;9Hello0";
+#define TRM_INTERVAL  1000  //1 sec
+#define REPLY_TIMEOUT  500  //200 msec
+
 //this is channel to send/receive packets over serial if. The comm to serial is via fRead, fWrite,...
 RS485 MasterMsgChannel (Master_Read, Master_Available, Master_Write, Master_Log_Write, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
 RS485 SlaveMsgChannel (Slave_Read, Slave_Available, Slave_Write, Slave_Log_Write, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
+
+
+void SlaveSendMessage(byte cmd, byte dest, byte *payload, byte *out_buf, int payload_len) {
+    // byte * compose_msg(byte cmd, byte dest, byte *payload, byte *out_buf, int payload_len)
+    if(!compose_msg(cmd, dest, payload, out_buf, payload_len))
+      logger.println( "\nMaster:  Error composing message -  too long???");
+ 
+    logger.println( "\nSlave:  Sending reply -------------------------------" );
+    Slave_485_transmit_mode();
+    SlaveMsgChannel.sendMsg (out_buf, payload_len);
+    Slave_Flush ();                     // make sure the data are transmitted properly befor swithching the line direction
+    Slave_485_receive_mode();
+    Slave_Flush();         // flushes both Tx and Rx
+    logger.println("Slave reply transmitted, going back to listening mode");
+}
 
 void setup() {
   logger.begin(LOG_BITRATE,SERIAL_8N1);
@@ -34,18 +59,14 @@ void setup() {
   MasterMsgChannel.begin ();      
   SlaveMsgChannel.begin ();  
   logger.println("Loopback example for Esp32+485");
+  logger.printf("MAX_MSG_LENGHT = %d", MAX_MSG_LENGHT  );
 }
-
-
-byte msg [TxFIFO_SIZE] = "Hello world";
-#define TRM_INTERVAL  1000  //1 sec
-#define REPLY_TIMEOUT  500  //200 msec
 
 void loop ()
 {
    // ---------------- transmitter ------------------------------
   byte inBuf[RxBUF_SIZE];
-  const byte outBuf[TxFIFO_SIZE]= "hello world";
+  byte outBuf[MAX_MSG_LENGHT] = "";
   static unsigned long last_transmission = 0;
   static int waiting_for_reply = 0;
   static unsigned long master_err = 0;
@@ -66,7 +87,7 @@ void loop ()
       logger.println ();
       waiting_for_reply = 0;
       Master_485_transmit_mode();  // seems redundant
-      // process message
+      // process message here
     }
     else if((unsigned long)(millis() - last_transmission) > REPLY_TIMEOUT) {
         // reply not received
@@ -80,8 +101,11 @@ void loop ()
 
   else if( (unsigned long)(millis() - last_transmission) > TRM_INTERVAL){  // check if it is time for the next comm
     logger.println( "\nMaster:  Time to transmit -------------------------------" );
+    // byte * compose_msg(byte cmd, byte dest, byte *payload, byte *out_buf, int payload_len)
+    if(!compose_msg(FREE_TEXT, MASTER_ADDRESS, test_msg, outBuf, MAX_PAYLOAD_SIZE))
+      logger.println( "\nMaster:  Error composing message -  too long???");
     Master_485_transmit_mode();
-    MasterMsgChannel.sendMsg (msg, sizeof (msg));
+    MasterMsgChannel.sendMsg (outBuf, MAX_MSG_LENGHT);
     last_transmission = millis();    // mark the transmit time so we can calculate the time for the next transmission and check for reply timeout
     // TODO for same channel loopback use Master_TxFlush only, otherwise use Master_Flush()
     Master_Flush ();                     // make sure the data are transmitted properly befor swithching the line direction
@@ -105,21 +129,40 @@ void loop ()
     logger.print ("\nSlave message received: ");
 	  int len = SlaveMsgChannel.getLength ();
     memcpy (inBuf, SlaveMsgChannel.getData (), len); 
-    logger.write ((const char *)inBuf); 
-    //logger.println ();
-	  for (int i=0; i < len; i++)
-		inBuf[i] = toupper(inBuf[i]);
+
+    // slave process received message
+    byte cmd = ((inBuf[0] >> 4) & 0x0F);
+    byte dest = inBuf[0] & 0x0F;
+    
+    logger.printf ("Slave received CMD: %x; DEST: %x; payload len: %d; PAYLOAD: ", cmd, dest, len);
+    logger.write (&inBuf[PAYLOAD_OFFSET], len);
+
     // Process message and send reply
-    logger.println( "\nSlave:  Sending reply -------------------------------" );
-    Slave_485_transmit_mode();
-    SlaveMsgChannel.sendMsg (inBuf, len);
-    Slave_Flush ();                     // make sure the data are transmitted properly befor swithching the line direction
-    Slave_485_receive_mode();
-    Slave_Flush();         // flushes both Tx and Rx
-    logger.println("Slave reply transmitted, going back to listening mode");
-  }
-  //else 
-    //logger.print ("~");
+    // PING = 0x0,             // ping 
+    // POLL_ZONES = 0x1,       // poll the extenders for zones status
+    // SET_OUTS = 0x2,         // set output relay
+    // FREE_TEXT = 0x3         // send unformatted payload up to MAX_PAYLOAD_SIZE
+    switch (cmd) {
+      case PING:
+        logger.printf("Unsupported command received PING\n");
+        break;
+      case POLL_ZONES:
+        logger.printf("Unsupported command received POLL_ZONES\n");
+        break;
+      case SET_OUTS:
+        logger.printf("Unsupported command received SET_OUTPUTS\n");
+        break;
+      case FREE_TEXT:
+        logger.printf("Command received FREE_TEXT\n");
+        // return the same payload converted to uppercase
+        for (int i=0; i < len; i++)
+          inBuf[i] = toupper(inBuf[i]);
+        SlaveSendMessage (FREE_TEXT_RES, dest, inBuf, outBuf, len);
+        break;
+      default:
+        logger.printf("Invalid command received %d\n", cmd);
+    }
+  } // if update()
 
   if(slave_err != SlaveMsgChannel.getErrorCount()) {
     slave_err = SlaveMsgChannel.getErrorCount();

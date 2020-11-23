@@ -6,7 +6,13 @@ constexpr int LOG_BITRATE = 115200;
 #define MASTER
 #define SLAVE
 
-constexpr int BLOCKSIZE = 128; // use fractions of 256
+#define HEADER_SIZE 1   //STX, 1 byte
+#define FOOTER_SIZE 1   //ETX, 1 byte
+#define TxFIFO_SIZE 128 //ESP32 TxFIFO, we expect that whole message get's in FIFO in order not to block loop()
+#define MAX_MSG_LENGHT  ((TxFIFO_SIZE - (HEADER_SIZE + FOOTER_SIZE))/2)  //message encodding doubles every nibble except STX and ETX
+#define CMD_SIZE  1     // 1 byte command lenght
+#define MAX_PAYLOAD_SIZE  (MAX_MSG_LENGHT - CMD_SIZE)   // shall be max 112 = ((128-(1+1))/2) - 1
+#define RxBUF_SIZE 128  //no material limit
 
 HardwareSerial& logger(Serial);
 HardwareSerial& MasterUART(Serial1);
@@ -16,11 +22,10 @@ HardwareSerial& SlaveUART(Serial2);
 
 
 //this is channel to send/receive packets over serial if. The comm to serial is via fRead, fWrite,...
-RS485 MasterMsgChannel (Master_Read, Master_Available, Master_Write, Master_Log_Write, BLOCKSIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
-RS485 SlaveMsgChannel (Slave_Read, Slave_Available, Slave_Write, Slave_Log_Write, BLOCKSIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
+RS485 MasterMsgChannel (Master_Read, Master_Available, Master_Write, Master_Log_Write, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
+RS485 SlaveMsgChannel (Slave_Read, Slave_Available, Slave_Write, Slave_Log_Write, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
 
 void setup() {
-
   logger.begin(LOG_BITRATE,SERIAL_8N1);
   // set UARTs
   MasterUART.begin(BITRATE,SERIAL_8N1, 21, 22);  // re-routing RxD to  GPIO21 and TxD to GPIO22
@@ -32,15 +37,15 @@ void setup() {
 }
 
 
-const byte msg [] = "Hello world";
+byte msg [TxFIFO_SIZE] = "Hello world";
 #define TRM_INTERVAL  1000  //1 sec
 #define REPLY_TIMEOUT  500  //200 msec
 
 void loop ()
 {
    // ---------------- transmitter ------------------------------
-  byte inBuf[BLOCKSIZE];
-  const byte outBuf[BLOCKSIZE]= "hello world";
+  byte inBuf[RxBUF_SIZE];
+  const byte outBuf[TxFIFO_SIZE]= "hello world";
   static unsigned long last_transmission = 0;
   static int waiting_for_reply = 0;
   static unsigned long master_err = 0;

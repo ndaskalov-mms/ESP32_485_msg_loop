@@ -10,60 +10,71 @@
 //HardwareSerial& MasterUART(Serial1);
 //HardwareSerial& SlaveUART(Serial2);
 
-size_t Master_Log_Write (char * what)
-{
-  return logger.println (what);  
+// COMMAND CODES
+// commands definition
+// high nibble contains command code, while low nibble contains the recipient ID
+// Master ID is always 0x0, while 0xF is reserved for broadcast message (not used so far)
+enum command_codes{
+      PING = 0x0,             // ping 
+      POLL_ZONES = 0x1,      // poll the extenders for zones status
+      SET_OUTS = 0x2,     // set output relay
+};  // end of enum
+
+// RESULT CODES
+// the result code is simply the command code with MS bit set
+enum result_codes{
+      PING_RES = (PING | 0x80),     // ping 
+      POLL_ZONES_RES = (POLL_ZONES | 0x80),      // poll the extenders for zones status
+      SET_OUTS_RES = (SET_OUTS  | 0x80),     // set output relay
+};  // end of enum
+
+// compse message containing:
+// first byte:  upper 4 bits - command code 
+//              lower 4 bits  - destination ID
+// the rest:    payload, up to MAX_PAYLOAD_SIZE
+byte * compose_msg(byte cmd, byte dest, byte *payload, byte *out_buf, int payload_len) {
+  int index = 0;
+  out_buf[index] = ((cmd << 4) | (dest ^ 0x0F));
+  
 }
+size_t Master_Log_Write (char * what)
+{return logger.println (what);}
 
 size_t Slave_Log_Write (char * what)
-{
-  return logger.println (what);  
-}
+{return logger.println (what);}
 
 size_t Master_Write (const byte what)
-{
-  return MasterUART.write (what);  
-}
+{return MasterUART.write (what);}
 
 int Master_Available ()
-{
-  return MasterUART.available();
-}
+{return MasterUART.available();}
  
 int Master_Read ()
-{
-  return MasterUART.read();
-}
+{return MasterUART.read();}
  
 // flush transmitter only 
-void Master_TxFlush()
-{
+void Master_TxFlush(){
   while(MasterUART.availableForWrite()!=127) ;  // availableForWrite returns 0x7f - uart->dev->status.txfifo_cnt;
   delay(5);
 }
 
 // flush receiver only 
-void Master_RxFlush()
-{
+void Master_RxFlush(){
   while(Master_Available())
 	Master_Read ();
 }
 
 // flush both
 void Master_Flush()
-{
-  MasterUART.flush();
-}
+{MasterUART.flush();}
 
-void Master_485_receive_mode()
-{
+void Master_485_receive_mode(){
   // change line dir
   delay(1);
   //Master_RxFlush();
 }
 
-void Master_485_transmit_mode()
-{
+void Master_485_transmit_mode(){
     // change line dir
   delay(1);
   //Master_TxFlush();
@@ -72,49 +83,37 @@ void Master_485_transmit_mode()
 //---------- callbacks for slave UART channel
 
 size_t Slave_Write (const byte what)
-{
-  return SlaveUART.write (what);  
-}
+{return SlaveUART.write (what);}
 
 int Slave_Available ()
-{
-  return SlaveUART.available();
-}
+{return SlaveUART.available();}
  
 int Slave_Read ()
-{
-  return SlaveUART.read();
-}
+{return SlaveUART.read();}
  
 // flush transmitter only 
-void Slave_TxFlush()
-{
+void Slave_TxFlush(){
   while(SlaveUART.availableForWrite()!=127) ;
   delay(5);
 }
 
 // flush receiver only 
-void Slave_RxFlush()
-{
+void Slave_RxFlush(){
   while(Slave_Available())   // TODO add error handling
 	Slave_Read ();
 }
 
 // flush both
 void Slave_Flush()
-{
-  SlaveUART.flush();
-}
+{SlaveUART.flush();}
 
-void Slave_485_receive_mode()
-{
+void Slave_485_receive_mode(){
   // change line dir
   delay(1);
   Slave_RxFlush();
 }
 
-void Slave_485_transmit_mode()
-{
+void Slave_485_transmit_mode(){
     // change line dir
   delay(1);
   Slave_TxFlush();

@@ -22,15 +22,16 @@
 #define MASTER_ADDRESS  0
 #define SLAVE1_ADDRESS  1
 #define SLAVE2_ADDRESS  2
-#define REPLY_OFFSET    0x80
+#define REPLY_OFFSET    0x8
 
 // COMMAND CODES
 // commands definition
 // high nibble contains command code, while low nibble contains the recipient ID
 // Master ID is always 0x0, while 0xF is reserved for broadcast message (not used so far)
-// RESULT CODES
-// the result code is simply the command code with MS bit set:  REPLY_OFFSET = 0x80
+// RESULT CODES - the result code is simply the command code with MS bit set:  REPLY_OFFSET = 0x80
 // ----------------- PING -----------------------------------
+
+#define BROADCAST_ID          0xF
 #define PING                  0x0                  // ping 
 #define PING_PAYLD_LEN        0                    // ping message has no payload
 #define PING_RES              (PING|REPLY_OFFSET)  // ping reply code 
@@ -51,10 +52,16 @@
 
 // ----------------- FREE_TEXT -----------------------------
 #define FREE_TEXT             0x3                        // send free text (can be binary too)
-#define SET_OUTS_PAYLD_LEN    MAX_PAYLOAD_SIZE           // FREE_TEXT payload is up to MAX_PAYLOAD_SIZE
+#define FREE_TEXT_PAYLD_LEN    MAX_PAYLOAD_SIZE          // FREE_TEXT payload is up to MAX_PAYLOAD_SIZE
 #define FREE_TEXT_RES         (FREE_TEXT  | REPLY_OFFSET)
 #define FREE_TEXT_RES_PAYLD_LEN MAX_PAYLOAD_SIZE         // FREE_TEXT_RES payload is up to MAX_PAYLOAD_SIZE
 
+
+// errors
+struct ERRORS {
+  unsigned long rs485 = 0;
+  unsigned long protocol = 0;
+} comm_errors;
 
 // compose message containing:
 // first byte:  upper 4 bits - command code 
@@ -67,7 +74,7 @@ byte * compose_msg(byte cmd, byte dest, byte *payload, byte *out_buf, int payloa
   out_buf[index++] = ((cmd << 4) | (dest & 0x0F));
   // next comes the payload
   if ((payload_len + index) > MAX_MSG_LENGHT) {
-    logger.printf("Payload size %d is larger than buffer size %d", payload_len, MAX_MSG_LENGHT);
+    logger.printf("Payload size %d is larger than buffer size %d, skipping", payload_len, MAX_MSG_LENGHT);
     return NULL;
   }
   // copy  

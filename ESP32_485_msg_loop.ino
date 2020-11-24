@@ -1,33 +1,31 @@
 #include "Alarm_RS485.h"
 
-constexpr int BITRATE = 115200;
-constexpr int LOG_BITRATE = 115200;
-
 #define MASTER
 #define SLAVE
 
-
+constexpr int BITRATE = 115200;
+constexpr int LOG_BITRATE = 115200;
 HardwareSerial& logger(Serial);
 HardwareSerial& MasterUART(Serial1);
 HardwareSerial& SlaveUART(Serial2);
 
 #include "helpers.h"      // include helper functions. INCLUDE ONLY AFTER SERIAL PORT DEFINITIONS!!!!
-
-byte inBuf[RxBUF_SIZE];
-byte outBuf[MAX_MSG_LENGHT] = "";
-static unsigned long last_transmission = 0;
-static int waiting_for_reply = 0;
-static unsigned long master_err = 0;
-static unsigned long slave_err = 0;
-byte test_msg [MAX_PAYLOAD_SIZE] = "5Hello world;6Hello world;7Hello world;8Hello world;9Hello0";
 #define TRM_INTERVAL  1000  //1 sec
 #define REPLY_TIMEOUT  500  //200 msec
 
+// ------------------------- variacles definition -----------------------------
+byte inBuf[RxBUF_SIZE];
+byte outBuf[MAX_MSG_LENGHT] = "";
+unsigned long last_transmission = 0;
+int waiting_for_reply = 0;
+unsigned long master_err = 0;
+unsigned long slave_err = 0;
+byte test_msg [MAX_PAYLOAD_SIZE] = "5Hello world;6Hello world;7Hello world;8Hello world;9Hello0";
 //this is channel to send/receive packets over serial if. The comm to serial is via fRead, fWrite,...
 RS485 MasterMsgChannel (Master_Read, Master_Available, Master_Write, Master_Log_Write, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
 RS485 SlaveMsgChannel (Slave_Read, Slave_Available, Slave_Write, Slave_Log_Write, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
 
-
+// ------------------------- code ----------------------------------------------
 void SlaveSendMessage(byte cmd, byte dest, byte *payload, byte *out_buf, int payload_len) {
     // byte * compose_msg(byte cmd, byte dest, byte *payload, byte *out_buf, int payload_len)
     if(!compose_msg(cmd, dest, payload, out_buf, payload_len))
@@ -53,20 +51,9 @@ void setup() {
   logger.printf("MAX_MSG_LENGHT = %d", MAX_MSG_LENGHT  );
 }
 
-
-
-
-  
 void loop ()
 {
-   // ---------------- transmitter ------------------------------
-
-
-
-  
-  // ----------- master simulation -------------------------------------------
-  //logger.println("Transmitter:");
-
+#ifdef MASTER
   if (waiting_for_reply)
   {
     if (MasterMsgChannel.update ())
@@ -111,7 +98,9 @@ void loop ()
       master_err = MasterMsgChannel.getErrorCount();
       logger.print("Master errors cnt now:");
       logger.println(master_err, DEC);
-  }  
+  } 
+#endif
+#ifdef SLAVE
   // ----------- slave simulation -------------------------------------------
   // ---------------- receiver ------------------------------
   if (SlaveMsgChannel.update ())
@@ -159,6 +148,7 @@ void loop ()
     logger.print("Slave errors cnt:");
     logger.println(slave_err, DEC);
   }
+#endif
 }  // end of loop
 
 /*  

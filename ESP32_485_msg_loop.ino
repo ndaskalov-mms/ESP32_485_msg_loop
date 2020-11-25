@@ -41,12 +41,13 @@ enum msgParseErr {
 };
 
 
-struct MSG rcvMsg;
+struct MSG rcvMsg; tmpMsg;
 
 // ------------------------- code ----------------------------------------------
-void SlaveSendMessage(byte cmd, byte dest, byte *payload, byte *out_buf, int payload_len) {
+void SlaveSendMessage(RS485& trm_channel, struct MSG msg2trm ) {
+    byte tmpBuf[MAX_MSG_LENGHT];
     // byte * compose_msg(byte cmd, byte dest, byte *payload, byte *out_buf, int payload_len)
-    if(!compose_msg(cmd, dest, payload, out_buf, payload_len))
+    if(!compose_msg(msg2trm.cmd, msg2trm.dst, msg2trm.payload, tmpBuf, msg2trm.len))
       logger.println( "\nSlave:  Error composing message -  too long???");
     logger.println( "\nSlave:  Sending reply -------------------------------" );
     Slave_485_transmit_mode();
@@ -213,8 +214,11 @@ void loop ()
           // logger.printf("Command received FREE_TEXT\n");
           // return the same payload converted to uppercase
           for (int i=0; i < rcvMsg.len; i++)
-            inBuf[i] = toupper(rcvMsg.payload[i]);
-          SlaveSendMessage (FREE_TEXT_RES, MASTER_ADDRESS, inBuf, outBuf, rcvMsg.len);
+            tmpMsg.payload[i] = toupper(rcvMsg.payload[i]);
+          tmpMsg.cmd = FREE_TEXT | REPLY_OFFSET;
+          tmpMsg.len = rcvMsg.len;
+          tmpMsg.dst = MASTER_ADDRESS;
+          SendMessage (SlaveMsgChannel, tmpMsg);
           break;
         default:
           logger.printf("Invalid command received %d\n", rcvMsg.cmd);

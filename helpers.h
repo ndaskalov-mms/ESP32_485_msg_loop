@@ -17,7 +17,7 @@
 #define PAYLOAD_OFFSET  (CMD_SIZE/2) // payload offset in the received buffer 
 #define TxFIFO_SIZE 128 //ESP32 TxFIFO, we expect that whole message get's in FIFO in order not to block loop()
 #define MAX_MSG_LENGHT  ((TxFIFO_SIZE - (HEADER_SIZE + FOOTER_SIZE + CRC_SIZE))/2)  //message encodding doubles every nibble except STX and ETX
-#define MAX_PAYLOAD_SIZE  (MAX_MSG_LENGHT - CMD_SIZE)   // shall be max 112 = ((128-(1+1))/2) - 1
+#define MAX_PAYLOAD_SIZE  (MAX_MSG_LENGHT - CMD_SIZE/2)   // shall be max 61 = ((128-(1+1+1))/2) - 1
 #define RxBUF_SIZE 128  //no material limit
 #define MASTER_ADDRESS  0
 #define SLAVE1_ADDRESS  1

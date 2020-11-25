@@ -21,7 +21,7 @@ unsigned long last_transmission = 0;
 int waiting_for_reply = 0;
 unsigned long master_err = 0;
 unsigned long slave_err = 0;
-byte test_msg [MAX_PAYLOAD_SIZE] = "5Hello world;6Hello world;7Hello world;8Hello world;9Hello0";
+byte test_msg [MAX_PAYLOAD_SIZE] = "5Hello world;6Hello world;7Hello world;8Hello world;9Hello";
 //this is channel to send/receive packets over serial if. The comm to serial is via fRead, fWrite,...
 RS485 MasterMsgChannel (Master_Read, Master_Available, Master_Write, Master_Log_Write, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
 RS485 SlaveMsgChannel (Slave_Read, Slave_Available, Slave_Write, Slave_Log_Write, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
@@ -59,27 +59,22 @@ void SlaveSendMessage(byte cmd, byte dest, byte *payload, byte *out_buf, int pay
 
 struct MSG  parse_msg(RS485& rcv_channel) {
 
-    struct MSG rmsg;  // MasterMsgChannel.getLength
-    rmsg.parse_err = 0;
-    rmsg.len = rcv_channel.getLength(); // command+dest (1 byte) + payload_len (command specific)
-    byte inbuf[MAX_MSG_LENGHT];
-    if ((rmsg.len <  1) || (rmsg.len >  MAX_MSG_LENGHT)){ // message len issue
-      comm_errors.protocol++;
-      rmsg.parse_err = INV_PAYLD_LEN;
-      logger.printf("parse_MSG: Invalid message payload len = %d\n", rmsg.len);
-      return rmsg;        // error, no command code in message
-    }
-    memcpy (inbuf, rcv_channel.getData (), rmsg.len);   // copy message in temp buf
-    // extract command and destination
-    rmsg.cmd = ((inBuf[0] >> 4) & 0x0F);
-    rmsg.dst = inBuf[0] & 0x0F;                        // TODO - where we have to check if we are the destination for this message
-    logger.printf("Parse message recv: LEN = %d, CMD|DST = %x, PAYLOAD = %s\n", rmsg.len, rmsg.dst, &inBuf[1]);
-    if((rmsg.dst != BROADCAST_ID) && (rmsg.dst != boardID)) {
-      logger.printf("Command for board %d received\n", rmsg.dst);
-      rmsg.parse_err = BAD_DST;
-      return rmsg;         // the command is for different board
-    }
+    struct MSG rmsg;                                      // temp buffers
+    byte inbuf[MAX_MSG_LENGHT]; 
+    rmsg.parse_err = 0;                                   // clear error flags
     
+    rmsg.len = rcv_channel.getLength();                   // command+dest (1 byte) + payload_len (command specific)
+    if ((rmsg.len <  1) || (rmsg.len >  MAX_MSG_LENGHT)){ // message len issue, at least 1 byte (command+dest)
+      comm_errors.protocol++;
+      rmsg.parse_err = INV_PAYLD_LEN;                     
+      logger.printf("parse_MSG: Invalid message payload len = %d\n", rmsg.len);
+      return rmsg;                                        // error, no command code in message
+    }
+    memcpy (inbuf, rcv_channel.getData (), rmsg.len);     // copy message in temp buf
+    // extract command and destination
+    rmsg.cmd = ((inBuf[0] >> 4) & 0x0F);                  // cmd is hih nibble
+    rmsg.dst = inBuf[0] & 0x0F;                           // destination is low nibble
+    logger.printf("Parse message recv: LEN = %d, CMD|DST = %x, PAYLOAD = %s\n", rmsg.len, rmsg.dst, &inBuf[1]);
     switch (rmsg.cmd & ~(0xF0 | REPLY_OFFSET )) {        // check for valid commands and replies. clear reply bit to facilitate test
       case PING:
         memcpy(rmsg.payload, &inbuf[1], PING_PAYLD_LEN);
@@ -113,8 +108,9 @@ void setup() {
   MasterMsgChannel.begin ();      
   SlaveMsgChannel.begin ();  
   boardID = 1;      // TODO - get board ID
-  logger.println("Loopback example for Esp32+485");
-  logger.printf("MAX_MSG_LENGHT = %d", MAX_MSG_LENGHT  );
+  logger.printf("Loopback example for Esp32+485\n");
+  logger.printf("MAX_MSG_LENGHT = %d\n", MAX_MSG_LENGHT  );
+  logger.printf("MAX_PAYLOAD_SIZE = %d\n", MAX_PAYLOAD_SIZE );
 }
 
 void loop ()
@@ -175,7 +171,6 @@ void loop ()
     logger.print ("\nSlave message received: \n");
     int len = SlaveMsgChannel.getLength ();
     memcpy (inBuf, SlaveMsgChannel.getData (), len); 
-
     // slave process received message
     byte cmd = ((inBuf[0] >> 4) & 0x0F);
     byte dest = inBuf[0] & 0x0F;
@@ -185,16 +180,16 @@ void loop ()
 
     rcvMsg = parse_msg(SlaveMsgChannel);   
     if (rcvMsg.parse_err) {
-      if(rcvMsg.parse_err != BAD_DST)       // if the message is not for us this is not real error, just skip the processing
-        logger.printf ("Slave parse message error %d\n", rcvMsg.parse_err);
-    } else {
+      if(rcvMsg.parse_err != BAD_DST)         // if the message is not for us this is not real error, just skip the processing
+        logger.printf ("Slave parse message error %d\n", rcvMsg.parse_err); // yse, do nothing
+    } 
+    else if (rcvMsg.dst == BROADCAST_ID)      // check for broadcast message
+      logger.printf("Broadcast command received, skipping\n");  // do nothing
+    else if (rcvMsg.dst != boardID)           // check if the destination is another board
+      ;                                       // yes, do nothing
+    else { 
       logger.printf ("Slave received CMD: %x; DEST: %x; payload len: %d; PAYLOAD: ", rcvMsg.cmd, rcvMsg.dst, rcvMsg.len);
       logger.write (rcvMsg.payload, rcvMsg.len);
-      // Process message and send reply
-      // PING = 0x0,             // ping 
-      // POLL_ZONES = 0x1,       // poll the extenders for zones status
-      // SET_OUTS = 0x2,         // set output relay
-      // FREE_TEXT = 0x3         // send unformatted payload up to MAX_PAYLOAD_SIZE
       switch (rcvMsg.cmd) {
         case PING:
           logger.printf("Unsupported command received PING\n");

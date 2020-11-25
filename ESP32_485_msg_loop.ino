@@ -73,9 +73,16 @@ void loop ()
 
   else if( (unsigned long)(millis() - last_transmission) > TRM_INTERVAL){  // check if it is time for the next comm
     logger.println( "\nMaster:  Time to transmit -------------------------------" );
+    tmpMsg.cmd = FREE_TEXT;
+    tmpMsg.dst = SLAVE1_ADDRESS;
+    tmpMsg.len = MAX_PAYLOAD_SIZE;
+    //    memcpy(&tmpMsg.payload, test_msg, MAX_PAYLOAD_SIZE);
+    for(int i=0; i<MAX_PAYLOAD_SIZE; i++)
+      tmpMsg.payload[i] = test_msg[i];
+    SendMessage(MasterMsgChannel, tmpMsg);
     // byte * compose_msg(byte cmd, byte dest, byte *payload, byte *out_buf, int payload_len)
-    if(!compose_msg(FREE_TEXT, SLAVE1_ADDRESS, test_msg, outBuf, MAX_PAYLOAD_SIZE))
-      logger.println( "\nMaster:  Error composing message -  too long???");
+    //if(!compose_msg(FREE_TEXT, SLAVE1_ADDRESS, test_msg, outBuf, MAX_PAYLOAD_SIZE))
+    //  logger.println( "\nMaster:  Error composing message -  too long???");
     Master_485_transmit_mode();
     MasterMsgChannel.sendMsg (outBuf, MAX_MSG_LENGHT);
     last_transmission = millis();    // mark the transmit time so we can calculate the time for the next transmission and check for reply timeout

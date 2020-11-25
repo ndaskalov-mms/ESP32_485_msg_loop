@@ -10,7 +10,7 @@
 // return: lenght of the composed message or NULL if error
 byte  compose_msg(byte cmd, byte dest, byte *payload, byte *out_buf, int payload_len) {
   int index = 0;
-  // first byte is COMMMAND/REPLY code (4 ms BITS) combined with the destination address (4 ls BITS)
+  // first byte is COMMMAND/REPLY code (4 MS BITS) combined with the destination address (4 ls BITS)
   out_buf[index++] = ((cmd << 4) | (dest & 0x0F));
   // next comes the payload
   if ((payload_len + index) > MAX_MSG_LENGHT) {
@@ -57,7 +57,7 @@ struct MSG  parse_msg(RS485& rcv_channel) {
       return rmsg;                                        // error, no command code in message
     } 
     memcpy (tmpBuf, rcv_channel.getData (), rmsg.len);     // copy message in temp buf
-    //logger.printf("Parse message recv: LEN = %d, CMD|DST = %x, PAYLOAD = %s\n", rmsg.len, tmpBuf[0], &tmpBuf[1]);
+    logger.printf("Parse message recv: LEN = %d, CMD|DST = %x, PAYLOAD = %s\n", rmsg.len, tmpBuf[0], &tmpBuf[1]);
     // extract command and destination
     rmsg.cmd = ((tmpBuf[0] >> 4) & 0x0F);                  // cmd is hih nibble
     rmsg.dst = tmpBuf[0] & 0x0F;                           // destination is low nibble
@@ -75,7 +75,6 @@ struct MSG  parse_msg(RS485& rcv_channel) {
           memcpy(rmsg.payload, &tmpBuf[1], rmsg.len);
         else  
           rmsg.parse_err = INV_PAYLD_LEN;
-        memcpy(rmsg.payload, &tmpBuf[1], rmsg.len);     
         return rmsg;
         break;
       case SET_OUTS:
@@ -83,7 +82,6 @@ struct MSG  parse_msg(RS485& rcv_channel) {
           memcpy(rmsg.payload, &tmpBuf[1], rmsg.len);
         else  
           rmsg.parse_err = INV_PAYLD_LEN;
-        memcpy(rmsg.payload, &tmpBuf[1], rmsg.len);
         return rmsg;
         break;
       case FREE_TEXT:
@@ -91,7 +89,6 @@ struct MSG  parse_msg(RS485& rcv_channel) {
           memcpy(rmsg.payload, &tmpBuf[1], rmsg.len);
         else  
           rmsg.parse_err = INV_PAYLD_LEN;
-        memcpy(rmsg.payload, &tmpBuf[1], rmsg.len);
         return rmsg;
         break;
       default:

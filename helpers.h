@@ -66,8 +66,8 @@ struct ERRORS {
 // first byte:  upper 4 bits - command code 
 //              lower 4 bits  - destination ID
 // the rest:    payload, up to MAX_PAYLOAD_SIZE
-// return: pointer to buffer with the composed message or NULL if error
-byte * compose_msg(byte cmd, byte dest, byte *payload, byte *out_buf, int payload_len) {
+// return: lenght of the composed message or NULL if error
+byte  compose_msg(byte cmd, byte dest, byte *payload, byte *out_buf, int payload_len) {
   int index = 0;
   // first byte is COMMMAND/REPLY code (4 ms BITS) combined with the destination address (4 ls BITS)
   out_buf[index++] = ((cmd << 4) | (dest & 0x0F));
@@ -79,8 +79,7 @@ byte * compose_msg(byte cmd, byte dest, byte *payload, byte *out_buf, int payloa
   // copy  
   for (int i =0; i< payload_len; i++) 
     out_buf[index++] = payload[i];
-    
-  return out_buf;
+  return index;           // return number of bytes to transmit
 }
 
 

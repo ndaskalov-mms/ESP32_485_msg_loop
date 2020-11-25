@@ -41,21 +41,26 @@ enum msgParseErr {
 };
 
 
-struct MSG rcvMsg; tmpMsg;
+struct MSG rcvMsg, tmpMsg;
 
 // ------------------------- code ----------------------------------------------
-void SlaveSendMessage(RS485& trm_channel, struct MSG msg2trm ) {
+void SendMessage(RS485& trm_channel, struct MSG msg2trm ) {
     byte tmpBuf[MAX_MSG_LENGHT];
+    byte tmpLen;              // lenght of data to transmit, shall be less than MAX_MSG_LENGHT
     // byte * compose_msg(byte cmd, byte dest, byte *payload, byte *out_buf, int payload_len)
-    if(!compose_msg(msg2trm.cmd, msg2trm.dst, msg2trm.payload, tmpBuf, msg2trm.len))
+    if(!(tmpLen = compose_msg(msg2trm.cmd, msg2trm.dst, msg2trm.payload, tmpBuf, msg2trm.len))) {
       logger.println( "\nSlave:  Error composing message -  too long???");
-    logger.println( "\nSlave:  Sending reply -------------------------------" );
+      errors.protocol +=1;
+      return;
+    }
+    logger.printf("Sending message LEN = %d, CMD|DST = %x, PAYLOAD = ", tmpLen, tmpBuf[0]);
+    logger.write (&tmpBuf[1], tmpLen);
     Slave_485_transmit_mode();
-    SlaveMsgChannel.sendMsg (out_buf, payload_len);
+    SlaveMsgChannel.sendMsg (tmpBuf, tmpLen);
     Slave_Flush ();                     // make sure the data are transmitted properly befor swithching the line direction
     Slave_485_receive_mode();
     Slave_Flush();         // flushes both Tx and Rx
-    logger.println("Slave reply transmitted, going back to listening mode");
+    logger.println("Transmitted, going back to listening mode");
 }
 
 struct MSG  parse_msg(RS485& rcv_channel) {

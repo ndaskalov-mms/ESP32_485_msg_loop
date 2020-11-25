@@ -19,6 +19,7 @@
 #define MAX_MSG_LENGHT  ((TxFIFO_SIZE - (HEADER_SIZE + FOOTER_SIZE + CRC_SIZE))/2)  //message encodding doubles every nibble except STX and ETX
 #define MAX_PAYLOAD_SIZE  (MAX_MSG_LENGHT - CMD_SIZE/2)   // shall be max 61 = ((128-(1+1+1))/2) - 1
 #define RxBUF_SIZE 128  //no material limit
+#define BROADCAST_ID    0xF
 #define MASTER_ADDRESS  0
 #define SLAVE1_ADDRESS  1
 #define SLAVE2_ADDRESS  2
@@ -30,8 +31,6 @@
 // Master ID is always 0x0, while 0xF is reserved for broadcast message (not used so far)
 // RESULT CODES - the result code is simply the command code with MS bit set:  REPLY_OFFSET = 0x80
 // ----------------- PING -----------------------------------
-
-#define BROADCAST_ID          0xF
 #define PING                  0x0                  // ping 
 #define PING_PAYLD_LEN        0                    // ping message has no payload
 #define PING_RES              (PING|REPLY_OFFSET)  // ping reply code 
@@ -61,7 +60,7 @@
 struct ERRORS {
   unsigned long rs485 = 0;
   unsigned long protocol = 0;
-} comm_errors;
+} errors;
 
 // compose message containing:
 // first byte:  upper 4 bits - command code 

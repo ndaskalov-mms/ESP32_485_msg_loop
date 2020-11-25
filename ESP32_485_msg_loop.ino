@@ -60,36 +60,54 @@ void SlaveSendMessage(byte cmd, byte dest, byte *payload, byte *out_buf, int pay
 struct MSG  parse_msg(RS485& rcv_channel) {
 
     struct MSG rmsg;                                      // temp buffers
-    byte inbuf[MAX_MSG_LENGHT]; 
+    byte tmpBuf[MAX_MSG_LENGHT]; 
     rmsg.parse_err = 0;                                   // clear error flags
     
     rmsg.len = rcv_channel.getLength();                   // command+dest (1 byte) + payload_len (command specific)
     if ((rmsg.len <  1) || (rmsg.len >  MAX_MSG_LENGHT)){ // message len issue, at least 1 byte (command+dest)
-      comm_errors.protocol++;
+      errors.protocol++;
       rmsg.parse_err = INV_PAYLD_LEN;                     
       logger.printf("parse_MSG: Invalid message payload len = %d\n", rmsg.len);
       return rmsg;                                        // error, no command code in message
     }
-    memcpy (inbuf, rcv_channel.getData (), rmsg.len);     // copy message in temp buf
+    
+    memcpy (tmpBuf, rcv_channel.getData (), rmsg.len);     // copy message in temp buf
+    //logger.printf("Parse message recv: LEN = %d, CMD|DST = %x, PAYLOAD = %s\n", rmsg.len, tmpBuf[0], &tmpBuf[1]);
+
     // extract command and destination
-    rmsg.cmd = ((inBuf[0] >> 4) & 0x0F);                  // cmd is hih nibble
-    rmsg.dst = inBuf[0] & 0x0F;                           // destination is low nibble
-    logger.printf("Parse message recv: LEN = %d, CMD|DST = %x, PAYLOAD = %s\n", rmsg.len, rmsg.dst, &inBuf[1]);
+    rmsg.cmd = ((tmpBuf[0] >> 4) & 0x0F);                  // cmd is hih nibble
+    rmsg.dst = tmpBuf[0] & 0x0F;                           // destination is low nibble
+    //logger.printf("Parse message recv: LEN = %d, CMD = %x, DST = %x, PAYLOAD = %s\n", rmsg.len, rmsg.cmd, rmsg.dst, &tmpBuf[1]);
     switch (rmsg.cmd & ~(0xF0 | REPLY_OFFSET )) {        // check for valid commands and replies. clear reply bit to facilitate test
       case PING:
-        memcpy(rmsg.payload, &inbuf[1], PING_PAYLD_LEN);
+        if (--rmsg.len == PING_PAYLD_LEN)
+          memcpy(rmsg.payload, &tmpBuf[1], rmsg.len);
+        else  
+          rmsg.parse_err = INV_PAYLD_LEN;
         return rmsg;
         break;
       case POLL_ZONES:
-        memcpy(rmsg.payload, &inbuf[1], POLL_PAYLD_LEN);
+        if (--rmsg.len == POLL_PAYLD_LEN)
+          memcpy(rmsg.payload, &tmpBuf[1], rmsg.len);
+        else  
+          rmsg.parse_err = INV_PAYLD_LEN;
+        memcpy(rmsg.payload, &tmpBuf[1], rmsg.len);     
         return rmsg;
         break;
       case SET_OUTS:
-        memcpy(rmsg.payload, &inbuf[1], SET_OUTS_PAYLD_LEN);
+        if (--rmsg.len == SET_OUTS_PAYLD_LEN)
+          memcpy(rmsg.payload, &tmpBuf[1], rmsg.len);
+        else  
+          rmsg.parse_err = INV_PAYLD_LEN;
+        memcpy(rmsg.payload, &tmpBuf[1], rmsg.len);
         return rmsg;
         break;
       case FREE_TEXT:
-        memcpy(rmsg.payload, &inbuf[1], FREE_TEXT_PAYLD_LEN);
+        if (--rmsg.len == FREE_TEXT_PAYLD_LEN)
+          memcpy(rmsg.payload, &tmpBuf[1], rmsg.len);
+        else  
+          rmsg.parse_err = INV_PAYLD_LEN;
+        memcpy(rmsg.payload, &tmpBuf[1], rmsg.len);
         return rmsg;
         break;
       default:
@@ -168,20 +186,10 @@ void loop ()
   boardID = 1;        // Slave destination ---------   TODO - only for loopback testing
   if (SlaveMsgChannel.update ())
   {
-    logger.print ("\nSlave message received: \n");
-    int len = SlaveMsgChannel.getLength ();
-    memcpy (inBuf, SlaveMsgChannel.getData (), len); 
-    // slave process received message
-    byte cmd = ((inBuf[0] >> 4) & 0x0F);
-    byte dest = inBuf[0] & 0x0F;
-    
-    logger.printf ("Slave received CMD: %x; DEST: %x; payload len: %d; PAYLOAD: ", cmd, dest, len);
-    logger.write (&inBuf[PAYLOAD_OFFSET], len);
-
+    //logger.print ("\nSlave message received: \n");
     rcvMsg = parse_msg(SlaveMsgChannel);   
-    if (rcvMsg.parse_err) {
-      if(rcvMsg.parse_err != BAD_DST)         // if the message is not for us this is not real error, just skip the processing
-        logger.printf ("Slave parse message error %d\n", rcvMsg.parse_err); // yse, do nothing
+    if (rcvMsg.parse_err) {                   // if parse error, do nothing
+      logger.printf ("Slave parse message error %d\n", rcvMsg.parse_err); // yse, do nothing
     } 
     else if (rcvMsg.dst == BROADCAST_ID)      // check for broadcast message
       logger.printf("Broadcast command received, skipping\n");  // do nothing
@@ -190,6 +198,7 @@ void loop ()
     else { 
       logger.printf ("Slave received CMD: %x; DEST: %x; payload len: %d; PAYLOAD: ", rcvMsg.cmd, rcvMsg.dst, rcvMsg.len);
       logger.write (rcvMsg.payload, rcvMsg.len);
+      logger.println("");
       switch (rcvMsg.cmd) {
         case PING:
           logger.printf("Unsupported command received PING\n");
@@ -201,7 +210,7 @@ void loop ()
           logger.printf("Unsupported command received SET_OUTPUTS\n");
           break;
         case FREE_TEXT:
-          logger.printf("Command received FREE_TEXT\n");
+          // logger.printf("Command received FREE_TEXT\n");
           // return the same payload converted to uppercase
           for (int i=0; i < rcvMsg.len; i++)
             inBuf[i] = toupper(rcvMsg.payload[i]);

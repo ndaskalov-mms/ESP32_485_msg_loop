@@ -62,25 +62,20 @@ struct ERRORS {
   unsigned long protocol = 0;
 } errors;
 
-// compose message containing:
-// first byte:  upper 4 bits - command code 
-//              lower 4 bits  - destination ID
-// the rest:    payload, up to MAX_PAYLOAD_SIZE
-// return: lenght of the composed message or NULL if error
-byte  compose_msg(byte cmd, byte dest, byte *payload, byte *out_buf, int payload_len) {
-  int index = 0;
-  // first byte is COMMMAND/REPLY code (4 ms BITS) combined with the destination address (4 ls BITS)
-  out_buf[index++] = ((cmd << 4) | (dest & 0x0F));
-  // next comes the payload
-  if ((payload_len + index) > MAX_MSG_LENGHT) {
-    logger.printf("Payload size %d is larger than buffer size %d, skipping", payload_len, MAX_MSG_LENGHT);
-    return NULL;
-  }
-  // copy  
-  for (int i =0; i< payload_len; i++) 
-    out_buf[index++] = payload[i];
-  return index;           // return number of bytes to transmit
-}
+struct MSG {
+  byte cmd;
+  byte dst;
+  int  len;
+  byte payload[MAX_PAYLOAD_SIZE];
+  byte parse_err;
+} ;
+
+enum msgParseErr {
+  BAD_CMD = 1,
+  BAD_DST,
+  INV_PAYLD_LEN,
+};
+
 
 
 

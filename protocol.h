@@ -1,3 +1,8 @@
+/*
+ * protocol.h
+ */
+
+
 // compose message containing:
 // first byte:  upper 4 bits - command code 
 //              lower 4 bits  - destination ID

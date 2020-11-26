@@ -56,7 +56,8 @@ void loop ()
       //logger.print ("Master received message: ");
       //logger.write (MasterMsgChannel.getData (), MasterMsgChannel.getLength ()); 
       //logger.println ();
-      waiting_for_reply = 0;                  // TODO - check for out-of-order messages
+      waiting_for_reply = 0;                    // TODO - check for out-of-order messages
+      uartTrmMode(MasterUART);                  // Switch back to transmit_mode
       rcvMsg = parse_msg(MasterMsgChannel);   
       if (rcvMsg.parse_err) {                   // if parse error, do nothing
         logger.printf ("Master parse message error %d\n", rcvMsg.parse_err); // yes, do nothing
@@ -83,24 +84,21 @@ void loop ()
             logger.write (rcvMsg.payload, rcvMsg.len); logger.println("");
             break;
           default:
-            logger.printf("Invalid command received %d\n", rcvMsg.cmd);
+            logger.printf("Master: invalid command received %x\n", rcvMsg.cmd);
         }
       } // else
-      
-      uartTrmMode(MasterUART);               //  Master_485_transmit_mode();  // seems redundant
-      // process message here
-    }
+    }   // if update
     else if((unsigned long)(millis() - last_transmission) > REPLY_TIMEOUT) {
         // reply not received
-        uartTrmMode(MasterUART);             // Master_485_transmit_mode();
         waiting_for_reply = 0;
         // TODO - signal error somehow
         logger.println ("Master reply timeout");
-    }
-    //logger.print( "!" );
+    }   // else
   }     // if (waiting_for_reply)
-
-  else if( (unsigned long)(millis() - last_transmission) > TRM_INTERVAL){  // check if it is time for the next comm
+  //
+  //check if it is time for the next communication
+  //
+  else if( (unsigned long)(millis() - last_transmission) > TRM_INTERVAL){  // yes
     logger.println( "\nMaster:  Time to transmit -------------------------------" );
     tmpMsg.cmd = FREE_TEXT;
     tmpMsg.dst = SLAVE1_ADDRESS;
@@ -112,9 +110,14 @@ void loop ()
     logger.println("Master MSG transmitted, receive timeout started");
     waiting_for_reply = 1;
   }
+  //
+  // no message available for processing and it is not time to send a new one
+  // do something usefull like have a nap or read MQTT
   else {
-    //logger.print( "." );
+    //logger.print( "." );    // no, do nothing
   }
+  // or
+  // try to collect some errors info and send via MQTT when it is availabel some sunny day
   if(master_err != MasterMsgChannel.getErrorCount()) {
       master_err = MasterMsgChannel.getErrorCount();
       logger.print("Master errors cnt now:");
@@ -126,8 +129,7 @@ void loop ()
   boardID = 1;        // Slave destination ---------   TODO - only for loopback testing
   if (SlaveMsgChannel.update ())
   {
-    logger.print ("\nSlave message received: \n");
-    rcvMsg = parse_msg(SlaveMsgChannel);   
+    rcvMsg = parse_msg(SlaveMsgChannel);      // parse received message
     if (rcvMsg.parse_err) {                   // if parse error, do nothing
       logger.printf ("Slave parse message error %d\n", rcvMsg.parse_err); // yse, do nothing
     } 
@@ -137,8 +139,7 @@ void loop ()
       ;                                       // yes, do nothing
     else { 
       logger.printf ("Slave received CMD: %x; DEST: %x; payload len: %d; PAYLOAD: ", rcvMsg.cmd, rcvMsg.dst, rcvMsg.len);
-      logger.write (rcvMsg.payload, rcvMsg.len);
-      logger.println("");
+      logger.write (rcvMsg.payload, rcvMsg.len); logger.println("");
       switch (rcvMsg.cmd) {
         case PING:
           logger.printf("Unsupported command received PING\n");
@@ -160,11 +161,13 @@ void loop ()
           SendMessage (SlaveMsgChannel, SlaveUART, tmpMsg);
           break;
         default:
-          logger.printf("Invalid command received %d\n", rcvMsg.cmd);
+          logger.printf("Slave: invalid command received %x\n", rcvMsg.cmd);
       }
     } // else
   } // if update()
-
+  // no message available for processing 
+  // do something usefull like have a nap or read ADC and process the zones info
+  // or collect some errors info to be send as status to MASTER some day
   if(slave_err != SlaveMsgChannel.getErrorCount()) {
     slave_err = SlaveMsgChannel.getErrorCount();
     logger.print("Slave errors cnt:");

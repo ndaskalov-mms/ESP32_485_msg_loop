@@ -23,7 +23,7 @@ byte  compose_msg(byte cmd, byte dest, byte *payload, byte *out_buf, int payload
   return index;           // return number of bytes to transmit
 }
 
-// ------------------------- code ----------------------------------------------
+// send message using 485 interface
 void SendMessage(RS485& trmChannel, HardwareSerial& uart, struct MSG msg2trm ) {
     byte tmpBuf[MAX_MSG_LENGHT];
     byte tmpLen;              // lenght of data to transmit, shall be less than MAX_MSG_LENGHT
@@ -35,20 +35,23 @@ void SendMessage(RS485& trmChannel, HardwareSerial& uart, struct MSG msg2trm ) {
     //logger.printf("Sending message LEN = %d, CMD|DST = %x, PAYLOAD = ", tmpLen, tmpBuf[0]);
     //logger.write (&tmpBuf[1], tmpLen-1);
     //logger.println();
-    uartTrmMode(uart);                         // Slave_485_transmit_mode();
+    uartTrmMode(uart);                         // switch line dir to transmit_mode;
     trmChannel.sendMsg (tmpBuf, tmpLen);
-    uartFlush(uart);                           // Slave_Flush ();  // make sure the data are transmitted properly befor swithching the line direction
-    uartRcvMode(uart);                         // Slave_485_receive_mode();
-    uartFlush(uart);                           // Slave_Flush();  // flushes both Tx and Rx
+    uartFlush(uart);                           // make sure the data are transmitted properly before revercing the line direction
+    uartRcvMode(uart);                         // switch line dir to receive_mode;
+    uartFlush(uart);                           // clean-up garbage due to switching, flushes both Tx and Rx
     logger.println("Transmitted, going back to listening mode");
 }
 
+// parse received message
+// byte[0] CMD | DST (4 MS bits is command and lower 4 bits is destination
+// byte [1] ......... byte[MAX_MSG_LENGHT] - payload
+// MAX_MSG_LENGHT is calculated in a way to fit complete message in TxFIFO
+//
 struct MSG  parse_msg(RS485& rcv_channel) {
-
     struct MSG rmsg;                                      // temp buffers
     byte tmpBuf[MAX_MSG_LENGHT]; 
     rmsg.parse_err = 0;                                   // clear error flags
-    
     rmsg.len = rcv_channel.getLength();                   // command+dest (1 byte) + payload_len (command specific)
     if ((rmsg.len <  1) || (rmsg.len >  MAX_MSG_LENGHT)){ // message len issue, at least 1 byte (command+dest)
       errors.protocol++;

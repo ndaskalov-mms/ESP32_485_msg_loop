@@ -78,60 +78,53 @@ enum msgParseErr {
 
 
 
-
-size_t Master_Log_Write (char * what)
-{return logger.println (what);}
-
-size_t Slave_Log_Write (char * what)
-{return logger.println (what);}
-
-size_t Master_Write (const byte what)
+// callbacks for RS485 library interface to onboard UARTS
+size_t Master_Write (const byte what)   // callback to write byte to UART
 {return MasterUART.write (what);}
-
-int Master_Available ()
+int Master_Available ()                 // callback to check if something received
 {return MasterUART.available();}
- 
-int Master_Read ()
+int Master_Read ()                      // callback to read received bytes
 {return MasterUART.read();}
+size_t Slave_Write (const byte what)    // callback to write byte to UART
+{return SlaveUART.write (what);}
+int Slave_Available ()                  // callback to check if something received
+{return SlaveUART.available();}
+int Slave_Read ()                       // callback to read received bytes
+{return SlaveUART.read();}              
+size_t logWrite (char * what)           // callback to dump info to serial console from inside RS485 library
+{return logger.println (what);}
+
  
 // flush transmitter only 
-void Master_TxFlush(){
-  while(MasterUART.availableForWrite()!=127) ;  // availableForWrite returns 0x7f - uart->dev->status.txfifo_cnt;
+void uartTxFlush(HardwareSerial& uart){
+  while(uart.availableForWrite()!=127) ;  // availableForWrite returns 0x7f - uart->dev->status.txfifo_cnt;
   delay(5);
-}
-
+  }
 // flush receiver only 
-void Master_RxFlush(){
-  while(Master_Available())
-	Master_Read ();
-}
-
+void uartRxFlush(HardwareSerial& uart){
+  while(uart.available())
+	uart.read();
+  }
 // flush both
-void Master_Flush()
-{MasterUART.flush();}
-
-void Master_485_receive_mode(){
+void uartFlush(HardwareSerial& uart) {
+  uart.flush();
+  }
+// switch direction of the RS485 driver
+void uartRcvMode(HardwareSerial& uart){
   // change line dir
   delay(1);
-  //Master_RxFlush();
-}
-
-void Master_485_transmit_mode(){
-    // change line dir
+  //uartRxFlush(uart);                    // read any garbage coming from switching dir
+  }
+void uartTrmMode(HardwareSerial& uart){
+  // change line dir
   delay(1);
-  //Master_TxFlush();
-}
+  //uartTxFlush(uart);                    // ???
+  }
 
+
+/*
 //---------- callbacks for slave UART channel
 
-size_t Slave_Write (const byte what)
-{return SlaveUART.write (what);}
-
-int Slave_Available ()
-{return SlaveUART.available();}
- 
-int Slave_Read ()
-{return SlaveUART.read();}
  
 // flush transmitter only 
 void Slave_TxFlush(){
@@ -160,3 +153,4 @@ void Slave_485_transmit_mode(){
   delay(1);
   Slave_TxFlush();
 }
+*/

@@ -25,12 +25,14 @@ unsigned long slave_err = 0;
 byte test_msg [MAX_PAYLOAD_SIZE] = "5Hello world;6Hello world;7Hello world;8Hello world;9Hello";
 
 //this is channel to send/receive packets over serial if. The comm to serial is via fRead, fWrite,...
-RS485 MasterMsgChannel (Master_Read, Master_Available, Master_Write, Master_Log_Write, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
-RS485 SlaveMsgChannel (Slave_Read, Slave_Available, Slave_Write, Slave_Log_Write, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
-
+RS485 MasterMsgChannel (Master_Read, Master_Available, Master_Write, logWrite, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
+RS485 SlaveMsgChannel (Slave_Read, Slave_Available, Slave_Write, logWrite, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
 struct MSG rcvMsg, tmpMsg;          // temp structs for message tr/rcv
 
+
 #include "protocol.h"
+
+
 void setup() {
   logger.begin(LOG_BITRATE,SERIAL_8N1);
   // set UARTs
@@ -58,12 +60,12 @@ void loop ()
       logger.write (MasterMsgChannel.getData (), MasterMsgChannel.getLength ()); 
       logger.println ();
       waiting_for_reply = 0;
-      Master_485_transmit_mode();  // seems redundant
+      uartTrmMode(MasterUART);               //  Master_485_transmit_mode();  // seems redundant
       // process message here
     }
     else if((unsigned long)(millis() - last_transmission) > REPLY_TIMEOUT) {
         // reply not received
-        Master_485_transmit_mode();
+        uartTrmMode(MasterUART);             // Master_485_transmit_mode();
         waiting_for_reply = 0;
         // TODO - signal error somehow
         logger.println ("Master reply timeout");
@@ -76,20 +78,21 @@ void loop ()
     tmpMsg.cmd = FREE_TEXT;
     tmpMsg.dst = SLAVE1_ADDRESS;
     tmpMsg.len = MAX_PAYLOAD_SIZE;
-    //    memcpy(&tmpMsg.payload, test_msg, MAX_PAYLOAD_SIZE);
-    for(int i=0; i<MAX_PAYLOAD_SIZE; i++)
-      tmpMsg.payload[i] = test_msg[i];
-    SendMessage(MasterMsgChannel, tmpMsg);
+    memcpy(tmpMsg.payload, test_msg, MAX_PAYLOAD_SIZE);
+    //for(int i=0; i<MAX_PAYLOAD_SIZE; i++)
+    //  tmpMsg.payload[i] = test_msg[i];
+    logger.printf("Master sending: %s\n", tmpMsg.payload);
+    SendMessage(MasterMsgChannel, MasterUART, tmpMsg);
     // byte * compose_msg(byte cmd, byte dest, byte *payload, byte *out_buf, int payload_len)
     //if(!compose_msg(FREE_TEXT, SLAVE1_ADDRESS, test_msg, outBuf, MAX_PAYLOAD_SIZE))
     //  logger.println( "\nMaster:  Error composing message -  too long???");
-    Master_485_transmit_mode();
-    MasterMsgChannel.sendMsg (outBuf, MAX_MSG_LENGHT);
+    //uartTrmMode(MasterUART);
+    // MasterMsgChannel.sendMsg (outBuf, MAX_MSG_LENGHT);
     last_transmission = millis();    // mark the transmit time so we can calculate the time for the next transmission and check for reply timeout
     // TODO for same channel loopback use Master_TxFlush only, otherwise use Master_Flush()
-    Master_Flush ();                     // make sure the data are transmitted properly befor swithching the line direction
-    Master_485_receive_mode();
-    Master_Flush();         // flushes both Tx and Rx
+    //Master_Flush ();                     // make sure the data are transmitted properly befor swithching the line direction
+    //Master_485_receive_mode();
+    //Master_Flush();         // flushes both Tx and Rx
     logger.println("Master MSG transmitted, receive timeout started");
     waiting_for_reply = 1;
   }
@@ -107,7 +110,7 @@ void loop ()
   boardID = 1;        // Slave destination ---------   TODO - only for loopback testing
   if (SlaveMsgChannel.update ())
   {
-    //logger.print ("\nSlave message received: \n");
+    logger.print ("\nSlave message received: \n");
     rcvMsg = parse_msg(SlaveMsgChannel);   
     if (rcvMsg.parse_err) {                   // if parse error, do nothing
       logger.printf ("Slave parse message error %d\n", rcvMsg.parse_err); // yse, do nothing
@@ -138,7 +141,7 @@ void loop ()
           tmpMsg.cmd = FREE_TEXT | REPLY_OFFSET;
           tmpMsg.len = rcvMsg.len;
           tmpMsg.dst = MASTER_ADDRESS;
-          SendMessage (SlaveMsgChannel, tmpMsg);
+          SendMessage (SlaveMsgChannel, SlaveUART, tmpMsg);
           break;
         default:
           logger.printf("Invalid command received %d\n", rcvMsg.cmd);

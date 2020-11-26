@@ -16,8 +16,6 @@ HardwareSerial& SlaveUART(Serial2);
 
 // ------------------------- global variables definition -----------------------------
 byte boardID;                         // board ID: master is 0, expanders and others up to 0xE; OxF means bradcast
-//byte inBuf[RxBUF_SIZE];
-byte outBuf[MAX_MSG_LENGHT] = "";     // probably will be not needed
 unsigned long last_transmission = 0;  // last transmission time
 int waiting_for_reply = 0;
 unsigned long master_err = 0;
@@ -41,7 +39,6 @@ void setup() {
   // allocate data buffers and init message encoding/decoding engines (485_non_blocking library)
   MasterMsgChannel.begin ();      
   SlaveMsgChannel.begin ();  
-  boardID = 1;      // TODO - get board ID
   logger.printf("Loopback example for Esp32+485\n");
   logger.printf("MAX_MSG_LENGHT = %d\n", MAX_MSG_LENGHT  );
   logger.printf("MAX_PAYLOAD_SIZE = %d\n", MAX_PAYLOAD_SIZE );
@@ -56,10 +53,40 @@ void loop ()
     if (MasterMsgChannel.update ())
     {
       // msg received
-      logger.print ("Master received message: ");
-      logger.write (MasterMsgChannel.getData (), MasterMsgChannel.getLength ()); 
-      logger.println ();
-      waiting_for_reply = 0;
+      //logger.print ("Master received message: ");
+      //logger.write (MasterMsgChannel.getData (), MasterMsgChannel.getLength ()); 
+      //logger.println ();
+      waiting_for_reply = 0;                  // TODO - check for out-of-order messages
+      rcvMsg = parse_msg(MasterMsgChannel);   
+      if (rcvMsg.parse_err) {                   // if parse error, do nothing
+        logger.printf ("Master parse message error %d\n", rcvMsg.parse_err); // yes, do nothing
+      } 
+      else if (rcvMsg.dst == BROADCAST_ID)      // check for broadcast message
+        logger.printf("Master: Broadcast command received, skipping\n");  // do nothing
+      else if (rcvMsg.dst != boardID)           // check if the destination is another board
+        ;                                       // TODO - master is not supposed to get this as slaves are not talcking to each other
+      else { 
+        logger.printf ("Master received CMD: %x; DEST: %x; payload len: %d; PAYLOAD: ", rcvMsg.cmd, rcvMsg.dst, rcvMsg.len);
+        logger.write (rcvMsg.payload, rcvMsg.len); logger.println("");
+        switch (rcvMsg.cmd) {
+          case PING_RES:
+            logger.printf("Master: Unsupported reply command received PING_RES\n");
+            break;
+          case POLL_ZONES_RES:
+            logger.printf("Master: Unsupported reply command received POLL_ZONES_RES\n");
+            break;
+          case SET_OUTS_RES:
+            logger.printf("Master: Unsupported reply command received SET_OUTPUTS_RES\n");
+            break;
+          case FREE_TEXT_RES:
+            logger.printf("Master: reply received FREE_TEXT_RES: ");
+            logger.write (rcvMsg.payload, rcvMsg.len); logger.println("");
+            break;
+          default:
+            logger.printf("Invalid command received %d\n", rcvMsg.cmd);
+        }
+      } // else
+      
       uartTrmMode(MasterUART);               //  Master_485_transmit_mode();  // seems redundant
       // process message here
     }
@@ -79,20 +106,9 @@ void loop ()
     tmpMsg.dst = SLAVE1_ADDRESS;
     tmpMsg.len = MAX_PAYLOAD_SIZE;
     memcpy(tmpMsg.payload, test_msg, MAX_PAYLOAD_SIZE);
-    //for(int i=0; i<MAX_PAYLOAD_SIZE; i++)
-    //  tmpMsg.payload[i] = test_msg[i];
     logger.printf("Master sending: %s\n", tmpMsg.payload);
     SendMessage(MasterMsgChannel, MasterUART, tmpMsg);
-    // byte * compose_msg(byte cmd, byte dest, byte *payload, byte *out_buf, int payload_len)
-    //if(!compose_msg(FREE_TEXT, SLAVE1_ADDRESS, test_msg, outBuf, MAX_PAYLOAD_SIZE))
-    //  logger.println( "\nMaster:  Error composing message -  too long???");
-    //uartTrmMode(MasterUART);
-    // MasterMsgChannel.sendMsg (outBuf, MAX_MSG_LENGHT);
     last_transmission = millis();    // mark the transmit time so we can calculate the time for the next transmission and check for reply timeout
-    // TODO for same channel loopback use Master_TxFlush only, otherwise use Master_Flush()
-    //Master_Flush ();                     // make sure the data are transmitted properly befor swithching the line direction
-    //Master_485_receive_mode();
-    //Master_Flush();         // flushes both Tx and Rx
     logger.println("Master MSG transmitted, receive timeout started");
     waiting_for_reply = 1;
   }

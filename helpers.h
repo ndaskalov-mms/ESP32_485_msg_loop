@@ -55,11 +55,23 @@
 #define FREE_TEXT_RES         (FREE_TEXT  | REPLY_OFFSET)
 #define FREE_TEXT_RES_PAYLD_LEN MAX_PAYLOAD_SIZE         // FREE_TEXT_RES payload is up to MAX_PAYLOAD_SIZE
 
+enum errorID {
+  ERR_OK = 0,
+  ERR_RS485,
+  ERR_INV_PAYLD_LEN,
+  ERR_BAD_CMD,
+  ERR_BAD_DST,
+};
+
 
 // errors
 struct ERRORS {
-  unsigned long rs485 = 0;
-  unsigned long protocol = 0;
+  unsigned long rs485_send = 0;
+  unsigned long rs485_recv = 0;
+  unsigned long send_payload = 0;
+  unsigned long rcv_payload = 0;
+  unsigned long bad_cmd = 0;
+  unsigned long bad_dst = 0;
 } errors;
 
 struct MSG {

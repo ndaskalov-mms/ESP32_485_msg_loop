@@ -24,7 +24,7 @@ byte test_msg [MAX_PAYLOAD_SIZE] = "5Hello world;6Hello world;7Hello world;8Hell
 
 //this is channel to send/receive packets over serial if. The comm to serial is via fRead, fWrite,...
 RS485 MasterMsgChannel (Master_Read, Master_Available, Master_Write, logWrite, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
-RS485 SlaveMsgChannel (Slave_Read, Slave_Available, Slave_Write, logWrite, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
+RS485 SlaveMsgChannel  (Slave_Read, Slave_Available, Slave_Write, logWrite, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
 struct MSG rcvMsg, tmpMsg;          // temp structs for message tr/rcv
 
 
@@ -98,17 +98,24 @@ void loop ()
   //
   //check if it is time for the next communication
   //
-  else if( (unsigned long)(millis() - last_transmission) > TRM_INTERVAL){  // yes
+  else if( (unsigned long)(millis() - last_transmission) > TRM_INTERVAL){         // yes, it's time
     logger.println( "\nMaster:  Time to transmit -------------------------------" );
     tmpMsg.cmd = FREE_TEXT;
     tmpMsg.dst = SLAVE1_ADDRESS;
     tmpMsg.len = MAX_PAYLOAD_SIZE;
     memcpy(tmpMsg.payload, test_msg, MAX_PAYLOAD_SIZE);
     logger.printf("Master sending: %s\n", tmpMsg.payload);
-    SendMessage(MasterMsgChannel, MasterUART, tmpMsg);
-    last_transmission = millis();    // mark the transmit time so we can calculate the time for the next transmission and check for reply timeout
-    logger.println("Master MSG transmitted, receive timeout started");
-    waiting_for_reply = 1;
+    //SendMessage(MasterMsgChannel, MasterUART, FREE_TEXT, SLAVE1_ADDRESS, tes_msg, MAX_PAYLOAD_SIZE);
+    //SendMessage(MasterMsgChannel, MasterUART, tmpMsg)
+    if(ERR_OK != SendMessage(MasterMsgChannel, MasterUART, FREE_TEXT, SLAVE1_ADDRESS, test_msg, MAX_PAYLOAD_SIZE)){
+      logger.printf("Master: Error in sendMessage");
+      // MQTT send error
+    }
+    else {
+      last_transmission = millis();    // mark the transmit time so we can calculate the time for the next transmission and check for reply timeout
+      logger.println("Master MSG transmitted, receive timeout started");
+      waiting_for_reply = 1;
+    }
   }
   //
   // no message available for processing and it is not time to send a new one
@@ -153,12 +160,17 @@ void loop ()
         case FREE_TEXT:
           // logger.printf("Command received FREE_TEXT\n");
           // return the same payload converted to uppercase
+          byte tmp_msg [MAX_PAYLOAD_SIZE];
           for (int i=0; i < rcvMsg.len; i++)
-            tmpMsg.payload[i] = toupper(rcvMsg.payload[i]);
-          tmpMsg.cmd = FREE_TEXT | REPLY_OFFSET;
-          tmpMsg.len = rcvMsg.len;
-          tmpMsg.dst = MASTER_ADDRESS;
-          SendMessage (SlaveMsgChannel, SlaveUART, tmpMsg);
+            tmp_msg[i] = toupper(rcvMsg.payload[i]);
+          //tmpMsg.cmd = FREE_TEXT | REPLY_OFFSET;
+          //tmpMsg.len = rcvMsg.len;
+          //tmpMsg.dst = MASTER_ADDRESS;
+          ;
+          //SendMessage (SlaveMsgChannel, SlaveUART, tmpMsg);
+          if(ERR_OK != SendMessage(SlaveMsgChannel, SlaveUART, (FREE_TEXT | REPLY_OFFSET), MASTER_ADDRESS, tmp_msg, rcvMsg.len)){
+            logger.printf("Slave: Error in sendMessage");
+          }
           break;
         default:
           logger.printf("Slave: invalid command received %x\n", rcvMsg.cmd);

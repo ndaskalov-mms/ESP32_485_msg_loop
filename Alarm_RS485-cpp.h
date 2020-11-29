@@ -211,7 +211,7 @@ byte RS485::sendMsg (const byte * data, const byte length)
 // true, and if too much time has passed since getPacketStartTime() time.
 
 bool RS485::update ()
-  {
+{
   // no data? can't go ahead (eg. begin() not called)
   if (data_ == NULL)
     return false;
@@ -228,7 +228,7 @@ bool RS485::update ()
       {
 
         case STX:   // start of text
-		  fLogCallback_("RS485: got STX");	
+		      fLogCallback_("RS485: got STX");	
           haveSTX_ = true;
           haveETX_ = false;
           inputPos_ = 0;
@@ -238,8 +238,8 @@ bool RS485::update ()
 
         case ETX:   // end of text (now expect the CRC check)
           if (haveSTX_)		// nik
-			haveETX_ = true;
-			fLogCallback_("RS485: got ETX");	
+			        haveETX_ = true;
+			    fLogCallback_("RS485: got ETX");	
           break;
 
         default:
@@ -253,12 +253,11 @@ bool RS485::update ()
             reset ();
             errorCount_++;
             fLogCallback_("RS485: Invalid byte received");
-			break;  // bad character
+			      break;  // bad character
             } // end if bad byte
 
           // convert back
           inByte >>= 4;
-
           // high-order nibble?
           if (firstNibble_)
             {
@@ -271,19 +270,19 @@ bool RS485::update ()
           currentByte_ <<= 4;
           currentByte_ |= inByte;
           firstNibble_ = true;
-
           // if we have the ETX this must be the CRC
           if (haveETX_)
             {
-            if (crc8 (data_, inputPos_) != currentByte_)  {   // wrong CRC
+            if (crc8 (data_, inputPos_) != currentByte_)
+              {   // wrong CRC
               reset ();
               errorCount_++;
-			  fLogCallback_("RS485:  Bad CRC");
+			        fLogCallback_("RS485:  Bad CRC");
               break;  // bad crc
-			  } // end of bad CRC
+			        } // end of bad CRC
             available_ = true;
-			fLogCallback_("RS485: got MSG");	
-			haveETX_ = haveSTX_ = false;		//Nik: to be able to catch timeout
+			      fLogCallback_("RS485: got MSG");	
+			      haveETX_ = haveSTX_ = false;		//Nik: to be able to catch timeout
             return true;  // show data ready
             }  // end if have ETX already
 
@@ -294,21 +293,21 @@ bool RS485::update ()
             {
             reset (); // overflow, start again
             errorCount_++;
-			fLogCallback_("RS485: Buffer overflow");
+			      fLogCallback_("RS485: Buffer overflow");
             }
-
-          break;
-
+          break;    // end of default case
       }  // end of switch
     }  // end of while incoming data
 	
 	// check for timeout - if we have STX, but not ETX fo a while
-	if(isPacketStarted()) {				
-	  if ((unsigned long)(millis() - startTime_) > PACKET_TIMEOUT) {
-        errorCount_++;
-		fLogCallback_("RS485: packet receive takes too long");
-		reset ();
-	  }
-    } 
+	if(isPacketStarted())
+	{				
+	  if ((unsigned long)(millis() - startTime_) > PACKET_TIMEOUT)
+	    {                 // yes, timeout
+      errorCount_++;
+		  fLogCallback_("RS485: packet receive takes too long");
+		  reset ();
+	    }
+  } 
 	return false;  // not ready yet
-  } // end of RS485::update
+} // end of RS485::update

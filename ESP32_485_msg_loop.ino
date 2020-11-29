@@ -1,4 +1,3 @@
-#include "Alarm_RS485-cpp.h"              // RS485 transport implementation (library)
 
 #define MASTER
 #define SLAVE
@@ -14,22 +13,21 @@ HardwareSerial& SlaveUART(Serial2);
 #define TRM_INTERVAL  1000  //1 sec
 #define REPLY_TIMEOUT  500  //200 msec
 
+#include "Alarm_RS485-cpp.h"              // RS485 transport implementation (library)
+
 // ------------------------- global variables definition -----------------------------
-byte boardID;                         // board ID: master is 0, expanders and others up to 0xE; OxF means bradcast
-unsigned long last_transmission = 0;  // last transmission time
+byte boardID;                             // board ID: master is 0, expanders and others up to 0xE; OxF means bradcast
+unsigned long last_transmission = 0;      // last transmission time
 int waiting_for_reply = 0;
 unsigned long master_err = 0;
 unsigned long slave_err = 0;
 byte test_msg [MAX_PAYLOAD_SIZE] = "5Hello world;6Hello world;7Hello world;8Hello world;9Hello";
-
-//this is channel to send/receive packets over serial if. The comm to serial is via fRead, fWrite,...
-RS485 MasterMsgChannel (Master_Read, Master_Available, Master_Write, logWrite, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
-RS485 SlaveMsgChannel  (Slave_Read, Slave_Available, Slave_Write, logWrite, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
-struct MSG rcvMsg, tmpMsg;          // temp structs for message tr/rcv
-
+struct MSG rcvMsg, tmpMsg;                // temp structs for message tr/rcv
+//these are channels to send/receive packets over serial if. The comm to serial is via fRead, fWrite,...
+RS485 MasterMsgChannel (MasterRead, MasterAvailable, MasterWrite, ErrWrite, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
+RS485 SlaveMsgChannel  (SlaveRead, SlaveAvailable, SlaveWrite, ErrWrite, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
 
 #include "protocol.h"
-
 
 void setup() {
   logger.begin(LOG_BITRATE,SERIAL_8N1);

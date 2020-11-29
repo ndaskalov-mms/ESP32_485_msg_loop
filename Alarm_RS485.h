@@ -19,7 +19,7 @@
 class RS485
   {
 
-  typedef size_t (*LogCallback)    (char * what);    // where to send the debug info
+  typedef void (*ErrCallback)    (int err, char * what);    // error num and text description
   typedef size_t (*WriteCallback)  (const byte what);    // send a byte to serial port
   typedef int  (*AvailableCallback)  ();    // return number of bytes available
   typedef int  (*ReadCallback)  ();    // read a byte from serial port
@@ -33,7 +33,7 @@ class RS485
   ReadCallback fReadCallback_;
   AvailableCallback fAvailableCallback_;
   WriteCallback fWriteCallback_;
-  LogCallback fLogCallback_;
+  ErrCallback fErrCallback_;
 
   // where we save incoming stuff
   byte * data_;
@@ -67,12 +67,12 @@ class RS485
     RS485 (ReadCallback fReadCallback,
            AvailableCallback fAvailableCallback,
            WriteCallback fWriteCallback,
-		   LogCallback fLogCallback,
+		       ErrCallback fErrCallback,
            const byte bufferSize) :
         fReadCallback_ (fReadCallback),
         fAvailableCallback_ (fAvailableCallback),
         fWriteCallback_ (fWriteCallback),
-		fLogCallback_ (fLogCallback),
+		    fErrCallback_ (fErrCallback),
         data_ (NULL),
         bufferSize_ (bufferSize)
          {}
@@ -112,4 +112,3 @@ class RS485
     bool isPacketStarted () const { return haveSTX_; }
 
   }; // end of class RS485
-

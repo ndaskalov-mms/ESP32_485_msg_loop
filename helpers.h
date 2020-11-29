@@ -56,22 +56,33 @@
 #define FREE_TEXT_RES_PAYLD_LEN MAX_PAYLOAD_SIZE         // FREE_TEXT_RES payload is up to MAX_PAYLOAD_SIZE
 
 enum errorID {
-  ERR_OK = 0,
-  ERR_RS485,
-  ERR_INV_PAYLD_LEN,
-  ERR_BAD_CMD,
-  ERR_BAD_DST,
+  ERR_OK = 0,                           // no error
+  ERR_RS485,                            // something wrong happened while sending/ receiving  message in RS485 class
+  ERR_INV_PAYLD_LEN,                    // send/rcv  message payload issue (too long or doesn't match message code payload size)
+  ERR_BAD_CMD,                          // unknown command
+  ERR_BAD_DST,                          // unknown destination
+  ERR_BUF_OVERFLOW,                     // RS485 class receive buffer overflow
+  ERR_FORCE_SCREW,                      // RS485 intentionally generated for testing purposes
+  ERR_INV_BYTE_CODE,                    // RS485 byte encodding error detected
+  ERR_BAD_CRC,                          // RS485 crc error
+  ERR_TIMEOUT,                          // RS485 timeout waiting for ETX when STX is received
 };
-
-
-// errors
+//
+// errors storage for reporting purposes
+//
 struct ERRORS {
-  unsigned long rs485_send = 0;
-  unsigned long rs485_recv = 0;
-  unsigned long send_payload = 0;
-  unsigned long rcv_payload = 0;
-  unsigned long bad_cmd = 0;
-  unsigned long bad_dst = 0;
+  unsigned long rs485_send = 0;         // something wrong happened while sending message in RS485 class
+  unsigned long rs485_recv = 0;         // something wrong happened while receiving message in RS485 class
+  unsigned long send_payload = 0;       // send message payload issue (too long?)
+  unsigned long rcv_payload = 0;        // received message payload issue (doesn't match message code payload size)
+  unsigned long bad_cmd = 0;            // unknown command
+  unsigned long bad_dst = 0;            // unknown destination
+// below erors are generated from RS485 class (lib)  
+  unsigned long rs485_buf_overflow = 0; // receive buffer overflow
+  unsigned long rs485_force_screw = 0;  // intentionally generated for testing purposes
+  unsigned long rs485_inv_byte_code = 0;// byte encodding error detected
+  unsigned long rs485_bad_crc = 0;      // crc error
+  unsigned long rs485_timeout = 0;      // timeout waiting for ETX when STX is received
 } errors;
 
 struct MSG {
@@ -91,20 +102,24 @@ enum msgParseErr {
 
 
 // callbacks for RS485 library interface to onboard UARTS
-size_t Master_Write (const byte what)   // callback to write byte to UART
+
+size_t MasterWrite (const byte what)   // callback to write byte to UART
 {return MasterUART.write (what);}
-int Master_Available ()                 // callback to check if something received
+int MasterAvailable ()                 // callback to check if something received
 {return MasterUART.available();}
-int Master_Read ()                      // callback to read received bytes
+int MasterRead ()                      // callback to read received bytes
 {return MasterUART.read();}
-size_t Slave_Write (const byte what)    // callback to write byte to UART
+size_t SlaveWrite (const byte what)    // callback to write byte to UART
 {return SlaveUART.write (what);}
-int Slave_Available ()                  // callback to check if something received
+int SlaveAvailable ()                  // callback to check if something received
 {return SlaveUART.available();}
-int Slave_Read ()                       // callback to read received bytes
+int SlaveRead ()                       // callback to read received bytes
 {return SlaveUART.read();}              
-size_t logWrite (char * what)           // callback to dump info to serial console from inside RS485 library
-{return logger.println (what);}
+void ErrWrite (int err_code, char * what)           // callback to dump info to serial console from inside RS485 library
+{
+  // update errors struct here
+  logger.println (what);
+}
 
  
 // flush transmitter only 
@@ -132,37 +147,3 @@ void uartTrmMode(HardwareSerial& uart){
   delay(1);
   //uartTxFlush(uart);                    // ???
   }
-
-
-/*
-//---------- callbacks for slave UART channel
-
- 
-// flush transmitter only 
-void Slave_TxFlush(){
-  while(SlaveUART.availableForWrite()!=127) ;
-  delay(5);
-}
-
-// flush receiver only 
-void Slave_RxFlush(){
-  while(Slave_Available())   // TODO add error handling
-	Slave_Read ();
-}
-
-// flush both
-void Slave_Flush()
-{SlaveUART.flush();}
-
-void Slave_485_receive_mode(){
-  // change line dir
-  delay(1);
-  Slave_RxFlush();
-}
-
-void Slave_485_transmit_mode(){
-    // change line dir
-  delay(1);
-  Slave_TxFlush();
-}
-*/

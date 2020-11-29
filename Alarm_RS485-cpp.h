@@ -78,7 +78,7 @@ void RS485::begin ()
   data_ = (byte *) malloc (bufferSize_);
   reset ();
   errorCount_ = 0;
-  fLogCallback_(" RS485 Begins");
+  fErrCallback_(ERR_OK, " RS485 Begins");
   } // end of RS485::begin
 
 // get rid of the buffer
@@ -87,7 +87,7 @@ void RS485::stop ()
   reset ();
   free (data_);
   data_ = NULL;
-  fLogCallback_(" RS485 Stops");
+  fErrCallback_(ERR_OK, " RS485 Stops");
 } // end of RS485::stop
 
 // called after an error to return to "not in a packet"
@@ -144,19 +144,19 @@ byte RS485::sendMsg (const byte * data, const byte length)
 #ifdef SCREW_RATE
   static int run = 0;
 #endif
-  //fLogCallback_("-------------------------Sending message-----------------------------------------");
+  //fErrCallback_(ERR_OK, "-------------------------Sending message-----------------------------------------");
   // no callback? Can't send
   // TODO - add error code in case of error
   if (fWriteCallback_ == NULL)
     return false;
-  //fLogCallback_("RS485: sendMsg");
+  //fErrCallback_(ERR_OK, "RS485: sendMsg");
 #ifndef SCREW_STX
   fWriteCallback_ (STX);  // STX
 #else
   if ((run % SCREW_RATE))
 	fWriteCallback_ (STX);  // screw only some messages
   else
-	fLogCallback_("RS485: Screwing-up (omiting) STX"); 
+	fErrCallback_(ERR_OK, "RS485: Screwing-up (omiting) STX"); 
 #endif
 #ifndef SCREW_DATA   
   for (byte i = 0; i < length; i++) 
@@ -168,7 +168,7 @@ byte RS485::sendMsg (const byte * data, const byte length)
 		if (i==rand) {
 			//sendComplemented ((rand%2==1)?STX:ETX);
 			fWriteCallback_ (STX);
-			fLogCallback_("RS485: Screwing-up data with STX");
+			fErrCallback_(ERR_OK, "RS485: Screwing-up data with STX");
 		}
 		else
 			sendComplemented (data [i]);
@@ -185,14 +185,14 @@ byte RS485::sendMsg (const byte * data, const byte length)
 	fWriteCallback_ (ETX);  // ETX
   }
   else
-	fLogCallback_("RS485: Screwing-up (omiting) ETX"); 
+	fErrCallback_(ERR_OK, "RS485: Screwing-up (omiting) ETX"); 
 #endif
 
 #ifndef SCREW_CRC
   sendComplemented (crc8 (data, length));
 #else
   if ((run % SCREW_RATE)) {
-  	fLogCallback_("RS485: Screwing-up CRC"); 
+  	fErrCallback_(ERR_OK, "RS485: Screwing-up CRC"); 
 	sendComplemented (~crc8 (data, length));
   }
   else
@@ -228,7 +228,7 @@ bool RS485::update ()
       {
 
         case STX:   // start of text
-		      fLogCallback_("RS485: got STX");	
+		      fErrCallback_(ERR_OK, "RS485: got STX");	
           haveSTX_ = true;
           haveETX_ = false;
           inputPos_ = 0;
@@ -239,7 +239,7 @@ bool RS485::update ()
         case ETX:   // end of text (now expect the CRC check)
           if (haveSTX_)		// nik
 			        haveETX_ = true;
-			    fLogCallback_("RS485: got ETX");	
+			    fErrCallback_(ERR_OK, "RS485: got ETX");	
           break;
 
         default:
@@ -252,7 +252,7 @@ bool RS485::update ()
             {
             reset ();
             errorCount_++;
-            fLogCallback_("RS485: Invalid byte received");
+            fErrCallback_(ERR_INV_BYTE_CODE, "RS485: Invalid byte received");
 			      break;  // bad character
             } // end if bad byte
 
@@ -277,11 +277,11 @@ bool RS485::update ()
               {   // wrong CRC
               reset ();
               errorCount_++;
-			        fLogCallback_("RS485:  Bad CRC");
+			        fErrCallback_(ERR_BAD_CRC, "RS485:  Bad CRC");
               break;  // bad crc
 			        } // end of bad CRC
             available_ = true;
-			      fLogCallback_("RS485: got MSG");	
+			      fErrCallback_(ERR_OK, "RS485: got MSG");	
 			      haveETX_ = haveSTX_ = false;		//Nik: to be able to catch timeout
             return true;  // show data ready
             }  // end if have ETX already
@@ -293,7 +293,7 @@ bool RS485::update ()
             {
             reset (); // overflow, start again
             errorCount_++;
-			      fLogCallback_("RS485: Buffer overflow");
+			      fErrCallback_(ERR_BUF_OVERFLOW, "RS485: Buffer overflow");
             }
           break;    // end of default case
       }  // end of switch
@@ -305,7 +305,7 @@ bool RS485::update ()
 	  if ((unsigned long)(millis() - startTime_) > PACKET_TIMEOUT)
 	    {                 // yes, timeout
       errorCount_++;
-		  fLogCallback_("RS485: packet receive takes too long");
+		  fErrCallback_(ERR_TIMEOUT, "RS485: packet receive takes too long");
 		  reset ();
 	    }
   } 

@@ -1,4 +1,4 @@
-#include "Alarm_RS485.h"              // RS485 transport implementation (library)
+#include "Alarm_RS485-cpp.h"              // RS485 transport implementation (library)
 
 #define MASTER
 #define SLAVE

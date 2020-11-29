@@ -55,17 +55,20 @@
 #define FREE_TEXT_RES         (FREE_TEXT  | REPLY_OFFSET)
 #define FREE_TEXT_RES_PAYLD_LEN MAX_PAYLOAD_SIZE         // FREE_TEXT_RES payload is up to MAX_PAYLOAD_SIZE
 
+#define RS485_DATA_PRESENT    1         // RS485.update returns 0 (ERR_OK) if no data, 1 (RS485_DATA_PRESENT) if data avail or negative if error
 enum errorID {
   ERR_OK = 0,                           // no error
   ERR_RS485,                            // something wrong happened while sending/ receiving  message in RS485 class
   ERR_INV_PAYLD_LEN,                    // send/rcv  message payload issue (too long or doesn't match message code payload size)
   ERR_BAD_CMD,                          // unknown command
   ERR_BAD_DST,                          // unknown destination
-  ERR_BUF_OVERFLOW,                     // RS485 class receive buffer overflow
-  ERR_FORCE_SCREW,                      // RS485 intentionally generated for testing purposes
-  ERR_INV_BYTE_CODE,                    // RS485 byte encodding error detected
-  ERR_BAD_CRC,                          // RS485 crc error
-  ERR_TIMEOUT,                          // RS485 timeout waiting for ETX when STX is received
+  ERR_BUF_OVERFLOW = -1,                     // RS485 class receive buffer overflow
+  ERR_INV_BYTE_CODE = -2,                    // RS485 byte encodding error detected
+  ERR_BAD_CRC = -3,                          // RS485 crc error
+  ERR_TIMEOUT = -4,                          // RS485 timeout waiting for ETX when STX is received
+  ERR_FORCE_SCREW = -5 ,                     // RS485 intentionally generated for testing purposes
+  ERR_NO_CALLBACK = -6,                      // RS485 has no read/write/available callback 
+  ERR_DEBUG = -7,                            // used for debug prints
 };
 //
 // errors storage for reporting purposes
@@ -115,10 +118,37 @@ int SlaveAvailable ()                  // callback to check if something receive
 {return SlaveUART.available();}
 int SlaveRead ()                       // callback to read received bytes
 {return SlaveUART.read();}              
-void ErrWrite (int err_code, char * what)           // callback to dump info to serial console from inside RS485 library
+
+
+void ErrWrite (int err_code, char* what)           // callback to dump info to serial console from inside RS485 library
 {
   // update errors struct here
-  logger.println (what);
+  switch (err_code)
+  {
+    //case  ERR_DEBUG:                            // RS485 class receive buffer overflow
+    //  logger.print (*what);
+    //  break;
+    case  ERR_OK:                               // RS485 class receive buffer overflow
+      logger.println (what);
+      break;
+    case  ERR_BUF_OVERFLOW:                      // RS485 class receive buffer overflow
+      logger.printf ("RS485: Receive buffer overflow\n");
+      break;
+    case  ERR_FORCE_SCREW:                      // RS485 intentionally generated for testing purposes
+      logger.printf ("RS485: forced data error in transmit\n");
+      break;
+    case  ERR_INV_BYTE_CODE:                    // RS485 byte encodding error detected
+      logger.printf ("RS485: Invalid encodded byte received\n");
+      break;
+    case  ERR_BAD_CRC:                          // RS485 crc error
+      logger.printf ("RS485: Received bad CRC\n");
+      break;
+    case  ERR_TIMEOUT:                          // RS485 timeout waiting for ETX when STX is received
+      logger.printf ("RS485: Receive timeout\n");
+      break;
+    default:
+      logger.printf ("Invalid error code %d received in RS485 callback", err_code);
+  }
 }
 
  

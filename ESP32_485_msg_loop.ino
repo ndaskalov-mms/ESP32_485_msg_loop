@@ -19,8 +19,9 @@ HardwareSerial& SlaveUART(Serial2);
 byte boardID;                             // board ID: master is 0, expanders and others up to 0xE; OxF means bradcast
 unsigned long last_transmission = 0;      // last transmission time
 int waiting_for_reply = 0;
-unsigned long master_err = 0;
-unsigned long slave_err = 0;
+//unsigned long master_err = 0;
+//unsigned long slave_err = 0;
+int err;
 byte test_msg [MAX_PAYLOAD_SIZE] = "5Hello world;6Hello world;7Hello world;8Hello world;9Hello";
 struct MSG rcvMsg, tmpMsg;                // temp structs for message tr/rcv
 //these are channels to send/receive packets over serial if. The comm to serial is via fRead, fWrite,...

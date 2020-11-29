@@ -47,8 +47,6 @@ class RS485
   // an STX (start of text) signals a packet start
   bool haveSTX_;
 
-  // count of errors
-  unsigned long errorCount_;
 
   // variables below are set when we get an STX
   bool haveETX_;
@@ -87,7 +85,7 @@ class RS485
     void stop ();
 
     // handle incoming data, return true if packet ready
-    bool update ();
+    int update ();
 
     // reset to no incoming data (eg. after a timeout)
     void reset ();
@@ -101,9 +99,6 @@ class RS485
     // once available, returns the address of the current message
     byte * getData ()   const { return data_; }
     byte   getLength () const { return inputPos_; }
-
-    // return how many errors we have had
-    unsigned long getErrorCount () const { return errorCount_; }
 
     // return when last packet started
     unsigned long getPacketStartTime () const { return startTime_; }

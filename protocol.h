@@ -87,9 +87,9 @@ byte SendMessage(RS485& trmChannel, HardwareSerial& uart, byte cmd, byte dst, by
       errors.send_payload +=1;
       return ERR_INV_PAYLD_LEN;
     }
-    //logger.printf("Sending message LEN = %d, CMD|DST = %x, PAYLOAD = ", tmpLen, tmpBuf[0]);
-    //logger.write (&tmpBuf[1], tmpLen-1);
-    //logger.println();
+    logger.printf("Sending message LEN = %d, CMD|DST = %x, PAYLOAD = ", tmpLen, tmpBuf[0]);
+    logger.write (&tmpBuf[1], tmpLen-1);
+    logger.println();
     uartTrmMode(uart);                         // switch line dir to transmit_mode;
     if(!trmChannel.sendMsg (tmpBuf, tmpLen)) {  // send fail. The only error which can originate for RS485 lib in sendMsg fuction is
       logger.printf("RS485.SendMsg error: no write callback"); // not supplied write callback
@@ -155,7 +155,7 @@ struct MSG  parse_msg(RS485& rcv_channel) {
         }
         break;
       case FREE_TEXT:
-        if (--rmsg.len == FREE_TEXT_PAYLD_LEN)
+        if (--rmsg.len == FREE_TEXT_PAYLD_LEN) 
           memcpy(rmsg.payload, &tmpBuf[1], rmsg.len);
         else  {
           rmsg.parse_err = ERR_INV_PAYLD_LEN;
@@ -169,4 +169,5 @@ struct MSG  parse_msg(RS485& rcv_channel) {
         errors.bad_cmd += 1;
         return rmsg;        // error, no command code in message;   
     }  // switch
+    return rmsg;
 }

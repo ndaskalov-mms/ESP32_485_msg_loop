@@ -91,7 +91,7 @@ class RS485
     void reset ();
 
     // send data
-    byte sendMsg (const byte * data, const byte length);
+    bool sendMsg (const byte * data, const byte length);
 
     // returns true if packet available
     bool available () const { return available_; };

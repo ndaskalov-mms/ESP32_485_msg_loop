@@ -96,13 +96,6 @@ struct MSG {
   byte parse_err;
 } ;
 
-enum msgParseErr {
-  BAD_CMD = 1,
-  BAD_DST,
-  INV_PAYLD_LEN,
-};
-
-
 
 // callbacks for RS485 library interface to onboard UARTS
 
@@ -119,6 +112,26 @@ int SlaveAvailable ()                  // callback to check if something receive
 int SlaveRead ()                       // callback to read received bytes
 {return SlaveUART.read();}              
 
+ErrWrite(ERR_INV_PAYLD_LEN, "Error composing message -  too long???",rmsg.len );   
+
+/*
+void LogMsg(char *formatStr, int len, int cmd_dst, byte *payload) {
+    logger.printf(formatStr, len, payload[0]);
+    logger.write (&payload[1], len-1);
+    logger.println();
+}
+*/
+void LogMsg(char *formatStr, int len, int cmd_dst, byte *payload) {
+    logger.printf(formatStr, len, payload[0]);
+    logger.write (&payload[1], len-1);
+    logger.println();
+}
+
+void LogMsg(char *formatStr, int len, int cmd, int dst, byte *payload) {
+    logger.printf(formatStr, len, cmd, dst, payload[0]);
+    logger.write (&payload[1], len-1);
+    logger.println();
+}
 
 void ErrWrite (int err_code, char* what)           // callback to dump info to serial console from inside RS485 library
 {
@@ -132,25 +145,35 @@ void ErrWrite (int err_code, char* what)           // callback to dump info to s
       logger.println (what);
       break;
     case  ERR_BUF_OVERFLOW:                      // RS485 class receive buffer overflow
-      logger.printf ("RS485: Receive buffer overflow\n");
+      logger.printf (what);
       break;
     case  ERR_FORCE_SCREW:                      // RS485 intentionally generated for testing purposes
-      logger.printf ("RS485: forced data error in transmit\n");
+      logger.printf (what);
       break;
     case  ERR_INV_BYTE_CODE:                    // RS485 byte encodding error detected
-      logger.printf ("RS485: Invalid encodded byte received\n");
+      logger.printf (what);
       break;
     case  ERR_BAD_CRC:                          // RS485 crc error
-      logger.printf ("RS485: Received bad CRC\n");
+      logger.printf (what);
       break;
     case  ERR_TIMEOUT:                          // RS485 timeout waiting for ETX when STX is received
-      logger.printf ("RS485: Receive timeout\n");
+      logger.printf (what);
       break;
+
+      //ERR_NO_CALLBACK
+      //ERR_RS485
+      //ERR_INV_PAYLD_LEN, 
+      //
     default:
-      logger.printf ("Invalid error code %d received in RS485 callback", err_code);
+      logger.printf ("Invalid error code %d received in errors handling callback callback", err_code);
   }
 }
 
+void ErrWrite (int err_code, char* formatStr, int len)   {        // format str is printf-type one
+        char tmpBuf[256];                         
+        sprintf(tmpBuf,formatStr, rmsg.len);                      // finalyze the string according to format specs (printf type)
+        ErrWrite(err_code, tmpBuf)                                // process the error
+}
  
 // flush transmitter only 
 void uartTxFlush(HardwareSerial& uart){

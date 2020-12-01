@@ -1,4 +1,6 @@
   boardID = 0;        // TODO - only for loopback testing
+  static int i;
+  
   if (waiting_for_reply)
   {
     if (err = MasterMsgChannel.update ())
@@ -7,10 +9,11 @@
       if (err < 0)                              // error receiving message
       {
         logger.printf("Master: error occured while receiving message, ignorring\n");
+        ErrWrite (ERR_OK, "Error composing message -  too long???");   
       }
       else                                      // no error
       {
-        // msg or err received
+        // msg received, no errors
         //logger.print ("Master received message: ");
         //logger.write (MasterMsgChannel.getData (), MasterMsgChannel.getLength ()); 
         //logger.println ();
@@ -66,7 +69,7 @@
     //logger.printf("Master sending: %s\n", tmpMsg.payload);
     //SendMessage(MasterMsgChannel, MasterUART, FREE_TEXT, SLAVE1_ADDRESS, tes_msg, MAX_PAYLOAD_SIZE);
     //SendMessage(MasterMsgChannel, MasterUART, tmpMsg)
-    if(ERR_OK != SendMessage(MasterMsgChannel, MasterUART, FREE_TEXT, SLAVE1_ADDRESS, test_msg, MAX_PAYLOAD_SIZE)){
+    if(ERR_OK != SendMessage(MasterMsgChannel, MasterUART, FREE_TEXT, SLAVE1_ADDRESS, test_msg[(++i)&3], MAX_PAYLOAD_SIZE)){
       logger.printf("Master: Error in sendMessage");
       // MQTT send error
     }

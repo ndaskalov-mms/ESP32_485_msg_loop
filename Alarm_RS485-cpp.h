@@ -67,8 +67,8 @@
 #define PACKET_TIMEOUT 200  //we have to get complete packet withni XXX ms
 
 #define SCREW_RATE 5
-#define SCREW_STX
-//#define SCREW_ETX
+//#define SCREW_STX
+#define SCREW_ETX
 //#define SCREW_CRC
 #define SCREW_DATA
 
@@ -138,22 +138,23 @@ byte c;
 
 // send a message of "length" bytes (max 255) to other end
 // put STX at start, ETX at end, and add CRC
-byte RS485::sendMsg (const byte * data, const byte length)
+bool RS485::sendMsg (const byte * data, const byte length)
 {
   static int run = 0;
   //fErrCallback_(ERR_OK, "-------------------------Sending message-----------------------------------------");
   // no callback? Can't send
-  // TODO - add error code in case of error
-  if (fWriteCallback_ == NULL)
+  if (fWriteCallback_ == NULL) {
+    fErrCallback_(ERR_NO_CALLBACK, "RS485: no write callback");
     return false;
+  }
   //fErrCallback_(ERR_OK, "RS485: sendMsg");
 #ifndef SCREW_STX
   fWriteCallback_ (STX);  // STX
 #else
   if ((run % SCREW_RATE))
-	fWriteCallback_ (STX);  // screw only some messages
+	  fWriteCallback_ (STX);  // screw only some messages
   else
-	fErrCallback_(ERR_OK, "RS485: Screwing-up (omiting) STX"); 
+	  fErrCallback_(ERR_OK, "RS485: Screwing-up (omiting) STX"); 
 #endif
 #ifndef SCREW_DATA   
   for (byte i = 0; i < length; i++) {
@@ -163,15 +164,15 @@ byte RS485::sendMsg (const byte * data, const byte length)
 #else 
   int rand=random(length);
   if ((run % SCREW_RATE == 0)) {			// screw-up
-	for (byte i = 0; i < length; i++) {
-		if (i==rand) {
-			//sendComplemented ((rand%2==1)?STX:ETX);
-			fWriteCallback_ (STX);
-			fErrCallback_(ERR_OK, "RS485: Screwing-up data with STX");
-		}
-		else
-			sendComplemented (data [i]);
-	}	// for
+  	for (byte i = 0; i < length; i++) {
+  		if (i==rand) {
+  			//sendComplemented ((rand%2==1)?STX:ETX);
+  			fWriteCallback_ (ETX);
+  			fErrCallback_(ERR_OK, "RS485: Screwing-up data with STX");
+  		}
+  		else
+  			sendComplemented (data [i]);
+  	}	// for
   }
   else	
 	for (byte i = 0; i < length; i++)	// no screw-up
@@ -180,11 +181,10 @@ byte RS485::sendMsg (const byte * data, const byte length)
 #ifndef SCREW_ETX
   fWriteCallback_ (ETX);  // ETX
 #else
-  if ((run % SCREW_RATE)) {
-	fWriteCallback_ (ETX);  // ETX
-  }
+  if ((run % SCREW_RATE)) 
+  	  fWriteCallback_ (ETX);  // ETX
   else
-	fErrCallback_(ERR_OK, "RS485: Screwing-up (omiting) ETX"); 
+  	  fErrCallback_(ERR_OK, "RS485: Screwing-up (omiting) ETX"); 
 #endif
 
 #ifndef SCREW_CRC
@@ -192,7 +192,7 @@ byte RS485::sendMsg (const byte * data, const byte length)
 #else
   if ((run % SCREW_RATE)) {
   	fErrCallback_(ERR_OK, "RS485: Screwing-up CRC"); 
-	sendComplemented (~crc8 (data, length));
+	  sendComplemented (~crc8 (data, length));
   }
   else
 	  sendComplemented (crc8 (data, length));

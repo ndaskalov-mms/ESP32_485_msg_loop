@@ -22,7 +22,12 @@ int waiting_for_reply = 0;
 //unsigned long master_err = 0;
 //unsigned long slave_err = 0;
 int err;
-byte test_msg [MAX_PAYLOAD_SIZE] = "5Hello world;6Hello world;7Hello world;8Hello world;9Hello";
+byte test_msg [][MAX_PAYLOAD_SIZE] = {{"5Hello world;6Hello world;7Hello world;8Hello world;9Hello"},\
+                                     {"1234567890123456789012345678912345678901234567890123456789"},\
+                                     {"~!@#$%^&*()_+~!@#$%^&*()_+~!@#$%^&*()_+~!@#$%^&*()_+~!@#$%"},
+                                     {"zxcvbnm,./';lkjhgfdsaqwertyuiop[]\\][poiuytrewqasdfghjkl;'"}};
+                                
+                                     
 struct MSG rcvMsg, tmpMsg;                // temp structs for message tr/rcv
 //these are channels to send/receive packets over serial if. The comm to serial is via fRead, fWrite,...
 RS485 MasterMsgChannel (MasterRead, MasterAvailable, MasterWrite, ErrWrite, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);

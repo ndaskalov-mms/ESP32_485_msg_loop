@@ -23,7 +23,7 @@ int waiting_for_reply = 0;
 //unsigned long slave_err = 0;
 int err;
 byte test_msg [][MAX_PAYLOAD_SIZE] = {{"5Hello world;6Hello world;7Hello world;8Hello world;9Hello"},\
-                                     {"1234567890123456789012345678912345678901234567890123456789"},\
+                                     {"123456789012345678901234567890123456789012345678901234567890"},\
                                      {"~!@#$%^&*()_+~!@#$%^&*()_+~!@#$%^&*()_+~!@#$%^&*()_+~!@#$%"},
                                      {"zxcvbnm,./';lkjhgfdsaqwertyuiop[]\\][poiuytrewqasdfghjkl;'"}};
                                 

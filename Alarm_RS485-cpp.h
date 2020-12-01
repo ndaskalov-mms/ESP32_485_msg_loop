@@ -285,7 +285,7 @@ int RS485::update ()
             }  // end if have ETX already
 
           // keep adding if not full
-          if (inputPos_ < bufferSize_) {
+          if (inputPos_ < bufferSize_) {      
             data_ [inputPos_++] = currentByte_;
             //fErrCallback_(ERR_DEBUG, (const char *)&currentByte_);
             //logger.print(currentByte_, HEX);

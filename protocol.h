@@ -117,11 +117,11 @@ struct MSG  parse_msg(RS485& rcv_channel) {
       return rmsg;                                        // error, no command code in message
     } 
     memcpy (tmpBuf, rcv_channel.getData (), rmsg.len);     // copy message in temp buf
-    LogMsg("Parse message recv: LEN = %d, CMD|DST = %x, PAYLOAD = %s\n", rmsg.len, tmpBuf[0], &tmpBuf[1]);
+    LogMsg("Parse message recv: LEN = %d, CMD|DST = %x, PAYLOAD:", rmsg.len, tmpBuf[0], &tmpBuf[1]);
     // extract command and destination
     rmsg.cmd = ((tmpBuf[0] >> 4) & 0x0F);                  // cmd is hihg nibble
     rmsg.dst = tmpBuf[0] & 0x0F;                           // destination is low nibble
-    LogMsg("Parse message recv: LEN = %d, CMD = %x, DST = %x, PAYLOAD = %s\n", rmsg.len, rmsg.cmd, rmsg.dst, &tmpBuf[1]);
+    LogMsg("Parse message recv: LEN = %d, CMD = %x, DST = %x, PAYLOAD:", rmsg.len, rmsg.cmd, rmsg.dst, &tmpBuf[1]);
     switch (rmsg.cmd & ~(0xF0 | REPLY_OFFSET )) {          // check for valid commands and replies. clear reply bit to facilitate test
       case PING:
         if (--rmsg.len == PING_PAYLD_LEN)

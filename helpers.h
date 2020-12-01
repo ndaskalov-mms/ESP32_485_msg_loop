@@ -120,15 +120,15 @@ void LogMsg(char *formatStr, int len, int cmd_dst, byte *payload) {
     logger.println();
 }
 */
-void LogMsg(char *formatStr, int len, int cmd_dst, byte *payload) {
-    logger.printf(formatStr, len, payload[0]);
-    logger.write (payload, len-1);
+void LogMsg(char *formatStr, int len, byte cmd_dst, byte *payload) {
+    logger.printf(formatStr, len, cmd_dst);
+    logger.write (payload, len-1);                // there is one byte cmd|dst
     logger.println();
 }
 
-void LogMsg(char *formatStr, int len, int cmd, int dst, byte *payload) {
-    logger.printf(formatStr, len, cmd, dst, payload[0]);
-    logger.write (payload, len-1);
+void LogMsg(char *formatStr, int len, byte cmd, byte dst, byte *payload) {
+    logger.printf(formatStr, len, cmd, dst);
+    logger.write (payload, len-1);                // there is one byte cmd|dst
     logger.println();
 }
 

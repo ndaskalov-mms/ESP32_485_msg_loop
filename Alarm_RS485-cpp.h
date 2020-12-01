@@ -274,10 +274,9 @@ int RS485::update ()
             if (crc8 (data_, inputPos_) != currentByte_)
               {   // wrong CRC
               reset ();
-			        fErrCallback_(ERR_BAD_CRC, "RS485:  Bad CRC");
+			        fErrCallback_(ERR_BAD_CRC, "RS485:  Bad CRC\n");
               return ERR_BAD_CRC;
-              //break;  // bad crc
-			        } // end of bad CRC
+			        }   // end of bad CRC
             available_ = true;
 			      fErrCallback_(ERR_OK, "RS485: got MSG");	
 			      haveETX_ = haveSTX_ = false;		//Nik: to be able to catch timeout

@@ -52,13 +52,11 @@ byte SendMessage(RS485& trmChannel, HardwareSerial& uart, struct MSG msg2trm ) {
       ErrWrite (ERR_INV_PAYLD_LEN, "SendMsg - Error composing message -  too long???");   
       return ERR_INV_PAYLD_LEN;
     }
-    //logger.printf("Sending message LEN = %d, CMD|DST = %x, PAYLOAD = ", tmpLen, tmpBuf[0]);
-    //logger.write (&tmpBuf[1], tmpLen-1); logger.println();
     LogMsg("Sending message LEN = %d, CMD|DST = %x, PAYLOAD = ", tmpLen, tmpBuf[0], &tmpBuf[1]);
     uartTrmMode(uart);                         // switch line dir to transmit_mode;
     if(!trmChannel.sendMsg (tmpBuf, tmpLen)) {  // send fail. The only error which can originate for RS485 lib in sendMsg fuction is
       err = ERR_RS485;
-      ErrWrite (ERR_RS485, "RS485.SendMsg error: no write callback");  
+      ErrWrite (ERR_NO_CALLBACK, "RS485.SendMsg error: no write callback");  
       }                                        // RS485 class is not configured properly, but we need to restore the line dir
     uartFlush(uart);                           // make sure the data are transmitted properly before reversing the line direction
     uartRcvMode(uart);                         // switch line dir to receive_mode;
@@ -89,12 +87,10 @@ byte SendMessage(RS485& trmChannel, HardwareSerial& uart, byte cmd, byte dst, by
       return ERR_INV_PAYLD_LEN;
     }
     LogMsg("Sending message LEN = %d, CMD|DST = %x, PAYLOAD = ", tmpLen, tmpBuf[0], &tmpBuf[1]);
-    //logger.printf("Sending message LEN = %d, CMD|DST = %x, PAYLOAD = ", tmpLen, tmpBuf[0]);
-    //logger.write (&tmpBuf[1], tmpLen-1);  logger.println();
     uartTrmMode(uart);                         // switch line dir to transmit_mode;
-    if(!trmChannel.sendMsg (tmpBuf, tmpLen)) {  // send fail. The only error which can originate for RS485 lib in sendMsg fuction is
+    if(!trmChannel.sendMsg (tmpBuf, tmpLen)) {  // send fail. The only error which can originate for RS485 lib in sendMsg fuction isfor missing write callback
       err = ERR_RS485;
-      ErrWrite (ERR_RS485, "RS485.SendMsg error: no write callback"); 
+      ErrWrite (ERR_NO_CALLBACK, "RS485.SendMsg error: no write callback"); 
       }
     uartFlush(uart);                           // make sure the data are transmitted properly before revercing the line direction
     uartRcvMode(uart);                         // switch line dir to receive_mode;
@@ -118,7 +114,6 @@ struct MSG  parse_msg(RS485& rcv_channel) {
       errors.rcv_payload += 1;
       rmsg.parse_err = ERR_INV_PAYLD_LEN;  
       ErrWrite(ERR_INV_PAYLD_LEN, "parse_msg error payload %d exceeds buffer",rmsg.len );                      
-      // logger.printf("parse_MSG: Invalid message payload len = %d\n", rmsg.len);
       return rmsg;                                        // error, no command code in message
     } 
     memcpy (tmpBuf, rcv_channel.getData (), rmsg.len);     // copy message in temp buf
@@ -165,9 +160,9 @@ struct MSG  parse_msg(RS485& rcv_channel) {
         }
         break;
       default:
-        logger.printf("Unknown command %d received", rmsg.cmd);
         rmsg.parse_err = ERR_BAD_CMD;
         errors.bad_cmd += 1;
+        ErrWrite(ERR_BAD_CMD, "parse_msg error bad command %x received",rmsg.cmd ); 
         return rmsg;        // error, no command code in message;   
     }  // switch
     return rmsg;

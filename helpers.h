@@ -168,10 +168,10 @@ void ErrWrite (int err_code, char* what)           // callback to dump info to s
   }
 }
 
-void ErrWrite (int err_code, char* formatStr, int len)   {        // format str is printf-type one
+void ErrWrite (int err_code, char* formatStr, int arg)   {        // format str is printf-type one
         char tmpBuf[256];                         
-        sprintf(tmpBuf,formatStr, len);                      // finalyze the string according to format specs (printf type)
-        ErrWrite(err_code, tmpBuf);                                // process the error
+        sprintf(tmpBuf,formatStr, arg);                           // finalyze the string according to format specs (printf type)
+        ErrWrite(err_code, tmpBuf);                               // process the error
 }
  
 // flush transmitter only 

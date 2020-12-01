@@ -111,8 +111,7 @@ int SlaveAvailable ()                  // callback to check if something receive
 {return SlaveUART.available();}
 int SlaveRead ()                       // callback to read received bytes
 {return SlaveUART.read();}              
-
-ErrWrite(ERR_INV_PAYLD_LEN, "Error composing message -  too long???",rmsg.len );   
+ 
 
 /*
 void LogMsg(char *formatStr, int len, int cmd_dst, byte *payload) {
@@ -123,13 +122,13 @@ void LogMsg(char *formatStr, int len, int cmd_dst, byte *payload) {
 */
 void LogMsg(char *formatStr, int len, int cmd_dst, byte *payload) {
     logger.printf(formatStr, len, payload[0]);
-    logger.write (&payload[1], len-1);
+    logger.write (payload, len-1);
     logger.println();
 }
 
 void LogMsg(char *formatStr, int len, int cmd, int dst, byte *payload) {
     logger.printf(formatStr, len, cmd, dst, payload[0]);
-    logger.write (&payload[1], len-1);
+    logger.write (payload, len-1);
     logger.println();
 }
 
@@ -171,8 +170,8 @@ void ErrWrite (int err_code, char* what)           // callback to dump info to s
 
 void ErrWrite (int err_code, char* formatStr, int len)   {        // format str is printf-type one
         char tmpBuf[256];                         
-        sprintf(tmpBuf,formatStr, rmsg.len);                      // finalyze the string according to format specs (printf type)
-        ErrWrite(err_code, tmpBuf)                                // process the error
+        sprintf(tmpBuf,formatStr, len);                      // finalyze the string according to format specs (printf type)
+        ErrWrite(err_code, tmpBuf);                                // process the error
 }
  
 // flush transmitter only 

@@ -54,7 +54,7 @@ byte SendMessage(RS485& trmChannel, HardwareSerial& uart, struct MSG msg2trm ) {
     }
     //logger.printf("Sending message LEN = %d, CMD|DST = %x, PAYLOAD = ", tmpLen, tmpBuf[0]);
     //logger.write (&tmpBuf[1], tmpLen-1); logger.println();
-    LogMsg("Sending message LEN = %d, CMD|DST = %x, PAYLOAD = ", tmpLen, tmpBuf[0]);
+    LogMsg("Sending message LEN = %d, CMD|DST = %x, PAYLOAD = ", tmpLen, tmpBuf[0], &tmpBuf[1]);
     uartTrmMode(uart);                         // switch line dir to transmit_mode;
     if(!trmChannel.sendMsg (tmpBuf, tmpLen)) {  // send fail. The only error which can originate for RS485 lib in sendMsg fuction is
       err = ERR_RS485;
@@ -88,7 +88,7 @@ byte SendMessage(RS485& trmChannel, HardwareSerial& uart, byte cmd, byte dst, by
       ErrWrite (ERR_INV_PAYLD_LEN, "Error composing message -  too long???");   
       return ERR_INV_PAYLD_LEN;
     }
-    LogMsg("Sending message LEN = %d, CMD|DST = %x, PAYLOAD = ", tmpLen, tmpBuf[0]);
+    LogMsg("Sending message LEN = %d, CMD|DST = %x, PAYLOAD = ", tmpLen, tmpBuf[0], &tmpBuf[1]);
     //logger.printf("Sending message LEN = %d, CMD|DST = %x, PAYLOAD = ", tmpLen, tmpBuf[0]);
     //logger.write (&tmpBuf[1], tmpLen-1);  logger.println();
     uartTrmMode(uart);                         // switch line dir to transmit_mode;

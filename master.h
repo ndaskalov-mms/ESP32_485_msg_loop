@@ -8,28 +8,27 @@
       // check for receive error first
       if (err < 0)                              // error receiving message
       {
-        logger.printf("Master: error occured while receiving message, ignorring\n");
-        ErrWrite (ERR_OK, "Error composing message -  too long???");   
+        ErrWrite (err, "Master: error occured while receiving message, ignorring message\n");   
       }
       else                                      // no error
       {
         // msg received, no errors
-        //logger.print ("Master received message: ");
-        //logger.write (MasterMsgChannel.getData (), MasterMsgChannel.getLength ()); 
-        //logger.println ();
+        ErrWrite(ERR_OK, "Master just got message\n");
         waiting_for_reply = 0;                    // TODO - check for out-of-order messages
         uartTrmMode(MasterUART);                  // Switch back to transmit_mode
         rcvMsg = parse_msg(MasterMsgChannel);   
         if (rcvMsg.parse_err) {                   // if parse error, do nothing
-          logger.printf ("Master parse message error %d\n", rcvMsg.parse_err); // yes, do nothing
+          //logger.printf ("Master parse message error %d\n", rcvMsg.parse_err); // yes, do nothing
+          ErrWrite(rcvMsg.parse_err, "Master parse message error\n");
         } 
         else if (rcvMsg.dst == BROADCAST_ID)      // check for broadcast message
-          logger.printf("Master: Broadcast command received, skipping\n");  // do nothing
+          ErrWrite(ERR_OK, "Master: Broadcast command received, skipping\n");  // do nothing
         else if (rcvMsg.dst != boardID)           // check if the destination is another board
           ;                                       // TODO - master is not supposed to get this as slaves are not talcking to each other
         else { 
-          logger.printf ("Master received CMD: %x; DEST: %x; payload len: %d; PAYLOAD: ", rcvMsg.cmd, rcvMsg.dst, rcvMsg.len);
-          logger.write (rcvMsg.payload, rcvMsg.len); logger.println("");
+          //logger.printf ("Master received CMD: %x; DEST: %x; payload len: %d; PAYLOAD: ", rcvMsg.cmd, rcvMsg.dst, rcvMsg.len);
+          //logger.write (rcvMsg.payload, rcvMsg.len); logger.println("");
+          LogMsg("Master received message LEN: %d, CMD: %x; DEST: %x; PAYLOAD: ",rcvMsg.len, rcvMsg.cmd, rcvMsg.dst, rcvMsg.payload);
           switch (rcvMsg.cmd) {
             case PING_RES:
               logger.printf("Master: Unsupported reply command received PING_RES\n");

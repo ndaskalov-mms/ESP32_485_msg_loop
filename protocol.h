@@ -23,8 +23,8 @@ byte  compose_msg(byte cmd, byte dest, byte *payload, byte *out_buf, int payload
   out_buf[index++] = ((cmd << 4) | (dest & 0x0F));
   // next comes the payload
   if ((payload_len + index) > MAX_MSG_LENGHT) {
-    sprintf(tmpBuf, "Payload size %d is larger than buffer size %d, message IS NOT SEND", payload_len, MAX_MSG_LENGHT);
-    ErrWrite (ERR_INV_PAYLD_LEN, tmpBuf); 
+    //sprintf(tmpBuf, "Payload size %d is larger than buffer size %d, message IS NOT SEND", payload_len, MAX_MSG_LENGHT);
+    ErrWrite (ERR_INV_PAYLD_LEN, "Payload size %d is larger than buffer size", payload_len); 
     //logger.printf("ComposeMsg: Payload size %d is larger than buffer size %d, message IS NOT SEND", payload_len, MAX_MSG_LENGHT);
     return 0;
   }
@@ -52,7 +52,7 @@ byte SendMessage(RS485& trmChannel, HardwareSerial& uart, struct MSG msg2trm ) {
       ErrWrite (ERR_INV_PAYLD_LEN, "SendMsg - Error composing message -  too long???");   
       return ERR_INV_PAYLD_LEN;
     }
-    LogMsg("Sending message LEN = %d, CMD|DST = %x, PAYLOAD = ", tmpLen, tmpBuf[0], &tmpBuf[1]);
+    LogMsg("SendMsg: sending message LEN = %d, CMD|DST = %x, PAYLOAD: ", tmpLen, tmpBuf[0], &tmpBuf[1]);
     uartTrmMode(uart);                         // switch line dir to transmit_mode;
     if(!trmChannel.sendMsg (tmpBuf, tmpLen)) {  // send fail. The only error which can originate for RS485 lib in sendMsg fuction is
       err = ERR_RS485;
@@ -61,7 +61,7 @@ byte SendMessage(RS485& trmChannel, HardwareSerial& uart, struct MSG msg2trm ) {
     uartFlush(uart);                           // make sure the data are transmitted properly before reversing the line direction
     uartRcvMode(uart);                         // switch line dir to receive_mode;
     uartFlush(uart);                           // clean-up garbage due to switching, flushes both Tx and Rx
-    ErrWrite (ERR_OK, "Transmitted, going back to listening mode");
+    ErrWrite (ERR_OK, "Transmitted, going back to listening mode\n");
     return err;
 }
 
@@ -86,7 +86,7 @@ byte SendMessage(RS485& trmChannel, HardwareSerial& uart, byte cmd, byte dst, by
       ErrWrite (ERR_INV_PAYLD_LEN, "Error composing message -  too long???");   
       return ERR_INV_PAYLD_LEN;
     }
-    LogMsg("Sending message LEN = %d, CMD|DST = %x, PAYLOAD = ", tmpLen, tmpBuf[0], &tmpBuf[1]);
+    LogMsg("SendMsg: sending message LEN = %d, CMD|DST = %x, PAYLOAD: ", tmpLen, tmpBuf[0], &tmpBuf[1]);
     uartTrmMode(uart);                         // switch line dir to transmit_mode;
     if(!trmChannel.sendMsg (tmpBuf, tmpLen)) {  // send fail. The only error which can originate for RS485 lib in sendMsg fuction isfor missing write callback
       err = ERR_RS485;
@@ -95,7 +95,7 @@ byte SendMessage(RS485& trmChannel, HardwareSerial& uart, byte cmd, byte dst, by
     uartFlush(uart);                           // make sure the data are transmitted properly before revercing the line direction
     uartRcvMode(uart);                         // switch line dir to receive_mode;
     uartFlush(uart);                           // clean-up garbage due to switching, flushes both Tx and Rx
-    ErrWrite (ERR_OK, "Transmitted, going back to listening mode");
+    ErrWrite (ERR_OK, "Transmitted, going back to listening mode\n");
     return err;
 }
 // parse received message
@@ -117,11 +117,11 @@ struct MSG  parse_msg(RS485& rcv_channel) {
       return rmsg;                                        // error, no command code in message
     } 
     memcpy (tmpBuf, rcv_channel.getData (), rmsg.len);     // copy message in temp buf
-    LogMsg("Parse message recv: LEN = %d, CMD|DST = %x, PAYLOAD:", rmsg.len, tmpBuf[0], &tmpBuf[1]);
+    LogMsg("Parse_meg: message recv: LEN = %d, CMD|DST = %x, PAYLOAD: ", rmsg.len, tmpBuf[0], &tmpBuf[1]);
     // extract command and destination
     rmsg.cmd = ((tmpBuf[0] >> 4) & 0x0F);                  // cmd is hihg nibble
     rmsg.dst = tmpBuf[0] & 0x0F;                           // destination is low nibble
-    LogMsg("Parse message recv: LEN = %d, CMD = %x, DST = %x, PAYLOAD:", rmsg.len, rmsg.cmd, rmsg.dst, &tmpBuf[1]);
+    LogMsg("Parse_meg: message recv: LEN = %d, CMD = %x, DST = %x, PAYLOAD: ", rmsg.len, rmsg.cmd, rmsg.dst, &tmpBuf[1]);
     switch (rmsg.cmd & ~(0xF0 | REPLY_OFFSET )) {          // check for valid commands and replies. clear reply bit to facilitate test
       case PING:
         if (--rmsg.len == PING_PAYLD_LEN)

@@ -113,13 +113,6 @@ int SlaveRead ()                       // callback to read received bytes
 {return SlaveUART.read();}              
  
 
-/*
-void LogMsg(char *formatStr, int len, int cmd_dst, byte *payload) {
-    logger.printf(formatStr, len, payload[0]);
-    logger.write (&payload[1], len-1);
-    logger.println();
-}
-*/
 void LogMsg(char *formatStr, int len, byte cmd_dst, byte *payload) {
     logger.printf(formatStr, len, cmd_dst);
     logger.write (payload, len-1);                // there is one byte cmd|dst
@@ -141,7 +134,7 @@ void ErrWrite (int err_code, char* what)           // callback to dump info to s
     //  logger.print (*what);
     //  break;
     case  ERR_OK:                               // RS485 class receive buffer overflow
-      logger.println (what);
+      logger.printf (what);
       break;
     case  ERR_BUF_OVERFLOW:                      // RS485 class receive buffer overflow
       logger.printf (what);
@@ -158,11 +151,15 @@ void ErrWrite (int err_code, char* what)           // callback to dump info to s
     case  ERR_TIMEOUT:                          // RS485 timeout waiting for ETX when STX is received
       logger.printf (what);
       break;
-
-      //ERR_NO_CALLBACK
-      //ERR_RS485
-      //ERR_INV_PAYLD_LEN, 
-      //
+    case ERR_NO_CALLBACK:
+      logger.printf (what);
+      break;
+    case ERR_RS485:
+      logger.printf (what);
+      break;
+    case ERR_INV_PAYLD_LEN:
+      logger.printf (what);
+      break;  
     default:
       logger.printf ("Invalid error code %d received in errors handling callback callback", err_code);
   }

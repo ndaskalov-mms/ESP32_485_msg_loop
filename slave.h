@@ -1,5 +1,6 @@
   // ----------- slave simulation -------------------------------------------
   boardID = 1;        // Slave destination ---------   TODO - only for loopback testing
+  memcpy(errorsDB_backup, errorsDB, sizeof(errorsDB_backup));   // backup error DB
   if (err = SlaveMsgChannel.update ())
   {
     // check for receive error first
@@ -48,10 +49,7 @@
   // no message available for processing 
   // do something usefull like have a nap or read ADC and process the zones info
   // or collect some errors info to be send as status to MASTER some day
-  /*
-  if(slave_err != SlaveMsgChannel.getErrorCount()) {
-    //slave_err = SlaveMsgChannel.getErrorCount();
-    logger.print("Slave errors cnt:");
-    logger.println(slave_err, DEC);
+  // or try to collect some errors info and send via MQTT when it is availabel some sunny day
+  if(memcmp(errorsDB, errorsDB_backup, sizeof(errorsDB))) {
+    printErrorsDB();
   }
-  */

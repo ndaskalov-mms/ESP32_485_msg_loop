@@ -91,7 +91,7 @@ struct MSG  parse_msg(RS485& rcv_channel) {
     byte tmpBuf[MAX_MSG_LENGHT]; 
     rmsg.parse_err = 0;                                   // clear error flags
     rmsg.len = rcv_channel.getLength();                   // command+dest (1 byte) + payload_len (command specific)
-    if ((rmsg.len <  1) || (rmsg.len >  MAX_MSG_LENGHT-10)){ // message len issue, at least 1 byte (command+dest) // FIXME
+    if ((rmsg.len <  1) || (rmsg.len >  MAX_MSG_LENGHT)){ // message len issue, at least 1 byte (command+dest) // FIXME
       rmsg.parse_err = ERR_INV_PAYLD_LEN;  
       ErrWrite(ERR_INV_PAYLD_LEN, "Parse_msg: error payload len: %d exceeds buffer size\n",rmsg.len );                      
       return rmsg;                                        // error, no command code in message

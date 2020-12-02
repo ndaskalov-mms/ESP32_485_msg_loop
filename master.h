@@ -1,7 +1,7 @@
   boardID = 0;        // TODO - only for loopback testing
   static int i;
-  //static struct ERRORS errors_backup;
-  //memcpy(&errors_backup, &errors, sizeof(ERRORS);
+  
+  memcpy(errorsDB_backup, errorsDB, sizeof(errorsDB_backup));   // backup error DB
   
   if (waiting_for_reply)
   {
@@ -79,16 +79,12 @@
   else {
     //logger.print( "." );    // no, do nothing
   }
-  // or
-  // try to collect some errors info and send via MQTT when it is availabel some sunny day
-  /*
-  if(master_err != MasterMsgChannel.getErrorCount()) {
-      //master_err = MasterMsgChannel.getErrorCount();
-      logger.print("Master errors cnt now:");
-      logger.println(master_err, DEC);
-  } 
-  */
+  // or try to collect some errors info and send via MQTT when it is availabel some sunny day
+  if(memcmp(errorsDB, errorsDB_backup, sizeof(errorsDB))) {
+    printErrorsDB();
+  }
 
+   
 		
   
   

@@ -1,5 +1,7 @@
   boardID = 0;        // TODO - only for loopback testing
   static int i;
+  //static struct ERRORS errors_backup;
+  //memcpy(&errors_backup, &errors, sizeof(ERRORS);
   
   if (waiting_for_reply)
   {
@@ -86,3 +88,8 @@
       logger.println(master_err, DEC);
   } 
   */
+
+		
+  
+  
+  

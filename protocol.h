@@ -57,7 +57,7 @@ byte SendMessage(RS485& trmChannel, HardwareSerial& uart, byte cmd, byte dst, by
     uartTrmMode(uart);                         // switch line dir to transmit_mode;
     if(!trmChannel.sendMsg (tmpBuf, tmpLen)) {  // send fail. The only error which can originate for RS485 lib in sendMsg fuction isfor missing write callback
       err = ERR_TRM_MSG;
-      ErrWrite (ERR_TRM_MSG, "SendMessage tramsmit error: no write callback probably"); 
+      ErrWrite (ERR_TRM_MSG, "SendMessage trasmit error: no write callback probably"); 
       }
     uartFlush(uart);                           // make sure the data are transmitted properly before revercing the line direction
     uartRcvMode(uart);                         // switch line dir to receive_mode;
@@ -92,7 +92,6 @@ struct MSG  parse_msg(RS485& rcv_channel) {
     rmsg.parse_err = 0;                                   // clear error flags
     rmsg.len = rcv_channel.getLength();                   // command+dest (1 byte) + payload_len (command specific)
     if ((rmsg.len <  1) || (rmsg.len >  MAX_MSG_LENGHT-10)){ // message len issue, at least 1 byte (command+dest) // FIXME
-      errors.rcv_payload += 1;
       rmsg.parse_err = ERR_INV_PAYLD_LEN;  
       ErrWrite(ERR_INV_PAYLD_LEN, "Parse_msg: error payload len: %d exceeds buffer size\n",rmsg.len );                      
       return rmsg;                                        // error, no command code in message
@@ -109,7 +108,7 @@ struct MSG  parse_msg(RS485& rcv_channel) {
           memcpy(rmsg.payload, &tmpBuf[1], rmsg.len);
         else {
           rmsg.parse_err = ERR_INV_PAYLD_LEN;
-          errors.rcv_payload += 1;
+          ErrWrite(rmsg.parse_err, "Parse message: invalid payload len for PING msg received\n");
           return rmsg;
         }
         break;
@@ -118,7 +117,7 @@ struct MSG  parse_msg(RS485& rcv_channel) {
           memcpy(rmsg.payload, &tmpBuf[1], rmsg.len);
         else { 
           rmsg.parse_err = ERR_INV_PAYLD_LEN;
-          errors.rcv_payload += 1;
+          ErrWrite(rmsg.parse_err, "Parse message: invalid payload len for POLL_ZONES msg received\n");
           return rmsg;
         }
         break;
@@ -127,7 +126,7 @@ struct MSG  parse_msg(RS485& rcv_channel) {
           memcpy(rmsg.payload, &tmpBuf[1], rmsg.len);
         else { 
           rmsg.parse_err = ERR_INV_PAYLD_LEN;
-          errors.rcv_payload += 1;
+          ErrWrite(rmsg.parse_err, "Parse message: invalid payload len for SET_OUTS msg received\n");
           return rmsg;
         }
         break;
@@ -136,13 +135,12 @@ struct MSG  parse_msg(RS485& rcv_channel) {
           memcpy(rmsg.payload, &tmpBuf[1], rmsg.len);
         else  {
           rmsg.parse_err = ERR_INV_PAYLD_LEN;
-          errors.rcv_payload += 1;
+          ErrWrite(rmsg.parse_err, "Parse message: invalid payload len for FREE TEXT msg received\n");
           return rmsg;
         }
         break;
       default:
         rmsg.parse_err = ERR_BAD_CMD;
-        errors.bad_cmd += 1;
         ErrWrite(ERR_BAD_CMD, "parse_msg error bad command %x received",rmsg.cmd ); 
         return rmsg;        // error, no command code in message;   
     }  // switch

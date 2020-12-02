@@ -19,8 +19,6 @@ HardwareSerial& SlaveUART(Serial2);
 byte boardID;                             // board ID: master is 0, expanders and others up to 0xE; OxF means bradcast
 unsigned long last_transmission = 0;      // last transmission time
 int waiting_for_reply = 0;
-//unsigned long master_err = 0;
-//unsigned long slave_err = 0;
 int err;
 byte test_msg [][MAX_PAYLOAD_SIZE] = {{"5Hello world;6Hello world;7Hello world;8Hello world;9Hello"},\
                                      {"123456789012345678901234567890123456789012345678901234567890"},\
@@ -46,6 +44,7 @@ void setup() {
   logger.printf("Loopback example for Esp32+485\n");
   logger.printf("MAX_MSG_LENGHT = %d\n", MAX_MSG_LENGHT  );
   logger.printf("MAX_PAYLOAD_SIZE = %d\n", MAX_PAYLOAD_SIZE );
+  printErrorsDB();
 }
 
 void loop ()

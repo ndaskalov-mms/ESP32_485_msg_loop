@@ -56,19 +56,22 @@
 #define FREE_TEXT_RES_PAYLD_LEN MAX_PAYLOAD_SIZE         // FREE_TEXT_RES payload is up to MAX_PAYLOAD_SIZE
 
 #define RS485_DATA_PRESENT    1         // RS485.update returns 0 (ERR_OK) if no data, 1 (RS485_DATA_PRESENT) if data avail or negative if error
+
 enum errorID {
   ERR_OK = 0,                           // no error
-  ERR_RS485,                            // something wrong happened while sending/ receiving  message in RS485 class
+  //ERR_RS485,                          // something wrong happened while sending/ receiving  message in RS485 class
   ERR_INV_PAYLD_LEN,                    // send/rcv  message payload issue (too long or doesn't match message code payload size)
+  ERR_TRM_MSG,                          // something wrong happened when transmitting, the specific error shall be reported already at the point of contact
+  ERR_RCV_MSG,                          // something wrong happened when receiving, the specific error shall be reported already at the point of contact
   ERR_BAD_CMD,                          // unknown command
   ERR_BAD_DST,                          // unknown destination
-  ERR_BUF_OVERFLOW = -1,                     // RS485 class receive buffer overflow
-  ERR_INV_BYTE_CODE = -2,                    // RS485 byte encodding error detected
-  ERR_BAD_CRC = -3,                          // RS485 crc error
-  ERR_TIMEOUT = -4,                          // RS485 timeout waiting for ETX when STX is received
-  ERR_FORCE_SCREW = -5 ,                     // RS485 intentionally generated for testing purposes
-  ERR_NO_CALLBACK = -6,                      // RS485 has no read/write/available callback 
-  ERR_DEBUG = -7,                            // used for debug prints
+  ERR_RS485_BUF_OVERFLOW = -1,                     // RS485 class receive buffer overflow
+  ERR_RS485_INV_BYTE_CODE = -2,                    // RS485 byte encodding error detected
+  ERR_RS485_BAD_CRC = -3,                          // RS485 crc error
+  ERR_RS485_TIMEOUT = -4,                          // RS485 timeout waiting for ETX when STX is received
+  ERR_RS485_FORCE_SCREW = -5 ,                     // RS485 intentionally generated for testing purposes
+  ERR_RS485_NO_CALLBACK = -6,                      // RS485 has no read/write/available callback 
+  ERR_RS485_DEBUG = -7,                            // used for debug prints
 };
 //
 // errors storage for reporting purposes
@@ -136,30 +139,36 @@ void ErrWrite (int err_code, char* what)           // callback to dump info to s
     case  ERR_OK:                               // RS485 class receive buffer overflow
       logger.printf (what);
       break;
-    case  ERR_BUF_OVERFLOW:                      // RS485 class receive buffer overflow
-      logger.printf (what);
-      break;
-    case  ERR_FORCE_SCREW:                      // RS485 intentionally generated for testing purposes
-      logger.printf (what);
-      break;
-    case  ERR_INV_BYTE_CODE:                    // RS485 byte encodding error detected
-      logger.printf (what);
-      break;
-    case  ERR_BAD_CRC:                          // RS485 crc error
-      logger.printf (what);
-      break;
-    case  ERR_TIMEOUT:                          // RS485 timeout waiting for ETX when STX is received
-      logger.printf (what);
-      break;
-    case ERR_NO_CALLBACK:
-      logger.printf (what);
-      break;
-    case ERR_RS485:
-      logger.printf (what);
-      break;
     case ERR_INV_PAYLD_LEN:
       logger.printf (what);
-      break;  
+      break;
+    case ERR_TRM_MSG:
+      logger.printf (what);
+      break;
+    case ERR_RCV_MSG:
+      logger.printf (what);
+      break;
+    case  ERR_RS485_BUF_OVERFLOW:                      // RS485 class receive buffer overflow
+      logger.printf (what);
+      break;
+    case  ERR_RS485_FORCE_SCREW:                      // RS485 intentionally generated for testing purposes
+      logger.printf (what);
+      break;
+    case  ERR_RS485_INV_BYTE_CODE:                    // RS485 byte encodding error detected
+      logger.printf (what);
+      break;
+    case  ERR_RS485_BAD_CRC:                          // RS485 crc error
+      logger.printf (what);
+      break;
+    case  ERR_RS485_TIMEOUT:                          // RS485 timeout waiting for ETX when STX is received
+      logger.printf (what);
+      break;
+    case ERR_RS485_NO_CALLBACK:
+      logger.printf (what);
+      break;
+    //case ERR_RS485:
+    //  logger.printf (what);
+    //  break;
     default:
       logger.printf ("Invalid error code %d received in errors handling callback callback", err_code);
   }

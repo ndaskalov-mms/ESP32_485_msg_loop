@@ -5,13 +5,13 @@
     // check for receive error first
     if (err < 0)                                // error receiving message
     {
-      logger.printf("Slave: error occured while receiving message, ignorring\n");
+      ErrWrite (ERR_RCV_MSG, "Slave: error occured while receiving message, ignorring message\n");   
     }
     else                                        // no error
     {
       rcvMsg = parse_msg(SlaveMsgChannel);      // parse received message
       if (rcvMsg.parse_err) {                   // if parse error, do nothing
-        logger.printf ("Slave parse message error %d\n", rcvMsg.parse_err); // yse, do nothing
+        ErrWrite (ERR_OK,"Slave parse message error\n"); // yse, do nothing
       } 
       else if (rcvMsg.dst == BROADCAST_ID)      // check for broadcast message
         logger.printf("Broadcast command received, skipping\n");  // do nothing
@@ -36,14 +36,8 @@
             byte tmp_msg [MAX_PAYLOAD_SIZE];
             for (int i=0; i < rcvMsg.len; i++)
               tmp_msg[i] = toupper(rcvMsg.payload[i]);
-            //tmpMsg.cmd = FREE_TEXT | REPLY_OFFSET;
-            //tmpMsg.len = rcvMsg.len;
-            //tmpMsg.dst = MASTER_ADDRESS;
-            ;
-            //SendMessage (SlaveMsgChannel, SlaveUART, tmpMsg);
-            if(ERR_OK != SendMessage(SlaveMsgChannel, SlaveUART, (FREE_TEXT | REPLY_OFFSET), MASTER_ADDRESS, tmp_msg, rcvMsg.len)){
-              logger.printf("Slave: Error in sendMessage");
-            }
+            if(ERR_OK != SendMessage(SlaveMsgChannel, SlaveUART, (FREE_TEXT | REPLY_OFFSET), MASTER_ADDRESS, tmp_msg, rcvMsg.len))
+              ErrWrite(ERR_OK, "Master: Error in sendMessage");
             break;
           default:
             logger.printf("Slave: invalid command received %x\n", rcvMsg.cmd);

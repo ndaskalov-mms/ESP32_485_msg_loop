@@ -8,7 +8,7 @@
       // check for receive error first
       if (err < 0)                              // error receiving message
       {
-        ErrWrite (err, "Master: error occured while receiving message, ignorring message\n");   
+        ErrWrite (ERR_RCV_MSG, "Master: error occured while receiving message, ignorring message\n");   
       }
       else                                      // no error
       {
@@ -19,7 +19,7 @@
         rcvMsg = parse_msg(MasterMsgChannel);   
         if (rcvMsg.parse_err) {                   // if parse error, do nothing
           //logger.printf ("Master parse message error %d\n", rcvMsg.parse_err); // yes, do nothing
-          ErrWrite(rcvMsg.parse_err, "Master parse message error\n");
+          ErrWrite(ERR_OK, "Master parse message error\n");
         } 
         else if (rcvMsg.dst == BROADCAST_ID)      // check for broadcast message
           ErrWrite(ERR_OK, "Master: Broadcast command received, skipping\n");  // do nothing
@@ -60,16 +60,9 @@
   //check if it is time for the next communication
   //
   else if( (unsigned long)(millis() - last_transmission) > TRM_INTERVAL){         // yes, it's time
-    logger.println( "\nMaster:  Time to transmit -------------------------------" );
-    //tmpMsg.cmd = FREE_TEXT;
-    //tmpMsg.dst = SLAVE1_ADDRESS;
-    //tmpMsg.len = MAX_PAYLOAD_SIZE;
-    //memcpy(tmpMsg.payload, test_msg, MAX_PAYLOAD_SIZE);
-    //logger.printf("Master sending: %s\n", tmpMsg.payload);
-    //SendMessage(MasterMsgChannel, MasterUART, FREE_TEXT, SLAVE1_ADDRESS, tes_msg, MAX_PAYLOAD_SIZE);
-    //SendMessage(MasterMsgChannel, MasterUART, tmpMsg)
+    ErrWrite( ERR_OK, "Master:  Time to transmit -------------------------------\n" );
     if(ERR_OK != SendMessage(MasterMsgChannel, MasterUART, FREE_TEXT, SLAVE1_ADDRESS, test_msg[(++i)%3], MAX_PAYLOAD_SIZE)){
-      logger.printf("Master: Error in sendMessage");
+      ErrWrite(ERR_OK, "Master: Error in sendMessage");
       // MQTT send error
     }
     else {

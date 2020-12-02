@@ -144,7 +144,7 @@ bool RS485::sendMsg (const byte * data, const byte length)
   //fErrCallback_(ERR_OK, "-------------------------Sending message-----------------------------------------\n");
   // no callback? Can't send
   if (fWriteCallback_ == NULL) {
-    fErrCallback_(ERR_NO_CALLBACK, "RS485: no write callback\n");
+    fErrCallback_(ERR_RS485_NO_CALLBACK, "RS485: no write callback\n");
     return false;
   }
   //fErrCallback_(ERR_OK, "RS485: sendMsg\n");
@@ -215,8 +215,8 @@ int RS485::update ()
   if (fAvailableCallback_ == NULL || fReadCallback_ == NULL || fErrCallback_ == NULL) 
   {
     if(fErrCallback_)
-      fErrCallback_(ERR_NO_CALLBACK, "RS485: no read/available callback\n");
-    return ERR_NO_CALLBACK;
+      fErrCallback_(ERR_RS485_NO_CALLBACK, "RS485: no read/available callback\n");
+    return ERR_RS485_NO_CALLBACK;
   }
   while (fAvailableCallback_ () > 0)
   {
@@ -249,9 +249,9 @@ int RS485::update ()
           if ((inByte >> 4) != ((inByte & 0x0F) ^ 0x0F) )
             {
             reset ();
-            fErrCallback_(ERR_INV_BYTE_CODE, "RS485: Invalid byte received\n");
+            fErrCallback_(ERR_RS485_INV_BYTE_CODE, "RS485: Invalid byte received\n");
 			      //break;  // bad character
-            return ERR_INV_BYTE_CODE;
+            return ERR_RS485_INV_BYTE_CODE;
             } // end if bad byte
 
           // convert back
@@ -274,8 +274,8 @@ int RS485::update ()
             if (crc8 (data_, inputPos_) != currentByte_)
               {   // wrong CRC
               reset ();
-			        fErrCallback_(ERR_BAD_CRC, "RS485:  Bad CRC\n");
-              return ERR_BAD_CRC;
+			        fErrCallback_(ERR_RS485_BAD_CRC, "RS485:  Bad CRC\n");
+              return ERR_RS485_BAD_CRC;
 			        }   // end of bad CRC
             available_ = true;
 			      fErrCallback_(ERR_OK, "RS485: got MSG\n");	
@@ -287,14 +287,14 @@ int RS485::update ()
           // keep adding if not full
           if (inputPos_ < bufferSize_) {      
             data_ [inputPos_++] = currentByte_;
-            //fErrCallback_(ERR_DEBUG, (const char *)&currentByte_);
+            //fErrCallback_(ERR_RS485_DEBUG, (const char *)&currentByte_);
             //logger.print(currentByte_, HEX);
           }
           else
             {
             reset (); // overflow, start again
-			      fErrCallback_(ERR_BUF_OVERFLOW, "RS485: Buffer overflow\n");
-            return ERR_BUF_OVERFLOW; 
+			      fErrCallback_(ERR_RS485_BUF_OVERFLOW, "RS485: Buffer overflow\n");
+            return ERR_RS485_BUF_OVERFLOW; 
             }
           break;    // end of default case
       }  // end of switch
@@ -305,7 +305,7 @@ int RS485::update ()
 	{				
 	  if ((unsigned long)(millis() - startTime_) > PACKET_TIMEOUT)
 	    {                 // yes, timeout
-		  fErrCallback_(ERR_TIMEOUT, "RS485: packet receive takes too long\n");
+		  fErrCallback_(ERR_RS485_TIMEOUT, "RS485: packet receive takes too long\n");
 		  reset ();
 	    }
   } 

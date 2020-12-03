@@ -2,36 +2,32 @@
 #define MASTER
 #define SLAVE
 
+
 constexpr int BITRATE = 115200;
 constexpr int LOG_BITRATE = 115200;
 HardwareSerial& logger(Serial);
 HardwareSerial& MasterUART(Serial1);
 HardwareSerial& SlaveUART(Serial2);
 
+#include "errors.h"                   // errors definitions and handling
+#include "RS485_cbacks.h"             // callbacks required by RS485 lib and UART related staff (ESP32 specific)
 #include "helpers.h"                  // include helper functions. INCLUDE ONLY AFTER SERIAL PORT DEFINITIONS!!!!
+#include "Alarm_RS485-cpp.h"          // RS485 transport implementation (library)
 
 #define TRM_INTERVAL  1000  //1 sec
 #define REPLY_TIMEOUT  500  //200 msec
 
-#include "Alarm_RS485-cpp.h"              // RS485 transport implementation (library)
-
 // ------------------------- global variables definition -----------------------------
 byte boardID;                             // board ID: master is 0, expanders and others up to 0xE; OxF means bradcast
 unsigned long last_transmission = 0;      // last transmission time
-int waiting_for_reply = 0;
-int err;
-byte test_msg [][MAX_PAYLOAD_SIZE] = {{"5Hello world;6Hello world;7Hello world;8Hello world;9Hello"},\
-                                     {"123456789012345678901234567890123456789012345678901234567890"},\
-                                     {"~!@#$%^&*()_+~!@#$%^&*()_+~!@#$%^&*()_+~!@#$%^&*()_+~!@#$%"},
-                                     {"zxcvbnm,./';lkjhgfdsaqwertyuiop[]\\][poiuytrewqasdfghjkl;'"}};
-                                
-                                     
-struct MSG rcvMsg, tmpMsg;                // temp structs for message tr/rcv
+int waiting_for_reply = 0;                // tracks current state of the protocol
+int err;                                  // holds error returns from some functions                         
+struct MSG rcvMsg;                        // temp structs for message tr/rcv
 //these are channels to send/receive packets over serial if. The comm to serial is via fRead, fWrite,...
 RS485 MasterMsgChannel (MasterRead, MasterAvailable, MasterWrite, ErrWrite, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
 RS485 SlaveMsgChannel  (SlaveRead, SlaveAvailable, SlaveWrite, ErrWrite, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
 
-#include "protocol.h"
+#include "protocol.h"                     // send/receive and compse messgaes staff
 
 void setup() {
   logger.begin(LOG_BITRATE,SERIAL_8N1);

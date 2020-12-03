@@ -1,6 +1,6 @@
   boardID = 0;        // TODO - only for loopback testing
   static int i;
-  
+ 
   memcpy(errorsDB_backup, errorsDB, sizeof(errorsDB_backup));   // backup error DB
   
   if (waiting_for_reply)

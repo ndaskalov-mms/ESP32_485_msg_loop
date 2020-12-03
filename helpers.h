@@ -6,9 +6,7 @@
  
 
 */
-//HardwareSerial& logger(Serial);
-//HardwareSerial& MasterUART(Serial1);
-//HardwareSerial& SlaveUART(Serial2);
+
 
 #define HEADER_SIZE 1   //STX, 1 byte, no encoding
 #define FOOTER_SIZE 1   //ETX, 1 byte  no encoding
@@ -57,42 +55,7 @@
 
 #define RS485_DATA_PRESENT    1         // RS485.update returns 0 (ERR_OK) if no data, 1 (RS485_DATA_PRESENT) if data avail or negative if error
 
-enum errorID {
-  ERR_OK = 0,                           // no error
-  //ERR_RS485,                          // something wrong happened while sending/ receiving  message in RS485 class
-  ERR_INV_PAYLD_LEN = 1,                    // send/rcv  message payload issue (too long or doesn't match message code payload size)
-  ERR_TRM_MSG = 2,                          // something wrong happened when transmitting, the specific error shall be reported already at the point of contact
-  ERR_RCV_MSG = 3,                          // something wrong happened when receiving, the specific error shall be reported already at the point of contact
-  ERR_BAD_CMD = 4,                          // unknown command
-  ERR_BAD_DST = 5,                          // unknown destination
-  ERR_RS485_BUF_OVERFLOW = -1,                     // RS485 class receive buffer overflow
-  ERR_RS485_INV_BYTE_CODE = -2,                    // RS485 byte encodding error detected
-  ERR_RS485_BAD_CRC = -3,                          // RS485 crc error
-  ERR_RS485_TIMEOUT = -4,                          // RS485 timeout waiting for ETX when STX is received
-  ERR_RS485_FORCE_SCREW = -5 ,                     // RS485 intentionally generated for testing purposes
-  ERR_RS485_NO_CALLBACK = -6,                      // RS485 has no read/write/available callback 
-  ERR_RS485_DEBUG = -7,                            // used for debug prints
-};
-//
-// errors storage for reporting purposes
-//
-struct ERROR {
-	int errorID;
-	char title[64];
-	unsigned long errorCnt;
-};
-struct ERROR errorsDB[] = {{ERR_INV_PAYLD_LEN, "ERR_INV_PAYLD_LEN", 0}, {ERR_TRM_MSG, "ERR_TRM_MSG", 0},\
-                             {ERR_RCV_MSG, "ERR_RCV_MSG", 0}, {ERR_BAD_CMD, "ERR_BAD_CMD", 0}, {ERR_BAD_DST, "ERR_BAD_DST", 0}, \
-										         {ERR_RS485_BUF_OVERFLOW, "ERR_RS485_BUF_OVERFLOW", 0}, {ERR_RS485_INV_BYTE_CODE, "ERR_RS485_INV_BYTE_CODE", 0},\
-										         {ERR_RS485_BAD_CRC, "ERR_RS485_BAD_CRC", 0}, {ERR_RS485_TIMEOUT, "ERR_RS485_TIMEOUT", 0},\
-										         {ERR_RS485_FORCE_SCREW, "ERR_RS485_FORCE_SCREW", 0}, {ERR_RS485_NO_CALLBACK, "ERR_RS485_NO_CALLBACK", 0},\
-										         {ERR_RS485_DEBUG, "ERR_RS485_DEBUG", 0}} ;
-struct ERROR errorsDB_backup[] = {{ERR_INV_PAYLD_LEN, "ERR_INV_PAYLD_LEN", 0}, {ERR_TRM_MSG, "ERR_TRM_MSG", 0},\
-                             {ERR_RCV_MSG, "ERR_RCV_MSG", 0}, {ERR_BAD_CMD, "ERR_BAD_CMD", 0}, {ERR_BAD_DST, "ERR_BAD_DST", 0}, \
-                             {ERR_RS485_BUF_OVERFLOW, "ERR_RS485_BUF_OVERFLOW", 0}, {ERR_RS485_INV_BYTE_CODE, "ERR_RS485_INV_BYTE_CODE", 0},\
-                             {ERR_RS485_BAD_CRC, "ERR_RS485_BAD_CRC", 0}, {ERR_RS485_TIMEOUT, "ERR_RS485_TIMEOUT", 0},\
-                             {ERR_RS485_FORCE_SCREW, "ERR_RS485_FORCE_SCREW", 0}, {ERR_RS485_NO_CALLBACK, "ERR_RS485_NO_CALLBACK", 0},\
-                             {ERR_RS485_DEBUG, "ERR_RS485_DEBUG", 0}} ;
+
 struct MSG {
   byte cmd;
   byte dst;
@@ -102,21 +65,7 @@ struct MSG {
 } ;
 
 
-// callbacks for RS485 library interface to onboard UARTS
 
-size_t MasterWrite (const byte what)   // callback to write byte to UART
-{return MasterUART.write (what);}
-int MasterAvailable ()                 // callback to check if something received
-{return MasterUART.available();}
-int MasterRead ()                      // callback to read received bytes
-{return MasterUART.read();}
-size_t SlaveWrite (const byte what)    // callback to write byte to UART
-{return SlaveUART.write (what);}
-int SlaveAvailable ()                  // callback to check if something received
-{return SlaveUART.available();}
-int SlaveRead ()                       // callback to read received bytes
-{return SlaveUART.read();}              
- 
 
 void LogMsg(char *formatStr, int len, byte cmd_dst, byte *payload) {
     logger.printf(formatStr, len, cmd_dst);
@@ -131,87 +80,8 @@ void LogMsg(char *formatStr, int len, byte cmd, byte dst, byte *payload) {
 }
 
 
-int findErrorEntry(int err_code, struct ERROR errorsArray[]) {
-  logger.printf("Looking for error code  %d \n", err_code);
-  for (int i = 0; i < sizeof(errorsDB)/sizeof(struct ERROR); i++) {
-    //logger.printf("Looking at index  %d out of  %d:\n", err_code, sizeof(errors)/sizeof(struct ERROR)-1);
-    if(errorsArray[i].errorID == err_code) {
-      logger.printf("Found error index %d\n", i);
-      return  i;
-    }
-  }
-  logger.printf("Error index not found!!!!!!!\n");
-  return -1;
-}
-
-void printErrorsDB() {
-  logger.printf("Printing errorsDB\n");
-  for (int i = 0; i < sizeof(errorsDB)/sizeof(struct ERROR); i++) {
-        logger.printf("Entry %d: errorID = %d; errorTitle = %s; errorCnt = %ld\n", i, errorsDB[i].errorID, errorsDB[i].title, errorsDB[i].errorCnt);
-  }
-}
-
-void ErrWrite (int err_code, char* what)           // callback to dump info to serial console from inside RS485 library
-{
-  int index = 0;
-  // update errors struct here
-  switch (err_code)
-  {
-    //case  ERR_DEBUG:                            
-    //  logger.print (*what);
-    //  break;
-    case ERR_OK:    
-      logger.printf (what);
-      break;                 
-    case ERR_INV_PAYLD_LEN:
-	  case ERR_BAD_CMD:
-    case ERR_TRM_MSG:
-    case ERR_RCV_MSG:
-    case  ERR_RS485_BUF_OVERFLOW:                     // RS485 class receive buffer overflow
-    case  ERR_RS485_FORCE_SCREW:                      // RS485 intentionally generated for testing purposes
-    case  ERR_RS485_INV_BYTE_CODE:                    // RS485 byte encodding error detected
-    case  ERR_RS485_BAD_CRC:                          // RS485 crc error
-    case  ERR_RS485_TIMEOUT:                          // RS485 timeout waiting for ETX when STX is received
-    case ERR_RS485_NO_CALLBACK:                      
-      index = findErrorEntry(err_code, errorsDB);
-      errorsDB[index].errorCnt++;
-      logger.printf (what);
-      break;
-    default:
-      logger.printf ("Invalid error code %d received in errors handling callback callback", err_code);
-      break;
-  }
-
-}
-
-void ErrWrite (int err_code, char* formatStr, int arg)   {        // format str is printf-type one
-        char tmpBuf[256];                         
-        sprintf(tmpBuf,formatStr, arg);                           // finalyze the string according to format specs (printf type)
-        ErrWrite(err_code, tmpBuf);                               // process the error
-}
+byte test_msg [][MAX_PAYLOAD_SIZE] = {{"5Hello world;6Hello world;7Hello world;8Hello world;9Hello"},\
+                                     {"123456789012345678901234567890123456789012345678901234567890"},\
+                                     {"~!@#$%^&*()_+~!@#$%^&*()_+~!@#$%^&*()_+~!@#$%^&*()_+~!@#$%"},
+                                     {"zxcvbnm,./';lkjhgfdsaqwertyuiop[]\\][poiuytrewqasdfghjkl;'"}};
  
-// flush transmitter only 
-void uartTxFlush(HardwareSerial& uart){
-  while(uart.availableForWrite()!=127) ;  // availableForWrite returns 0x7f - uart->dev->status.txfifo_cnt;
-  delay(5);
-  }
-// flush receiver only 
-void uartRxFlush(HardwareSerial& uart){
-  while(uart.available())
-	uart.read();
-  }
-// flush both
-void uartFlush(HardwareSerial& uart) {
-  uart.flush();
-  }
-// switch direction of the RS485 driver
-void uartRcvMode(HardwareSerial& uart){
-  // change line dir
-  delay(1);
-  //uartRxFlush(uart);                    // read any garbage coming from switching dir
-  }
-void uartTrmMode(HardwareSerial& uart){
-  // change line dir
-  delay(1);
-  //uartTxFlush(uart);                    // ???
-  }

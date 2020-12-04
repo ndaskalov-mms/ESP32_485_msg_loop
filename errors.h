@@ -18,6 +18,7 @@
 int findErrorEntry(int err_code, struct ERROR errorsArray[]);
 
 enum errorID {
+  MSG_READY = 1,                          // message received
   ERR_OK = 0,                           	// no error
   ERR_DEBUG = -1, 							          // debug print, can be enabled/disable by #define DEBUG
   ERR_WARNING = -2, 						          // warning print  can be enabled/disable by #define WARNING

@@ -152,12 +152,12 @@ struct MSG  parse_msg(RS485& rcv_channel) {
 // in case of message available, parce message gunction retrieves it and stores all message components in returned stuct MSG
 // assigned to global rcvMSG variable.
 // parameters: none
-// return: 	ERR_OK in case of no message or message which is not for us
-//			ERR_RCV_MSG in case of parsing error
-//
+// return: 	ERR_OK (0) in case of no message or message which is not for us
+//			    ERR_RCV_MSG (negative) in case of parsing error
+//          MSG_READY (1) if message present          
 int check4msg(RS485& Channel) {
 	if (!(err = Channel.update ()))
-		return false;							// nothing received yet
+		return ERR_OK;							// nothing received yet
     // check for receive error first
     if (err < 0) {                               // error receiving message
 		ErrWrite (ERR_RCV_MSG, "Error occured while receiving message, ignorring message\n"); 
@@ -179,9 +179,27 @@ int check4msg(RS485& Channel) {
 		return ERR_OK;                          // yes, do nothing
 	// we got message for us
 	LogMsg ("Received MSG: CMD: %x; DEST: %x; payload len: %d; PAYLOAD: ", rcvMsg.len, rcvMsg.cmd, rcvMsg.dst, rcvMsg.payload);
-	return true;								// have message
- } // check4msg
-  
+	return MSG_READY;								// have message
+} // check4msg
+
+void masterProcessMsg(struct MSG msg) {
+  switch (msg.cmd) {
+    case PING_RES:
+      ErrWrite(ERR_DEBUG, "Master: Unsupported reply command received PING_RES\n");
+      break;
+    case POLL_ZONES_RES:
+      ErrWrite(ERR_DEBUG, "Master: Unsupported reply command received POLL_ZONES_RES\n");
+      break;
+    case SET_OUTS_RES:
+      ErrWrite(ERR_DEBUG, "Master: Unsupported reply command received SET_OUTPUTS_RES\n");
+      break;
+    case FREE_TEXT_RES:
+      ErrWrite(ERR_DEBUG, "Master: reply received FREE_TEXT_RES: \n");
+      break;
+    default:
+      ErrWrite(ERR_WARNING, "Master: invalid command received %x\n", rcvMsg.cmd);
+    }  // switch
+} 
 /*  
      if (err = MasterMsgChannel.update ())
     {

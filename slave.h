@@ -1,8 +1,9 @@
 	// ----------- slave simulation -------------------------------------------
 	boardID = SLAVE_ADDRESS1;        // Slave destination ---------   TODO - only for loopback testing
 	memcpy(errorsDB_backup, errorsDB, sizeof(errorsDB_backup));   // backup error DB
-	if(check4msg(SlaveMsgChannel) > ERR_OK) {				// message if available will stored in global rcvMSG variable
-		switch (rcvMsg.cmd) {
+	retCode = check4msg(SlaveMsgChannel);                         // message if available will stored in global rcvMSG variable
+	if(retCode == MSG_READY) {				                            // false means no msg, 0 means good msg, <0 means error
+		switch (rcvMsg.cmd) {                                       // process command received
 		  case PING:
   			ErrWrite (ERR_WARNING, "Unsupported command received PING\n");
   			break;

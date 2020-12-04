@@ -57,7 +57,7 @@
   //check if it is time for the next communication
   //
   else if( (unsigned long)(millis() - last_transmission) > TRM_INTERVAL){         // yes, it's time
-    ErrWrite( ERR_OK, "\n\nMaster:  -------------------------------Time to transmit -------------------------------\n" );
+    ErrWrite( ERR_OK, "Master:  Time to transmit -------------------------------\n" );
     if(ERR_OK != SendMessage(MasterMsgChannel, MasterUART, FREE_TEXT, SLAVE1_ADDRESS, test_msg[(++i)%3], MAX_PAYLOAD_SIZE)){
       ErrWrite(ERR_TRM_MSG, "\n\nMaster: Error in sendMessage\n");
       // MQTT send error

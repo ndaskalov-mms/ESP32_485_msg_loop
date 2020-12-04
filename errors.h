@@ -18,22 +18,22 @@
 int findErrorEntry(int err_code, struct ERROR errorsArray[]);
 
 enum errorID {
-  ERR_OK = 0,                           // no error
-  ERR_DEBUG = 1, 						// debug print, can be enabled/disable by #define DEBUG
-  ERR_WARNING = 2, 						// warning print  can be enabled/disable by #define WARNING
-  ERR_INV_PAYLD_LEN = 3,                    // send/rcv  message payload issue (too long or doesn't match message code payload size)
-  ERR_TRM_MSG = 4,                          // something wrong happened when transmitting, the specific error shall be reported already at the point of contact
-  ERR_RCV_MSG = 5,                          // something wrong happened when receiving, the specific error shall be reported already at the point of contact
-  ERR_BAD_CMD = 6,                          // unknown command
-  ERR_BAD_DST = 7,                          // unknown destination
-  ERR_TIMEOUT = 8,                          // send/recv message timeout at calling function
-  ERR_DB_INDEX_NOT_FND = 9,					        // cannot find error in the database
-  ERR_RS485_BUF_OVERFLOW = -1,              // RS485 class receive buffer overflow
-  ERR_RS485_INV_BYTE_CODE = -2,             // RS485 byte encodding error detected
-  ERR_RS485_BAD_CRC = -3,                   // RS485 crc error
-  ERR_RS485_TIMEOUT = -4,                   // RS485 timeout waiting for ETX when STX is received
-  ERR_RS485_FORCE_SCREW = -5 ,              // RS485 intentionally generated for testing purposes
-  ERR_RS485_NO_CALLBACK = -6,               // RS485 has no read/write/available callback 
+  ERR_OK = 0,                           	// no error
+  ERR_DEBUG = -1, 							          // debug print, can be enabled/disable by #define DEBUG
+  ERR_WARNING = -2, 						          // warning print  can be enabled/disable by #define WARNING
+  ERR_INV_PAYLD_LEN = -3,                   // send/rcv  message payload issue (too long or doesn't match message code payload size)
+  ERR_TRM_MSG = -4,                         // something wrong happened when transmitting, the specific error shall be reported already at the point of contact
+  ERR_RCV_MSG = -5,                         // something wrong happened when receiving, the specific error shall be reported already at the point of contact
+  ERR_BAD_CMD = -6,                         // unknown command
+  ERR_BAD_DST = -7,                         // unknown destination
+  ERR_TIMEOUT = -8,                         // send/recv message timeout at calling function
+  ERR_DB_INDEX_NOT_FND = -9,				// cannot find error in the database
+  ERR_RS485_BUF_OVERFLOW = -10,            	// RS485 class receive buffer overflow
+  ERR_RS485_INV_BYTE_CODE = -11,            // RS485 byte encodding error detected
+  ERR_RS485_BAD_CRC = -12,                  // RS485 crc error
+  ERR_RS485_TIMEOUT = -13,                  // RS485 timeout waiting for ETX when STX is received
+  ERR_RS485_FORCE_SCREW = -14 ,             // RS485 intentionally generated for testing purposes
+  ERR_RS485_NO_CALLBACK = -15,              // RS485 has no read/write/available callback 
   };
 
 // Errors friendly names for UI
@@ -123,7 +123,9 @@ void ErrWrite (int err_code, char* what)           // callback to dump info to s
       logger.printf (what);
       break;
     default:
-      logger.printf ("Invalid error code %d received in errors handling callback callback", err_code);
+      logger.printf ("-----------------Invalid error code %d received in errors handling callback\n------------------------", err_code);
+      if(what)
+          logger.printf("%s\n", what);
       break;
   }
 }
@@ -135,11 +137,11 @@ void ErrWrite (int err_code, char* formatStr, int arg)   {        // format str 
 }
 
 int findErrorEntry(int err_code, struct ERROR errorsArray[]) {
-  ErrWrite(ERR_DEBUG, "Looking for record for error code   %d \n", err_code);
+  //ErrWrite(ERR_DEBUG, "Looking for record for error code   %d \n", err_code);
   for (int i = 0; i < sizeof(errorsDB)/sizeof(struct ERROR); i++) {
     //logger.printf("Looking at index  %d out of  %d:\n", err_code, sizeof(errors)/sizeof(struct ERROR)-1);
     if(errorsArray[i].errorID == err_code) {
-      ErrWrite(ERR_DEBUG,"Found error index %d\n", i);
+      //ErrWrite(ERR_DEBUG,"Found error index %d\n", i);
       return  i;
     }
   }
@@ -150,7 +152,7 @@ int findErrorEntry(int err_code, struct ERROR errorsArray[]) {
 void printErrorsDB() {
   ErrWrite(ERR_DEBUG,"Printing errorsDB\n");
   for (int i = 0; i < sizeof(errorsDBtitles)/sizeof(struct t_ERROR); i++)     // print title first
-        logger.printf("%ld\t- %s \n", errorsDB[i].errorCnt, errorsDBtitles[i].err_title);
+        logger.printf("ErrorID = %01x hex %d Dec; count = %ld; title = %s \n", errorsDB[i].errorID, errorsDB[i].errorID, errorsDB[i].errorCnt, errorsDBtitles[i].err_title);
 }
 
 

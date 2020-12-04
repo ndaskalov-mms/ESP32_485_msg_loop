@@ -11,6 +11,12 @@ HardwareSerial& logger(Serial);
 HardwareSerial& MasterUART(Serial1);
 HardwareSerial& SlaveUART(Serial2);
 
+enum ADDR {							 // board adresses, MASTER is ALLWAYS 0
+MASTER_ADDRESS =  0,
+SLAVE_ADDRESS1,
+SLAVE_ADDRESS2,
+};
+
 #include "errors.h"                   // errors definitions and handling
 #include "RS485_cbacks.h"             // callbacks required by RS485 lib and UART related staff (ESP32 specific)
 #include "helpers.h"                  // include helper functions. INCLUDE ONLY AFTER SERIAL PORT DEFINITIONS!!!!

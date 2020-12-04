@@ -62,7 +62,7 @@ byte SendMessage(RS485& trmChannel, HardwareSerial& uart, byte cmd, byte dst, by
     uartFlush(uart);                           // make sure the data are transmitted properly before revercing the line direction
     uartRcvMode(uart);                         // switch line dir to receive_mode;
     uartFlush(uart);                           // clean-up garbage due to switching, flushes both Tx and Rx
-    ErrWrite (ERR_OK, "Transmitted, going back to listening mode\n");
+    //ErrWrite (ERR_OK, "Transmitted, going back to listening mode\n");
     return err;
 }
 
@@ -97,11 +97,11 @@ struct MSG  parse_msg(RS485& rcv_channel) {
       return rmsg;                                        // error, no command code in message
     } 
     memcpy (tmpBuf, rcv_channel.getData (), rmsg.len);     // copy message in temp buf
-    LogMsg("Parse_meg: message recv: LEN = %d, CMD|DST = %x, PAYLOAD: ", rmsg.len, tmpBuf[0], &tmpBuf[1]);
+    //LogMsg("Parse_meg: message recv: LEN = %d, CMD|DST = %x, PAYLOAD: ", rmsg.len, tmpBuf[0], &tmpBuf[1]);
     // extract command and destination
     rmsg.cmd = ((tmpBuf[0] >> 4) & 0x0F);                  // cmd is hihg nibble
     rmsg.dst = tmpBuf[0] & 0x0F;                           // destination is low nibble
-    LogMsg("Parse_meg: message recv: LEN = %d, CMD = %x, DST = %x, PAYLOAD: ", rmsg.len, rmsg.cmd, rmsg.dst, &tmpBuf[1]);
+    //LogMsg("Parse_meg: message recv: LEN = %d, CMD = %x, DST = %x, PAYLOAD: ", rmsg.len, rmsg.cmd, rmsg.dst, &tmpBuf[1]);
     switch (rmsg.cmd & ~(0xF0 | REPLY_OFFSET )) {          // check for valid commands and replies. clear reply bit to facilitate test
       case PING:
         if (--rmsg.len == PING_PAYLD_LEN)
@@ -147,24 +147,39 @@ struct MSG  parse_msg(RS485& rcv_channel) {
     return rmsg;
 }
 
-
-    /*
-    byte tmpBuf[MAX_MSG_LENGHT];
-    byte tmpLen;              // lenght of data to transmit, shall be less than MAX_MSG_LENGHT
-    byte err = ERR_OK;        // means no error
-    if(!(tmpLen = compose_msg(msg2trm.cmd, msg2trm.dst, msg2trm.payload, tmpBuf, msg2trm.len))) {
-      ErrWrite (ERR_INV_PAYLD_LEN, "SendMsg - Error composing message -  too long???\n");   
-      return ERR_INV_PAYLD_LEN;
+// 
+// check and if any parce received message  
+// in case of message available, parce message gunction retrieves it and stores all message components in returned stuct MSG
+// assigned to global rcvMSG variable.
+// parameters: none
+// return: 	ERR_OK in case of no message or message which is not for us
+//			ERR_RCV_MSG in case of parsing error
+//
+int check4msg() {
+	if (!(err = SlaveMsgChannel.update ()))
+		return false;							// nothing received yet
+    // check for receive error first
+    if (err < 0) {                               // error receiving message
+		ErrWrite (ERR_RCV_MSG, "Error occured while receiving message, ignorring message\n"); 
+		return ERR_RCV_MSG; 
     }
-    LogMsg("SendMsg: sending message LEN = %d, CMD|DST = %x, PAYLOAD: ", tmpLen, tmpBuf[0], &tmpBuf[1]);
-    uartTrmMode(uart);                         // switch line dir to transmit_mode;
-    if(!trmChannel.sendMsg (tmpBuf, tmpLen)) {  // send fail. The only error which can originate for RS485 lib in sendMsg fuction is
-      err = ERR_RS485;
-      ErrWrite (ERR_NO_CALLBACK, "RS485.SendMsg error: no write callback");  
-      }                                        // RS485 class is not configured properly, but we need to restore the line dir
-    uartFlush(uart);                           // make sure the data are transmitted properly before reversing the line direction
-    uartRcvMode(uart);                         // switch line dir to receive_mode;
-    uartFlush(uart);                           // clean-up garbage due to switching, flushes both Tx and Rx
-    ErrWrite (ERR_OK, "Transmitted, going back to listening mode\n");
-    return err;
-*/
+	// parse received message
+	rcvMsg = parse_msg(SlaveMsgChannel);      
+	if (rcvMsg.parse_err) {                   
+		ErrWrite (ERR_RCV_MSG,"Parse message error\n"); // parsing error
+		return ERR_RCV_MSG; 
+		} 
+	// check for broadcast message
+	if (rcvMsg.dst == BROADCAST_ID)  {    
+		ErrWrite (ERR_DEBUG,"Broadcast command received, skipping\n");  // do nothing
+		return ERR_OK;	
+	}
+	// check if the destination 
+	if(rcvMsg.dst != boardID)           		// check if the destination is another board
+		return ERR_OK;                          // yes, do nothing
+	// we got message for us
+	LogMsg ("Received MSG: CMD: %x; DEST: %x; payload len: %d; PAYLOAD: ", rcvMsg.len, rcvMsg.cmd, rcvMsg.dst, rcvMsg.payload);
+	return true;								// have message
+ } // check4msg
+  
+  

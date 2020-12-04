@@ -67,9 +67,9 @@
 #define PACKET_TIMEOUT 200  //we have to get complete packet withni XXX ms
 
 //#define SCREW_STX
-#define SCREW_ETX
+//#define SCREW_ETX
 //#define SCREW_CRC
-//#define SCREW_DATA
+#define SCREW_DATA
 
 // allocate the requested buffer size
 void RS485::begin ()
@@ -164,12 +164,13 @@ bool RS485::sendMsg (const byte * data, const byte length)
   }
 #else 
   int rand=random(length);
-  if (screw_pattern[run]) {			// screw-up
+  if (!screw_pattern[run]) {			// screw-up
+    logger.printf("screw_pattern[run] = %d\n", screw_pattern[run]);
   	for (byte i = 0; i < length; i++) {
   		if (i==rand) {
   			//sendComplemented ((rand%2==1)?STX:ETX);
   			fWriteCallback_ (ETX);
-  			fErrCallback_(ERR_OK, "RS485: Screwing-up data with STX\n");
+  			fErrCallback_(ERR_OK, "RS485: Screwing-up data with ETX\n");
   		}
   		else
   			sendComplemented (data [i]);
@@ -191,14 +192,14 @@ bool RS485::sendMsg (const byte * data, const byte length)
 #ifndef SCREW_CRC
   sendComplemented (crc8 (data, length));
 #else
-  if (screw_pattern[run]) {
+  if (!screw_pattern[run]) {
   	fErrCallback_(ERR_OK, "RS485: Screwing-up CRC\n"); 
 	  sendComplemented (~crc8 (data, length));
   }
   else
 	  sendComplemented (crc8 (data, length));
 #endif
-  if (run++>= sizeof(screw_pattern))
+  if (run++ == sizeof(screw_pattern))
     run = 0;
   return true;
 }  // end of RS485::sendMsg

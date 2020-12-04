@@ -9,7 +9,7 @@
    	if((retCode = check4msg(MasterMsgChannel)) != false) {	// false means no msg, 0 means good msg, <0 means error
 		    waiting_for_reply = 0;          	          	// TODO - check for out-of-order messages
         uartTrmMode(MasterUART);		              	// Switch back to transmit_mode
-		if(retCode) {
+        if(retCode) {
           switch (rcvMsg.cmd) {
             case PING_RES:
               ErrWrite(ERR_DEBUG, "Master: Unsupported reply command received PING_RES\n");
@@ -25,15 +25,13 @@
               break;
             default:
               ErrWrite(ERR_WARNING, "Master: invalid command received %x\n", rcvMsg.cmd);
-			}  // switch
+            }  // switch
         }   // if retCode
      }    // if check4msg
-	 else if((unsigned long)(millis() - last_transmission) > REPLY_TIMEOUT) {
-        // reply not received
+	   else if((unsigned long)(millis() - last_transmission) > REPLY_TIMEOUT) { // reply not received
         waiting_for_reply = 0;
-        // TODO - signal error somehow
-		ErrWrite(ERR_TIMEOUT, "Master reply timeout\n");
-    }   // else
+		    ErrWrite(ERR_TIMEOUT, "Master reply timeout\n");
+     }  // else
   }     // if (waiting_for_reply)
   //
   //check if it is time for the next communication

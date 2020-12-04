@@ -1,6 +1,8 @@
 
 #define MASTER
 #define SLAVE
+#define DEBUG	1
+#define WARNING	1
 
 
 constexpr int BITRATE = 115200;

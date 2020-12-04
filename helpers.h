@@ -68,13 +68,17 @@ struct MSG {
 
 
 void LogMsg(char *formatStr, int len, byte cmd_dst, byte *payload) {
+	if(!DEBUG)
+		return;
     logger.printf(formatStr, len, cmd_dst);
     logger.write (payload, len-1);                // there is one byte cmd|dst
     logger.println();
 }
 
 void LogMsg(char *formatStr, int len, byte cmd, byte dst, byte *payload) {
-    logger.printf(formatStr, len, cmd, dst);
+    	if(!DEBUG)
+		return;
+	logger.printf(formatStr, len, cmd, dst);
     logger.write (payload, len-1);                // there is one byte cmd|dst
     logger.println();
 }

@@ -57,7 +57,7 @@ byte SendMessage(RS485& trmChannel, HardwareSerial& uart, byte cmd, byte dst, by
     uartTrmMode(uart);                         // switch line dir to transmit_mode;
     if(!trmChannel.sendMsg (tmpBuf, tmpLen)) {  // send fail. The only error which can originate for RS485 lib in sendMsg fuction isfor missing write callback
       err = ERR_TRM_MSG;
-      ErrWrite (ERR_TRM_MSG, "SendMessage trasmit error: no write callback probably"); 
+      ErrWrite (ERR_TRM_MSG, "SendMessage trasmit error: no write callback probably\n"); 
       }
     uartFlush(uart);                           // make sure the data are transmitted properly before revercing the line direction
     uartRcvMode(uart);                         // switch line dir to receive_mode;
@@ -141,7 +141,7 @@ struct MSG  parse_msg(RS485& rcv_channel) {
         break;
       default:
         rmsg.parse_err = ERR_BAD_CMD;
-        ErrWrite(ERR_BAD_CMD, "parse_msg error bad command %x received",rmsg.cmd ); 
+        ErrWrite(ERR_BAD_CMD, "parse_msg error bad command %x received\n",rmsg.cmd ); 
         return rmsg;        // error, no command code in message;   
     }  // switch
     return rmsg;

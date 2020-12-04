@@ -66,11 +66,10 @@
 
 #define PACKET_TIMEOUT 200  //we have to get complete packet withni XXX ms
 
-#define SCREW_RATE 5
 //#define SCREW_STX
 #define SCREW_ETX
 //#define SCREW_CRC
-#define SCREW_DATA
+//#define SCREW_DATA
 
 // allocate the requested buffer size
 void RS485::begin ()
@@ -141,6 +140,8 @@ byte c;
 bool RS485::sendMsg (const byte * data, const byte length)
 {
   static int run = 0;
+  byte screw_pattern[] =  {1,1,0,1,0};          //{0,0,1,0,1,1};
+  logger.printf("--------run = %d -------------\n", run);
   //fErrCallback_(ERR_OK, "-------------------------Sending message-----------------------------------------\n");
   // no callback? Can't send
   if (fWriteCallback_ == NULL) {
@@ -151,7 +152,7 @@ bool RS485::sendMsg (const byte * data, const byte length)
 #ifndef SCREW_STX
   fWriteCallback_ (STX);  // STX
 #else
-  if ((run % SCREW_RATE))
+  if (screw_pattern[run])
 	  fWriteCallback_ (STX);  // screw only some messages
   else
 	  fErrCallback_(ERR_OK, "RS485: Screwing-up (omiting) STX\n"); 
@@ -163,7 +164,7 @@ bool RS485::sendMsg (const byte * data, const byte length)
   }
 #else 
   int rand=random(length);
-  if ((run % SCREW_RATE == 0)) {			// screw-up
+  if (screw_pattern[run]) {			// screw-up
   	for (byte i = 0; i < length; i++) {
   		if (i==rand) {
   			//sendComplemented ((rand%2==1)?STX:ETX);
@@ -181,7 +182,7 @@ bool RS485::sendMsg (const byte * data, const byte length)
 #ifndef SCREW_ETX
   fWriteCallback_ (ETX);  // ETX
 #else
-  if ((run % SCREW_RATE)) 
+  if (screw_pattern[run]) 
   	  fWriteCallback_ (ETX);  // ETX
   else
   	  fErrCallback_(ERR_OK, "RS485: Screwing-up (omiting) ETX\n"); 
@@ -190,14 +191,15 @@ bool RS485::sendMsg (const byte * data, const byte length)
 #ifndef SCREW_CRC
   sendComplemented (crc8 (data, length));
 #else
-  if ((run % SCREW_RATE)) {
+  if (screw_pattern[run]) {
   	fErrCallback_(ERR_OK, "RS485: Screwing-up CRC\n"); 
 	  sendComplemented (~crc8 (data, length));
   }
   else
 	  sendComplemented (crc8 (data, length));
 #endif
-  run++;
+  if (run++>= sizeof(screw_pattern))
+    run = 0;
   return true;
 }  // end of RS485::sendMsg
 
@@ -280,14 +282,14 @@ int RS485::update ()
             available_ = true;
 			      fErrCallback_(ERR_OK, "RS485: got MSG\n");	
 			      haveETX_ = haveSTX_ = false;		//Nik: to be able to catch timeout
-            //logger.printf((const char *)data_);
+				  //logger.printf((const char *)data_);
             return RS485_DATA_PRESENT;  // show data ready
             }  // end if have ETX already
 
           // keep adding if not full
           if (inputPos_ < bufferSize_) {      
             data_ [inputPos_++] = currentByte_;
-            //fErrCallback_(ERR_RS485_DEBUG, (const char *)&currentByte_);
+            //fErrCallback_(ERR_DEBUG, (const char *)&currentByte_);
             //logger.print(currentByte_, HEX);
           }
           else

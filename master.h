@@ -1,32 +1,15 @@
   boardID = MASTER_ADDRESS;        // TODO - only for loopback testing
-  static int i;
+  int retCode;
+  static int i=0;
  
   memcpy(errorsDB_backup, errorsDB, sizeof(errorsDB_backup));   // backup error DB
   
   if (waiting_for_reply)
   {
-    if (err = MasterMsgChannel.update ())
-    {
-      // check for receive error first
-      if (err < 0)                              // error receiving message
-      {
-        ErrWrite (ERR_RCV_MSG, "Master: error occured while receiving message, ignorring message\n");   
-      }
-      else                                      // no error
-      {
-        // msg received, no errors
-        ErrWrite(ERR_OK, "Master just got message\n");
-        waiting_for_reply = 0;          	          	// TODO - check for out-of-order messages
+   	if((retCode = check4msg(MasterMsgChannel)) != false) {	// false means no msg, 0 means good msg, <0 means error
+		    waiting_for_reply = 0;          	          	// TODO - check for out-of-order messages
         uartTrmMode(MasterUART);		              	// Switch back to transmit_mode
-        rcvMsg = parse_msg(MasterMsgChannel);   
-        if (rcvMsg.parse_err)	            	       	// if parse error, do nothing
-          ErrWrite(ERR_WARNING, "Master parse message error\n");
-        else if (rcvMsg.dst == BROADCAST_ID)	      	// check for broadcast message
-          ErrWrite(ERR_OK, "Master: Broadcast command received, skipping\n");  // do nothing
-        else if (rcvMsg.dst != boardID)         	  	// check if the destination is another board
-          ;												// TODO - master is not supposed to get this as slaves are not talcking to each other
-        else { 
-          LogMsg("Master received message LEN: %d, CMD: %x; DEST: %x; PAYLOAD: ",rcvMsg.len, rcvMsg.cmd, rcvMsg.dst, rcvMsg.payload);
+		if(retCode) {
           switch (rcvMsg.cmd) {
             case PING_RES:
               ErrWrite(ERR_DEBUG, "Master: Unsupported reply command received PING_RES\n");
@@ -42,11 +25,10 @@
               break;
             default:
               ErrWrite(ERR_WARNING, "Master: invalid command received %x\n", rcvMsg.cmd);
-         }  // else rcvMsg.parse_err check
-        }   // else (no error)
-       }    // if update
-      }     // else (error check)
-    else if((unsigned long)(millis() - last_transmission) > REPLY_TIMEOUT) {
+			}  // switch
+        }   // if retCode
+     }    // if check4msg
+	 else if((unsigned long)(millis() - last_transmission) > REPLY_TIMEOUT) {
         // reply not received
         waiting_for_reply = 0;
         // TODO - signal error somehow

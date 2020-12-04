@@ -155,8 +155,8 @@ struct MSG  parse_msg(RS485& rcv_channel) {
 // return: 	ERR_OK in case of no message or message which is not for us
 //			ERR_RCV_MSG in case of parsing error
 //
-int check4msg() {
-	if (!(err = SlaveMsgChannel.update ()))
+int check4msg(RS485& Channel) {
+	if (!(err = Channel.update ()))
 		return false;							// nothing received yet
     // check for receive error first
     if (err < 0) {                               // error receiving message
@@ -164,7 +164,7 @@ int check4msg() {
 		return ERR_RCV_MSG; 
     }
 	// parse received message
-	rcvMsg = parse_msg(SlaveMsgChannel);      
+	rcvMsg = parse_msg(Channel);      
 	if (rcvMsg.parse_err) {                   
 		ErrWrite (ERR_RCV_MSG,"Parse message error\n"); // parsing error
 		return ERR_RCV_MSG; 
@@ -182,4 +182,27 @@ int check4msg() {
 	return true;								// have message
  } // check4msg
   
-  
+/*  
+     if (err = MasterMsgChannel.update ())
+    {
+      // check for receive error first
+      if (err < 0)                              // error receiving message
+      {
+        ErrWrite (ERR_RCV_MSG, "Master: error occured while receiving message, ignorring message\n");  
+        waiting_for_reply = 0; 
+      }
+      else                                      // no error
+      {
+        // msg received, no errors
+        ErrWrite(ERR_OK, "Master just got message\n");
+
+        rcvMsg = parse_msg(MasterMsgChannel);   
+        if (rcvMsg.parse_err)	            	       	// if parse error, do nothing
+          ErrWrite(ERR_WARNING, "Master parse message error\n");
+        else if (rcvMsg.dst == BROADCAST_ID)	      	// check for broadcast message
+          ErrWrite(ERR_OK, "Master: Broadcast command received, skipping\n");  // do nothing
+        else if (rcvMsg.dst != boardID)         	  	// check if the destination is another board
+          ;												// TODO - master is not supposed to get this as slaves are not talcking to each other
+        else { 
+          LogMsg("Master received message LEN: %d, CMD: %x; DEST: %x; PAYLOAD: ",rcvMsg.len, rcvMsg.cmd, rcvMsg.dst, rcvMsg.payload);
+*/

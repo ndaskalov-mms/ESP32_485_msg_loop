@@ -11,7 +11,7 @@ HardwareSerial& logger(Serial);
 HardwareSerial& MasterUART(Serial1);
 HardwareSerial& SlaveUART(Serial2);
 
-enum ADDR {							 // board adresses, MASTER is ALLWAYS 0
+enum ADDR {							            // board adresses, MASTER is ALLWAYS 0
 MASTER_ADDRESS =  0,
 SLAVE_ADDRESS1,
 SLAVE_ADDRESS2,
@@ -24,12 +24,13 @@ SLAVE_ADDRESS2,
 
 #define TRM_INTERVAL  1000  //1 sec
 #define REPLY_TIMEOUT  500  //200 msec
+#define NO_TIMEOUT      0
 
 // ------------------------- global variables definition -----------------------------
 byte boardID;                             // board ID: master is 0, expanders and others up to 0xE; OxF means bradcast
 unsigned long last_transmission = 0;      // last transmission time
 int waiting_for_reply = 0;                // tracks current state of the protocol
-int err;                                  // holds error returns from some functions                         
+int err, retCode;                         // holds error returns from some functions                         
 struct MSG rcvMsg;                        // temp structs for message tr/rcv
 //these are channels to send/receive packets over serial if. The comm to serial is via fRead, fWrite,...
 RS485 MasterMsgChannel (MasterRead, MasterAvailable, MasterWrite, ErrWrite, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);

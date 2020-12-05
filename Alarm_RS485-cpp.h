@@ -95,6 +95,7 @@ void RS485::reset ()
   available_ = false;
   inputPos_ = 0;
   startTime_ = 0;
+  transmitTime_ = 0;
   } // end of RS485::reset
 
 // calculate 8-bit CRC
@@ -168,9 +169,9 @@ bool RS485::sendMsg (const byte * data, const byte length)
     logger.printf("screw_pattern[run] = %d\n", screw_pattern[run]);
   	for (byte i = 0; i < length; i++) {
   		if (i==rand) {
-  			//sendComplemented ((rand%2==1)?STX:ETX);
-  			fWriteCallback_ (ETX);
-  			fErrCallback_(ERR_OK, "RS485: Screwing-up data with ETX\n");
+  			sendComplemented ((rand%2==1)?STX:ETX);
+  			//fWriteCallback_ (ETX);
+  			logger.printf("RS485: Screwing-up data with %s\n",((rand%2==1)?"STX":"ETX"));
   		}
   		else
   			sendComplemented (data [i]);
@@ -201,7 +202,9 @@ bool RS485::sendMsg (const byte * data, const byte length)
 #endif
   if (run++ == sizeof(screw_pattern))
     run = 0;
+  transmitTime_ = millis ();
   return true;
+  
 }  // end of RS485::sendMsg
 
 // called periodically from main loop to process data and

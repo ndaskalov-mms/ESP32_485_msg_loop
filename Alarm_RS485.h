@@ -19,7 +19,7 @@
 class RS485
   {
 
-  typedef void (*ErrCallback)    (int err, char * what);    // error num and text description
+  typedef int (*ErrCallback)    (int err, char * what);    // error num and text description
   typedef size_t (*WriteCallback)  (const byte what);    // send a byte to serial port
   typedef int  (*AvailableCallback)  ();    // return number of bytes available
   typedef int  (*ReadCallback)  ();    // read a byte from serial port
@@ -54,6 +54,8 @@ class RS485
   byte currentByte_;
   bool firstNibble_;
   unsigned long startTime_;
+  unsigned long transmitTime_;
+
 
   // helper private functions
   byte crc8 (const byte *addr, byte len);
@@ -102,6 +104,9 @@ class RS485
 
     // return when last packet started
     unsigned long getPacketStartTime () const { return startTime_; }
+
+    // return when last transmission was
+    unsigned long getLastTransmitTime () const { return transmitTime_; }
 
     // return true if a packet has started to be received
     bool isPacketStarted () const { return haveSTX_; }

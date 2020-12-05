@@ -87,7 +87,7 @@ struct t_ERROR errorsDBtitles[sizeof(errorsDB)/sizeof(struct ERROR)] = {{ERR_INV
                 {ERR_RS485_NO_CALLBACK, t_ERR_RS485_NO_CALLBACK}, {ERR_TIMEOUT, t_ERR_TIMEOUT}, {ERR_DB_INDEX_NOT_FND, t_ERR_DB_INDEX_NOT_FND}} ;
 
 
-void ErrWrite (int err_code, char* what)           // callback to dump info to serial console from inside RS485 library
+int ErrWrite (int err_code, char* what)           // callback to dump info to serial console from inside RS485 library
 {
   int index = 0;
   // update errors struct here
@@ -129,12 +129,12 @@ void ErrWrite (int err_code, char* what)           // callback to dump info to s
           logger.printf("%s\n", what);
       break;
   }
+  return err_code;
 }
-
-void ErrWrite (int err_code, char* formatStr, int arg)   {        // format str is printf-type one
+int ErrWrite (int err_code, char* formatStr, int arg)   {        // format str is printf-type one
         char tmpBuf[256];                         
         sprintf(tmpBuf,formatStr, arg);                           // finalyze the string according to format specs (printf type)
-        ErrWrite(err_code, tmpBuf);                               // process the error
+        return ErrWrite(err_code, tmpBuf);                               // process the error
 }
 
 int findErrorEntry(int err_code, struct ERROR errorsArray[]) {

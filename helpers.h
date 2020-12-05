@@ -65,8 +65,6 @@ struct MSG {
 } ;
 
 
-
-
 void LogMsg(char *formatStr, int len, byte cmd_dst, byte *payload) {
 	if(!DEBUG)
 		return;

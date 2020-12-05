@@ -2,7 +2,12 @@
  * protocol.h
  */
 
-
+// check for timeout waiting for receive message
+// the transmission time is marke in RS485 class sending function and is retrieved by getLastTransmitTime
+// returns 1 if timeout, 0 if not
+int checkTimeout(RS485& Channel, unsigned long timeout) {
+    return ((unsigned long)(millis() - Channel.getLastTransmitTime ()) > timeout);
+}
 // compose message containing:
 // first byte:  upper 4 bits - command code 
 //              lower 4 bits  - destination ID
@@ -62,7 +67,7 @@ byte SendMessage(RS485& trmChannel, HardwareSerial& uart, byte cmd, byte dst, by
     uartFlush(uart);                           // make sure the data are transmitted properly before revercing the line direction
     uartRcvMode(uart);                         // switch line dir to receive_mode;
     uartFlush(uart);                           // clean-up garbage due to switching, flushes both Tx and Rx
-    //ErrWrite (ERR_OK, "Transmitted, going back to listening mode\n");
+    ErrWrite (ERR_DEBUG, "Transmitted, going back to listening mode\n");
     return err;
 }
 
@@ -155,14 +160,18 @@ struct MSG  parse_msg(RS485& rcv_channel) {
 // return: 	ERR_OK (0) in case of no message or message which is not for us
 //			    ERR_RCV_MSG (negative) in case of parsing error
 //          MSG_READY (1) if message present          
-int check4msg(RS485& Channel) {
-	if (!(err = Channel.update ()))
-		return ERR_OK;							// nothing received yet
-    // check for receive error first
-    if (err < 0) {                               // error receiving message
+int check4msg(RS485& Channel, unsigned long timeout) {
+	if (!(err = Channel.update ())) {                 // 0 - nothing received yet, != something is waiting                                                      
+     if(timeout && ((unsigned long)(millis() - Channel.getLastTransmitTime ()) > timeout)) // check for message reply timeout            
+          return ErrWrite(ERR_TIMEOUT, "Check4msg Reply timeout\n"); // timeout expired              // 0 means no timeout, wait forever
+     else                                       
+          return ERR_OK;                            // timeout did not expired, continue waiting              
+	}
+  // got message, check for receive error first
+  if (err < 0) {                                  // error receiving message
 		ErrWrite (ERR_RCV_MSG, "Error occured while receiving message, ignorring message\n"); 
 		return ERR_RCV_MSG; 
-    }
+  }
 	// parse received message
 	rcvMsg = parse_msg(Channel);      
 	if (rcvMsg.parse_err) {                   
@@ -175,11 +184,11 @@ int check4msg(RS485& Channel) {
 		return ERR_OK;	
 	}
 	// check if the destination 
-	if(rcvMsg.dst != boardID)           		// check if the destination is another board
-		return ERR_OK;                          // yes, do nothing
+	if(rcvMsg.dst != boardID)           		        // check if the destination is another board
+		return ERR_OK;                                // yes, do nothing
 	// we got message for us
 	LogMsg ("Received MSG: CMD: %x; DEST: %x; payload len: %d; PAYLOAD: ", rcvMsg.len, rcvMsg.cmd, rcvMsg.dst, rcvMsg.payload);
-	return MSG_READY;								// have message
+	return MSG_READY;								                // have message
 } // check4msg
 
 void masterProcessMsg(struct MSG msg) {
@@ -200,27 +209,3 @@ void masterProcessMsg(struct MSG msg) {
       ErrWrite(ERR_WARNING, "Master: invalid command received %x\n", rcvMsg.cmd);
     }  // switch
 } 
-/*  
-     if (err = MasterMsgChannel.update ())
-    {
-      // check for receive error first
-      if (err < 0)                              // error receiving message
-      {
-        ErrWrite (ERR_RCV_MSG, "Master: error occured while receiving message, ignorring message\n");  
-        waiting_for_reply = 0; 
-      }
-      else                                      // no error
-      {
-        // msg received, no errors
-        ErrWrite(ERR_OK, "Master just got message\n");
-
-        rcvMsg = parse_msg(MasterMsgChannel);   
-        if (rcvMsg.parse_err)	            	       	// if parse error, do nothing
-          ErrWrite(ERR_WARNING, "Master parse message error\n");
-        else if (rcvMsg.dst == BROADCAST_ID)	      	// check for broadcast message
-          ErrWrite(ERR_OK, "Master: Broadcast command received, skipping\n");  // do nothing
-        else if (rcvMsg.dst != boardID)         	  	// check if the destination is another board
-          ;												// TODO - master is not supposed to get this as slaves are not talcking to each other
-        else { 
-          LogMsg("Master received message LEN: %d, CMD: %x; DEST: %x; PAYLOAD: ",rcvMsg.len, rcvMsg.cmd, rcvMsg.dst, rcvMsg.payload);
-*/

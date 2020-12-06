@@ -55,6 +55,17 @@
 
 #define RS485_DATA_PRESENT    1         // RS485.update returns 0 (ERR_OK) if no data, 1 (RS485_DATA_PRESENT) if data avail or negative if error
 
+// command records structure for cmdDB
+struct COMMAND {
+  int cmdID;
+  byte len;
+  unsigned long last_transmitted;
+};
+//
+// commands database to look-up command params and store temporary data (like last transmition time)
+// 
+struct COMMAND cmdDB[] = {{PING, PING_PAYLD_LEN,  0}, {POLL_ZONES, POLL_PAYLD_LEN, 0}, {SET_OUTS, SET_OUTS_PAYLD_LEN, 0}, \
+                          {FREE_TEXT, FREE_TEXT_PAYLD_LEN,  0}} ;
 
 struct MSG {
   byte cmd;
@@ -81,6 +92,19 @@ void LogMsg(char *formatStr, int len, byte cmd, byte dst, byte *payload) {
     logger.println();
 }
 
+int findCmdEntry(byte cmd) {
+  //ErrWrite(ERR_DEBUG, "Looking for record for cmd code   %d \n", cmd);
+  cmd = cmd & ~(0xF0 | REPLY_OFFSET );                      // clear reply flag if any
+  for (int i = 0; i < sizeof(cmdDB)/sizeof(struct COMMAND); i++) {
+    //logger.printf("Looking at index  %d out of  %d:\n", cmd, sizeof(cmdDB)/sizeof(struct COMMAND)-1);
+    if(cmdDB[i].cmdID == cmd) {
+      //ErrWrite(ERR_DEBUG,"Found cmd at  index %d\n", i);
+      return  i;
+    }
+  }
+  ErrWrite(ERR_DEBUG, "Command index not found!!!!!!!\n");
+  return ERR_DB_INDEX_NOT_FND;
+}
 
 byte test_msg [][MAX_PAYLOAD_SIZE] = {{"5Hello world;6Hello world;7Hello world;8Hello world;9Hello"},\
                                      {"123456789012345678901234567890123456789012345678901234567890"},\

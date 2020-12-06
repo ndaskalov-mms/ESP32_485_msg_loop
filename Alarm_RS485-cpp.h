@@ -187,14 +187,14 @@ bool RS485::sendMsg (const byte * data, const byte length)
   if (screw_pattern[run]) 
   	  fWriteCallback_ (ETX);  // ETX
   else
-  	  fErrCallback_(ERR_OK, "RS485: Screwing-up (omiting) ETX\n"); 
+  	  fErrCallback_(ERR_DEBUG, "RS485: Screwing-up (omiting) ETX\n"); 
 #endif
 
 #ifndef SCREW_CRC
   sendComplemented (crc8 (data, length));
 #else
   if (!screw_pattern[run]) {
-  	fErrCallback_(ERR_OK, "RS485: Screwing-up CRC\n"); 
+  	fErrCallback_(ERR_DEBUG, "RS485: Screwing-up CRC\n"); 
 	  sendComplemented (~crc8 (data, length));
   }
   else
@@ -232,7 +232,7 @@ int RS485::update ()
       {
 
         case STX:   // start of text
-		      fErrCallback_(ERR_OK, "RS485: got STX\n");	
+		      fErrCallback_(ERR_DEBUG, "RS485: got STX\n");	
           haveSTX_ = true;
           haveETX_ = false;
           inputPos_ = 0;
@@ -243,7 +243,7 @@ int RS485::update ()
         case ETX:   // end of text (now expect the CRC check)
           if (haveSTX_)		// nik
 			        haveETX_ = true;
-			    fErrCallback_(ERR_OK, "RS485: got ETX\n");	
+			    fErrCallback_(ERR_DEBUG, "RS485: got ETX\n");	
           break;
 
         default:
@@ -284,7 +284,7 @@ int RS485::update ()
               return ERR_RS485_BAD_CRC;
 			        }   // end of bad CRC
             available_ = true;
-			      fErrCallback_(ERR_OK, "RS485: got MSG\n");	
+			      fErrCallback_(ERR_DEBUG, "RS485: got MSG\n");	
 			      haveETX_ = haveSTX_ = false;		//Nik: to be able to catch timeout
 				  //logger.printf((const char *)data_);
             return RS485_DATA_PRESENT;  // show data ready

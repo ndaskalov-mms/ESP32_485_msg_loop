@@ -1,8 +1,8 @@
 	// ----------- slave simulation -------------------------------------------
 	boardID = SLAVE_ADDRESS1;        // Slave destination ---------   TODO - only for loopback testing
 	memcpy(errorsDB_backup, errorsDB, sizeof(errorsDB_backup));   // backup error DB
-	retCode = check4msg(SlaveMsgChannel, NO_TIMEOUT);                      // message if available will stored in global rcvMSG variable
-	if(retCode == MSG_READY) {				                            // false means no msg, 0 means good msg, <0 means error
+	retCode = check4msg(SlaveMsgChannel, NO_TIMEOUT);             // message if available will stored in global rcvMSG variable
+	if(retCode == MSG_READY) {				                            // ERR_OK (0)- no message, ERR_RCV_MSG (<0) -parsing error, MSG_READY (1)- message present          
 		switch (rcvMsg.cmd) {                                       // process command received
 		  case PING:
   			ErrWrite (ERR_WARNING, "Unsupported command received PING\n");
@@ -14,7 +14,7 @@
   			ErrWrite (ERR_WARNING,"Unsupported command received SET_OUTPUTS\n");
   			break;
 		  case FREE_TEXT:
-  			ErrWrite (ERR_DEBUG,"SLAVE: FREE TEXT command received\n");
+  			ErrWrite (ERR_WARNING,"SLAVE: FREE TEXT command received\n");
   			// return the same payload converted to uppercase
   			byte tmp_msg [MAX_PAYLOAD_SIZE];
   			for (int i=0; i < rcvMsg.len; i++)

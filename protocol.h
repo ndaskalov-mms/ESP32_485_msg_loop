@@ -3,7 +3,7 @@
  */
 
 // check for timeout waiting for receive message
-// the transmission time is marke in RS485 class sending function and is retrieved by getLastTransmitTime
+// the transmission time is captured in RS485 class sending function and is retrieved by getLastTransmitTime
 // returns 1 if timeout, 0 if not
 int checkTimeout(RS485& Channel, unsigned long timeout) {
     return ((unsigned long)(millis() - Channel.getLastTransmitTime ()) > timeout);
@@ -203,9 +203,50 @@ void masterProcessMsg(struct MSG msg) {
       ErrWrite(ERR_DEBUG, "Master: Unsupported reply command received SET_OUTPUTS_RES\n");
       break;
     case FREE_TEXT_RES:
-      ErrWrite(ERR_DEBUG, "Master: reply received FREE_TEXT_RES: \n");
+      ErrWrite(ERR_WARNING, "Master: reply received FREE_TEXT_RES: \n");
       break;
     default:
       ErrWrite(ERR_WARNING, "Master: invalid command received %x\n", rcvMsg.cmd);
     }  // switch
 } 
+//
+// check if it is time to send reccuring command (like POLL)
+// params: cmd - command code (can be with reply flag set as well
+//         timeout - timeout in milliseconds
+// returns: false - on wrong command checked or tot a time yet
+//          true  - time to send
+int isTimeFor(byte cmd, unsigned long timeout) {
+    int cmd_index = findCmdEntry(cmd);              // get index into database in order to access command parameters
+    if(ERR_DB_INDEX_NOT_FND == cmd_index) {              //  the command is not found in the database
+      ErrSendCmd(cmd, ERR_DB_INDEX_NOT_FND );            // ErrSendCmd function to notify the world that we cannot send 
+      return false;                                      // this is a bit ugly, but hope that ErrSendCmd will notify the world  
+    }                                                    // that we cannot send this command 
+    return ((unsigned long)(millis() - cmdDB[cmd_index].last_transmitted) > timeout);
+}
+//
+// send command and register the transmission time
+// in case of error, call ErrSendCmd() to do some global staff (like sending error over MQTT, SMTP, etc)
+// params:  cmd - command code (can be with reply flag set as well
+//          dst - destination address
+//          * payload - pointer to payload to be send
+// returns: ERR_OK on success
+//          ERR_BAD_CMD on wrong command send request
+//          ERR_TRM_MSG on error while sending (payload size > max, no write callback for RS485 class, etc
+//
+int sendCmd(byte cmd, byte dst, byte * payload) {
+    int ret_code;
+    int cmd_index = findCmdEntry(cmd);                   // get index into database in order to access command parameters
+    if(ERR_DB_INDEX_NOT_FND == cmd_index) {              //  the command is not found in the database
+      ErrSendCmd(cmd, ERR_DB_INDEX_NOT_FND);             // ErrSendCmd function to notify the world that we cannot send 
+      return ERR_BAD_CMD; 
+    }
+    cmdDB[cmd_index].last_transmitted = millis();                // register the send time
+    if (ERR_OK != (ret_code = SendMessage(MasterMsgChannel, MasterUART, cmd, dst, payload, cmdDB[cmd_index].len))) {
+      ErrSendCmd(cmd, ret_code);                                   // notifye the world for the issue
+      return ERR_TRM_MSG;
+    }
+    else {
+      waiting_for_reply = 1;
+      return ERR_OK;
+    }
+}

@@ -118,7 +118,7 @@ int ErrWrite (int err_code, char* what)           // callback to dump info to se
     case  ERR_RS485_TIMEOUT:                          // RS485 timeout waiting for ETX when STX is received
     case ERR_RS485_NO_CALLBACK:    
     case ERR_TIMEOUT:
-    case ERR_DB_INDEX_NOT_FND:                  
+    case ERR_DB_INDEX_NOT_FND:                        // TODO risk of endless loop
       index = findErrorEntry(err_code, errorsDB);
       errorsDB[index].errorCnt++;
       logger.printf (what);
@@ -140,14 +140,14 @@ int ErrWrite (int err_code, char* formatStr, int arg)   {        // format str i
 int findErrorEntry(int err_code, struct ERROR errorsArray[]) {
   //ErrWrite(ERR_DEBUG, "Looking for record for error code   %d \n", err_code);
   for (int i = 0; i < sizeof(errorsDB)/sizeof(struct ERROR); i++) {
-    //logger.printf("Looking at index  %d out of  %d:\n", err_code, sizeof(errors)/sizeof(struct ERROR)-1);
+    //logger.printf("Looking at index  %d out of  %d:\n", err_code, sizeof(errorsDB)/sizeof(struct ERROR)-1);
     if(errorsArray[i].errorID == err_code) {
       //ErrWrite(ERR_DEBUG,"Found error index %d\n", i);
       return  i;
     }
   }
   ErrWrite(ERR_DEBUG, "Error index not found!!!!!!!\n");
-  return -1;
+  return ERR_DB_INDEX_NOT_FND;
 }
 
 void printErrorsDB() {
@@ -163,4 +163,13 @@ void printNewErrors() {
         if(errorsDB[i].errorCnt != errorsDB_backup[i].errorCnt)
           logger.printf("%ld\t- %s \n", errorsDB[i].errorCnt, errorsDBtitles[i].err_title);     
   }
+}
+//
+// ErrSendCmd(cmd, err_code)  - called that UNRECOVERY  error occured while sending command
+//                  - this might triger some actions as send notification over MQTT, e-mail, watchdog reset, etc
+// params:      cmd - command with issues 
+//              err_code - what went wrong
+//
+void ErrSendCmd(byte cmd, int err_code) {
+     logger.printf("\n\n!!!--------------------Error sending command code %d, error code %d\n------------------!!!\n\n", cmd, err_code);
 }

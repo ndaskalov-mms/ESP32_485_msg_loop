@@ -1,7 +1,7 @@
 
 #define MASTER
 #define SLAVE
-#define DEBUG	1
+#define DEBUG	0
 #define WARNING	1
 
 

@@ -1,20 +1,39 @@
 
+// define role
 #define MASTER
 #define SLAVE
-#define DEBUG	0
+#define LOOPBACK
+
+// debug print levels
+#define DEBUG	1
+#define INFO  1
 #define WARNING	1
 
 
 constexpr int BITRATE = 115200;
 constexpr int LOG_BITRATE = 115200;
 HardwareSerial& logger(Serial);
-HardwareSerial& MasterUART(Serial1);
+#ifdef MASTER
+HardwareSerial& MasterUART(Serial2);
+#endif
+#ifdef SLAVE
+#ifdef LOOPBACK
+HardwareSerial& SlaveUART(Serial1);
+#else
 HardwareSerial& SlaveUART(Serial2);
+#endif
+#endif
+
 
 enum ADDR {							            // board adresses, MASTER is ALLWAYS 0
 MASTER_ADDRESS =  0,
 SLAVE_ADDRESS1,
 SLAVE_ADDRESS2,
+SLAVE_ADDRESS3,
+SLAVE_ADDRESS4,
+SLAVE_ADDRESS5,
+SLAVE_ADDRESS6,
+SLAVE_ADDRESS7,
 };
 
 #include "errors.h"                   // errors definitions and handling
@@ -22,13 +41,12 @@ SLAVE_ADDRESS2,
 #include "helpers.h"                  // include helper functions. INCLUDE ONLY AFTER SERIAL PORT DEFINITIONS!!!!
 #include "Alarm_RS485-cpp.h"          // RS485 transport implementation (library)
 
-#define TRM_INTERVAL  1000  //1 sec
-#define REPLY_TIMEOUT  500  //200 msec
+#define POLL_INTERVAL  1000               // Shall be 200ms 
+#define REPLY_TIMEOUT  100               // REPLY_TIMEOUT MUST be at least 2x less POLL_INTERVAL to avoid sending a new command while waiting for 
 #define NO_TIMEOUT      0
 
 // ------------------------- global variables definition -----------------------------
 byte boardID;                             // board ID: master is 0, expanders and others up to 0xE; OxF means bradcast
-unsigned long last_transmission = 0;      // last transmission time
 int waiting_for_reply = 0;                // tracks current state of the protocol
 int err, retCode;                         // holds error returns from some functions                         
 struct MSG rcvMsg;                        // temp structs for message tr/rcv
@@ -40,16 +58,25 @@ RS485 SlaveMsgChannel  (SlaveRead, SlaveAvailable, SlaveWrite, ErrWrite, RxBUF_S
 
 void setup() {
   logger.begin(LOG_BITRATE,SERIAL_8N1);
+  logger.printf("\n\nStaring setup\n\n");
   // set UARTs
-  MasterUART.begin(BITRATE,SERIAL_8N1, 21, 22);  // re-routing RxD to  GPIO21 and TxD to GPIO22
-  SlaveUART.begin(BITRATE,SERIAL_8N1);
+#ifdef MASTER
+    MasterUART.begin(BITRATE,SERIAL_8N1);  
+#endif
+#ifdef SLAVE
+#ifdef LOOPBACK
+  SlaveUART.begin(BITRATE,SERIAL_8N1, 21, 22);    // re-routing RxD to  GPIO21 and TxD to GPIO22
+#else
+  SlaveUART.begin(BITRATE,SERIAL_8N1,)
+#endif
+#endif
   // allocate data buffers and init message encoding/decoding engines (485_non_blocking library)
   MasterMsgChannel.begin ();      
   SlaveMsgChannel.begin ();  
   logger.printf("Loopback example for Esp32+485\n");
   logger.printf("MAX_MSG_LENGHT = %d\n", MAX_MSG_LENGHT  );
   logger.printf("MAX_PAYLOAD_SIZE = %d\n", MAX_PAYLOAD_SIZE );
-  printErrorsDB();
+  //printErrorsDB();
 }
 
 void loop ()

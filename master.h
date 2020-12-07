@@ -5,20 +5,19 @@
   // are we waiting for reply?
   if (waiting_for_reply)   {                                  // check for message available
     if(ERR_OK != (retCode = check4msg(MasterMsgChannel, REPLY_TIMEOUT))) {    // see what we have so far at receiver
-     	waiting_for_reply = 0;                                  // we got message or error
-      if(retCode == MSG_READY)                                // MSG_READY means good msg, ERR_OK(0) means no msg, <0 means error 
+     	waiting_for_reply = 0;                                // we got message or error
+      if(retCode == MSG_READY)                                // MSG_READY means good msg,ERR_OK(0) means no msg,<0 means UART error or parse err
           masterProcessMsg(rcvMsg);                           // process message
-      else if (retCode < 0)                                   // error or timeout receiving msg?
-  		    ErrWrite(ERR_OK, "Master receive reply error or timeout\n");
+      else	{												  //retCode < 0 means UART error, bad CRC, wrong bytes, wrong format or parse err
+  		  ErrWrite(ERR_INFO, "Master receive reply error or timeout\n"); 
+		  ReportUpstream(last_cmd_send, ret_code) 
     }                                                         // if (check4msg)
   }                                                           // if (waiting)
   // not waiting for reply, check if it is time to send new command
-  else if (isTimeFor(FREE_TEXT, TRM_INTERVAL))  {
-    ErrWrite(ERR_OK, "\nMaster: time to transmit \n");
-    if(ERR_OK != sendCmd(FREE_TEXT, SLAVE1_ADDRESS, test_msg[(++i)%3])) 
-      ErrWrite(ERR_TRM_MSG, "\n\nMaster: Error in sendMessage\n");
-    else
-      ErrWrite( ERR_OK, ("Master MSG transmitted, receive timeout started\n"));
+  else if (isTimeFor(FREE_TEXT, POLL_INTERVAL))  {
+    ErrWrite(ERR_INFO, "\nMaster: time to transmit \n");
+    if(ERR_OK == sendCmd(FREE_TEXT, SLAVE1_ADDRESS, test_msg[(++i)%3])) // sendCmd handle errors internally
+      ErrWrite( ERR_INFO, ("Master MSG transmitted, receive timeout started\n"));
   }
   //
   // no message available for processing and it is not time to send a new one

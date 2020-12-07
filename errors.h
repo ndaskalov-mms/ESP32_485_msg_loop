@@ -18,6 +18,7 @@
 int findErrorEntry(int err_code, struct ERROR errorsArray[]);
 
 enum errorID {
+  ERR_INFO = 2,                           // just print if INFO is set
   MSG_READY = 1,                          // message received
   ERR_OK = 0,                           	// no error
   ERR_DEBUG = -1, 							          // debug print, can be enabled/disable by #define DEBUG
@@ -38,9 +39,9 @@ enum errorID {
   };
 
 // Errors friendly names for UI
-char  t_ERR_OK[] 					= "";	// print w/o title, just the string supplied by caller
-char  t_ERR_DEBUG[] 				= "";	// print w/o title, just the string supplied by calle
-char  t_ERR_WARNING[] 				= "";	// print w/o title, just the string supplied by calle
+char  t_ERR_OK[] 					      = "";	      // print w/o title, just the string supplied by caller
+char  t_ERR_DEBUG[] 				    = "";	      // print w/o title, just the string supplied by calle
+char  t_ERR_WARNING[] 				  = "";	      // print w/o title, just the string supplied by calle
 char  t_ERR_INV_PAYLD_LEN[] 		= "Send/rcv  message payload issue (too long or doesn't match message code payload size)";
 char  t_ERR_TRM_MSG[]       		= "Message transmit error";
 char  t_ERR_RCV_MSG[]     			= "Message Receive error";  
@@ -103,6 +104,10 @@ int ErrWrite (int err_code, char* what)           // callback to dump info to se
       if(DEBUG)
       logger.printf (what);
       break;
+  case ERR_INFO:    
+      if(INFO)
+      logger.printf (what);
+      break;
   case ERR_WARNING:    
       if(WARNING)
       logger.printf (what);
@@ -111,14 +116,14 @@ int ErrWrite (int err_code, char* what)           // callback to dump info to se
     case ERR_BAD_CMD:
     case ERR_TRM_MSG:
     case ERR_RCV_MSG:
-    case  ERR_RS485_BUF_OVERFLOW:                     // RS485 class receive buffer overflow
-    case  ERR_RS485_FORCE_SCREW:                      // RS485 intentionally generated for testing purposes
-    case  ERR_RS485_INV_BYTE_CODE:                    // RS485 byte encodding error detected
-    case  ERR_RS485_BAD_CRC:                          // RS485 crc error
-    case  ERR_RS485_TIMEOUT:                          // RS485 timeout waiting for ETX when STX is received
+    case ERR_RS485_BUF_OVERFLOW:                     // RS485 class receive buffer overflow
+    case ERR_RS485_FORCE_SCREW:                      // RS485 intentionally generated for testing purposes
+    case ERR_RS485_INV_BYTE_CODE:                    // RS485 byte encodding error detected
+    case ERR_RS485_BAD_CRC:                          // RS485 crc error
+    case ERR_RS485_TIMEOUT:                          // RS485 timeout waiting for ETX when STX is received
     case ERR_RS485_NO_CALLBACK:    
     case ERR_TIMEOUT:
-    case ERR_DB_INDEX_NOT_FND:                        // TODO risk of endless loop
+    case ERR_DB_INDEX_NOT_FND:                       // TODO risk of endless loop  ???
       index = findErrorEntry(err_code, errorsDB);
       errorsDB[index].errorCnt++;
       logger.printf (what);
@@ -146,7 +151,7 @@ int findErrorEntry(int err_code, struct ERROR errorsArray[]) {
       return  i;
     }
   }
-  ErrWrite(ERR_DEBUG, "Error index not found!!!!!!!\n");
+  ErrWrite(ERR_INFO, "Error index not found!!!!!!!\n");
   return ERR_DB_INDEX_NOT_FND;
 }
 
@@ -165,11 +170,12 @@ void printNewErrors() {
   }
 }
 //
-// ErrSendCmd(cmd, err_code)  - called that UNRECOVERY  error occured while sending command
+// ReportUpstream(cmd, err_code)  - called that UNRECOVERY  error occured while sending command
 //                  - this might triger some actions as send notification over MQTT, e-mail, watchdog reset, etc
 // params:      cmd - command with issues 
 //              err_code - what went wrong
 //
-void ErrSendCmd(byte cmd, int err_code) {
-     logger.printf("\n\n!!!--------------------Error sending command code %d, error code %d\n------------------!!!\n\n", cmd, err_code);
-}
+
+//void ReportUpstream(byte cmd, int err_code) {
+//     logger.printf("\n\n!!!--------------------Error sending command code %d, error code %d\n------------------!!!\n\n", cmd, err_code);
+//}

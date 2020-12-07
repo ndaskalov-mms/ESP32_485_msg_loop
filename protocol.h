@@ -20,7 +20,7 @@ int checkTimeout(RS485& Channel, unsigned long timeout) {
 //      payload_len - len of the payload to be send
 // return: lenght of the composed message or 0 if error
 //
-byte  compose_msg(byte cmd, byte dest, byte *payload, byte *out_buf, int payload_len) {
+int compose_msg(byte cmd, byte dest, byte *payload, byte *out_buf, int payload_len) {
   int index = 0;
   char tmpBuf[256];
   
@@ -28,8 +28,7 @@ byte  compose_msg(byte cmd, byte dest, byte *payload, byte *out_buf, int payload
   out_buf[index++] = ((cmd << 4) | (dest & 0x0F));
   // next comes the payload
   if ((payload_len + index) > MAX_MSG_LENGHT) {
-    ErrWrite (ERR_INV_PAYLD_LEN, "Compose_msg: payload size %d is larger than buffer size\n", payload_len); 
-    return 0;
+     return ERR_INV_PAYLD_LEN;						// all errors are negative numbers
   }
   // copy  
   for (int i =0; i< payload_len; i++) 
@@ -50,24 +49,24 @@ byte  compose_msg(byte cmd, byte dest, byte *payload, byte *out_buf, int payload
 //            ERR_OK            - Alles in ordung   
 // other:     reflects error occured in global errors struct as well         
  
-byte SendMessage(RS485& trmChannel, HardwareSerial& uart, byte cmd, byte dst, byte *payload, int len ) {
+int SendMessage(RS485& trmChannel, HardwareSerial& uart, byte cmd, byte dst, byte *payload, int len ) {
     byte tmpBuf[MAX_MSG_LENGHT];
-    byte tmpLen;              // lenght of data to transmit, shall be less than MAX_MSG_LENGHT
+    int tmpLen;              // lenght of data to transmit, shall be less than MAX_MSG_LENGHT
     byte err = ERR_OK;
     if(!(tmpLen = compose_msg(cmd, dst, payload, tmpBuf, len))) {
-      //ErrWrite (ERR_INV_PAYLD_LEN, "SendMessage: error composing message -  too long???\n");   // must be already reported by compose_msg
+      ErrWrite (ERR_INV_PAYLD_LEN, "SendMessage: error composing message -  too long???\n");   // must be already reported by compose_msg
       return ERR_INV_PAYLD_LEN;
     }
     LogMsg("SendMsg: sending message LEN = %d, CMD|DST = %x, PAYLOAD: ", tmpLen, tmpBuf[0], &tmpBuf[1]);
-    uartTrmMode(uart);                         // switch line dir to transmit_mode;
-    if(!trmChannel.sendMsg (tmpBuf, tmpLen)) {  // send fail. The only error which can originate for RS485 lib in sendMsg fuction isfor missing write callback
+    uartTrmMode(uart);                  	// switch line dir to transmit_mode;
+    if(!trmChannel.sendMsg (tmpBuf, tmpLen)) { // send fail. The only error which can originate for RS485 lib in sendMsg fuction isfor missing write callback
       err = ERR_TRM_MSG;
       ErrWrite (ERR_TRM_MSG, "SendMessage trasmit error: no write callback probably\n"); 
       }
-    uartFlush(uart);                           // make sure the data are transmitted properly before revercing the line direction
-    uartRcvMode(uart);                         // switch line dir to receive_mode;
-    uartFlush(uart);                           // clean-up garbage due to switching, flushes both Tx and Rx
-    ErrWrite (ERR_DEBUG, "Transmitted, going back to listening mode\n");
+	uartFlush(uart);                        // make sure the data are transmitted properly before revercing the line direction
+    uartRcvMode(uart);                      // switch line dir to receive_mode;
+    uartFlush(uart);                        // clean-up garbage due to switching, flushes both Tx and Rx
+    ErrWrite (ERR_INFO, "Transmitted, going back to listening mode\n");
     return err;
 }
 
@@ -180,7 +179,7 @@ int check4msg(RS485& Channel, unsigned long timeout) {
 		} 
 	// check for broadcast message
 	if (rcvMsg.dst == BROADCAST_ID)  {    
-		ErrWrite (ERR_DEBUG,"Broadcast command received, skipping\n");  // do nothing
+		ErrWrite (ERR_INFO,"Broadcast command received, skipping\n");  // do nothing
 		return ERR_OK;	
 	}
 	// check if the destination 
@@ -194,16 +193,16 @@ int check4msg(RS485& Channel, unsigned long timeout) {
 void masterProcessMsg(struct MSG msg) {
   switch (msg.cmd) {
     case PING_RES:
-      ErrWrite(ERR_DEBUG, "Master: Unsupported reply command received PING_RES\n");
+      ErrWrite(ERR_INFO, "Master: Unsupported reply command received PING_RES\n");
       break;
     case POLL_ZONES_RES:
-      ErrWrite(ERR_DEBUG, "Master: Unsupported reply command received POLL_ZONES_RES\n");
+      ErrWrite(ERR_INFO, "Master: Unsupported reply command received POLL_ZONES_RES\n");
       break;
     case SET_OUTS_RES:
-      ErrWrite(ERR_DEBUG, "Master: Unsupported reply command received SET_OUTPUTS_RES\n");
+      ErrWrite(ERR_INFO, "Master: Unsupported reply command received SET_OUTPUTS_RES\n");
       break;
     case FREE_TEXT_RES:
-      ErrWrite(ERR_WARNING, "Master: reply received FREE_TEXT_RES: \n");
+      ErrWrite(ERR_INFO, "Master: reply received for FREE_TEXT cmd: \n");
       break;
     default:
       ErrWrite(ERR_WARNING, "Master: invalid command received %x\n", rcvMsg.cmd);
@@ -216,16 +215,16 @@ void masterProcessMsg(struct MSG msg) {
 // returns: false - on wrong command checked or tot a time yet
 //          true  - time to send
 int isTimeFor(byte cmd, unsigned long timeout) {
-    int cmd_index = findCmdEntry(cmd);              // get index into database in order to access command parameters
+    int cmd_index = findCmdEntry(cmd);              	 // get index into database in order to access command parameters
     if(ERR_DB_INDEX_NOT_FND == cmd_index) {              //  the command is not found in the database
-      ErrSendCmd(cmd, ERR_DB_INDEX_NOT_FND );            // ErrSendCmd function to notify the world that we cannot send 
-      return false;                                      // this is a bit ugly, but hope that ErrSendCmd will notify the world  
+      ReportUpstream(cmd, ERR_DB_INDEX_NOT_FND );        // ReportUpstream function to notify the world that we cannot send 
+      return false;                                      // this is a bit ugly, but hope that ReportUpstream will notify the world  
     }                                                    // that we cannot send this command 
     return ((unsigned long)(millis() - cmdDB[cmd_index].last_transmitted) > timeout);
 }
 //
 // send command and register the transmission time
-// in case of error, call ErrSendCmd() to do some global staff (like sending error over MQTT, SMTP, etc)
+// in case of error, call ReportUpstream() to do some global staff (like sending error over MQTT, SMTP, etc)
 // params:  cmd - command code (can be with reply flag set as well
 //          dst - destination address
 //          * payload - pointer to payload to be send
@@ -235,14 +234,18 @@ int isTimeFor(byte cmd, unsigned long timeout) {
 //
 int sendCmd(byte cmd, byte dst, byte * payload) {
     int ret_code;
+    if (waiting_for_reply)
+      return ERR_OK;                                     // TODO not sure if it is not better to return error, otherwise we can lock-up on waiting_for_repy
     int cmd_index = findCmdEntry(cmd);                   // get index into database in order to access command parameters
     if(ERR_DB_INDEX_NOT_FND == cmd_index) {              //  the command is not found in the database
-      ErrSendCmd(cmd, ERR_DB_INDEX_NOT_FND);             // ErrSendCmd function to notify the world that we cannot send 
+      ReportUpstreamCmd(cmd, ERR_DB_INDEX_NOT_FND);      // ReportUpstream function to notify the world that we cannot send 
+      ErrWrite(ERR_DB_INDEX_NOT_FND, "\n-------------Master: error in findCmdEntry looking for %d command---------------------\n", cmd);
       return ERR_BAD_CMD; 
     }
-    cmdDB[cmd_index].last_transmitted = millis();                // register the send time
+    cmdDB[cmd_index].last_transmitted = millis();        // register the send time
     if (ERR_OK != (ret_code = SendMessage(MasterMsgChannel, MasterUART, cmd, dst, payload, cmdDB[cmd_index].len))) {
-      ErrSendCmd(cmd, ret_code);                                   // notifye the world for the issue
+      ReportUpstream(cmd, ret_code);                     // notify the world for the issue
+      ErrWrite(ERR_TRM_MSG, "\n-----------------Master: Error in sendMessage sending %d command----------------\n", cmd);
       return ERR_TRM_MSG;
     }
     else {

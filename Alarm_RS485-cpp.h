@@ -76,7 +76,7 @@ void RS485::begin ()
   {
   data_ = (byte *) malloc (bufferSize_);
   reset ();
-  fErrCallback_(ERR_OK, " RS485 Begins\n");
+  fErrCallback_(ERR_DEBUG, " RS485 Begins\n");
   } // end of RS485::begin
 
 // get rid of the buffer
@@ -85,7 +85,7 @@ void RS485::stop ()
   reset ();
   free (data_);
   data_ = NULL;
-  fErrCallback_(ERR_OK, " RS485 Stops\n");
+  fErrCallback_(ERR_DEBUG, " RS485 Stops\n");
 } // end of RS485::stop
 
 // called after an error to return to "not in a packet"
@@ -143,20 +143,20 @@ bool RS485::sendMsg (const byte * data, const byte length)
   static int run = 0;
   byte screw_pattern[] =  {1,1,0,1,0};          //{0,0,1,0,1,1};
   logger.printf("--------run = %d -------------\n", run);
-  //fErrCallback_(ERR_OK, "-------------------------Sending message-----------------------------------------\n");
+  //fErrCallback_(ERR_DEBUG, "-------------------------Sending message-----------------------------------------\n");
   // no callback? Can't send
   if (fWriteCallback_ == NULL) {
     fErrCallback_(ERR_RS485_NO_CALLBACK, "RS485: no write callback\n");
     return false;
   }
-  //fErrCallback_(ERR_OK, "RS485: sendMsg\n");
+  //fErrCallback_(ERR_DEBUG, "RS485: sendMsg\n");
 #ifndef SCREW_STX
   fWriteCallback_ (STX);  // STX
 #else
   if (screw_pattern[run])
 	  fWriteCallback_ (STX);  // screw only some messages
   else
-	  fErrCallback_(ERR_OK, "RS485: Screwing-up (omiting) STX\n"); 
+	  fErrCallback_(ERR_DEBUG, "RS485: Screwing-up (omiting) STX\n"); 
 #endif
 #ifndef SCREW_DATA   
   for (byte i = 0; i < length; i++) {

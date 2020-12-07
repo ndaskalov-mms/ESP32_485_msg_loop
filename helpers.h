@@ -18,9 +18,6 @@
 #define MAX_PAYLOAD_SIZE  (MAX_MSG_LENGHT - CMD_SIZE/2)   // shall be max 61 = ((128-(1+1+1))/2) - 1
 #define RxBUF_SIZE 128  //no material limit
 #define BROADCAST_ID    0xF
-#define MASTER_ADDRESS  0
-#define SLAVE1_ADDRESS  1
-#define SLAVE2_ADDRESS  2
 #define REPLY_OFFSET    0x8
 
 // COMMAND CODES

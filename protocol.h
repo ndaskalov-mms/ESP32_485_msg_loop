@@ -168,7 +168,7 @@ int check4msg(RS485& Channel, unsigned long timeout) {
 	}
   // got message, check for receive error first
   if (err < 0) {                                  // error receiving message
-		ErrWrite (ERR_RCV_MSG, "Error occured while receiving message, ignorring message\n"); 
+		ErrWrite (ERR_RCV_MSG, "Err while rcv msg, ignorring\n"); 
 		return ERR_RCV_MSG; 
   }
 	// parse received message
@@ -217,14 +217,14 @@ void masterProcessMsg(struct MSG msg) {
 int isTimeFor(byte cmd, unsigned long timeout) {
     int cmd_index = findCmdEntry(cmd);              	 // get index into database in order to access command parameters
     if(ERR_DB_INDEX_NOT_FND == cmd_index) {              //  the command is not found in the database
-      ReportUpstream(cmd, ERR_DB_INDEX_NOT_FND );        // ReportUpstream function to notify the world that we cannot send 
-      return false;                                      // this is a bit ugly, but hope that ReportUpstream will notify the world  
+      ErrWrite(ERR_DB_INDEX_NOT_FND, "IsTimeFor: CMD %d not found\n", cmd);
+	  return false;                                      // this is a bit ugly, but will notify the world  
     }                                                    // that we cannot send this command 
     return ((unsigned long)(millis() - cmdDB[cmd_index].last_transmitted) > timeout);
 }
 //
 // send command and register the transmission time
-// in case of error, call ReportUpstream() to do some global staff (like sending error over MQTT, SMTP, etc)
+// in case of error, ErrWrite will register the err in the database and to do some global staff (like sending error over MQTT, SMTP, etc)
 // params:  cmd - command code (can be with reply flag set as well
 //          dst - destination address
 //          * payload - pointer to payload to be send
@@ -238,14 +238,12 @@ int sendCmd(byte cmd, byte dst, byte * payload) {
       return ERR_OK;                                     // TODO not sure if it is not better to return error, otherwise we can lock-up on waiting_for_repy
     int cmd_index = findCmdEntry(cmd);                   // get index into database in order to access command parameters
     if(ERR_DB_INDEX_NOT_FND == cmd_index) {              //  the command is not found in the database
-      ReportUpstreamCmd(cmd, ERR_DB_INDEX_NOT_FND);      // ReportUpstream function to notify the world that we cannot send 
-      ErrWrite(ERR_DB_INDEX_NOT_FND, "\n-------------Master: error in findCmdEntry looking for %d command---------------------\n", cmd);
+      ErrWrite(ERR_DB_INDEX_NOT_FND, "\n\nMaster: err in findCmdEntry lookup for %d cmd\n\n", cmd);
       return ERR_BAD_CMD; 
     }
     cmdDB[cmd_index].last_transmitted = millis();        // register the send time
     if (ERR_OK != (ret_code = SendMessage(MasterMsgChannel, MasterUART, cmd, dst, payload, cmdDB[cmd_index].len))) {
-      ReportUpstream(cmd, ret_code);                     // notify the world for the issue
-      ErrWrite(ERR_TRM_MSG, "\n-----------------Master: Error in sendMessage sending %d command----------------\n", cmd);
+      ErrWrite(ERR_TRM_MSG, "\n\nMaster: Err in sendMessage sending %d cmd\n\n", cmd);
       return ERR_TRM_MSG;
     }
     else {

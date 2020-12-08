@@ -5,9 +5,14 @@
 #define LOOPBACK
 
 // debug print levels
-#define DEBUG	1
-#define INFO  1
+#define DEBUG	  1
+#define INFO    1
 #define WARNING	1
+#define ERROR   1
+
+// define log and errors channel
+#define SERIAL_LOG 	1
+#define MQTT_LOG	0
 
 
 constexpr int BITRATE = 115200;
@@ -36,6 +41,7 @@ SLAVE_ADDRESS6,
 SLAVE_ADDRESS7,
 };
 
+#include "mqtt.h"
 #include "errors.h"                   // errors definitions and handling
 #include "RS485_cbacks.h"             // callbacks required by RS485 lib and UART related staff (ESP32 specific)
 #include "helpers.h"                  // include helper functions. INCLUDE ONLY AFTER SERIAL PORT DEFINITIONS!!!!

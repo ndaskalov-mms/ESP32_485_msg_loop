@@ -25,7 +25,7 @@
 		  default:
 			  ErrWrite (ERR_WARNING, "Slave: invalid command received %x\n", rcvMsg.cmd);
 		}  	// switch
-	}		// if check...
+	}		// if retCode
 	// no message available for processing 
 	// do something usefull like take a nap or read ADC and process the zones info
 	// or collect some errors info to be send as status to MASTER some day

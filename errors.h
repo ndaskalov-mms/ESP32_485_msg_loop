@@ -2,7 +2,7 @@
  * errors.h
  * contains all errors handling related staff
  * all possible errors have assigned error codes (enum errorID). There is static build errors database errorsDB, every record of
- * is made of struct ERROR, consisting errorID (used for look-up, shall be one of defined in enum errorID) and counter (errorCnt) 
+ * is made of struct ERROR_REC, consisting errorID (used for look-up, shall be one of defined in enum errorID) and counter (errorCnt) 
  * for this error. Copy of errorsDB is contained in errorsDB_backup.
  * before the some actions or predefined interval errorDB is mem-copied to errorDB_backup and after using mem-compare we find 
  * if new errors occured.
@@ -15,7 +15,7 @@
  * searching a match of supplied error number and errorID stored in the errorsDB records
 */
 
-int findErrorEntry(int err_code, struct ERROR errorsArray[]);
+int findErrorEntry(int err_code, struct ERROR_REC errorsArray[]);
 
 enum errorID {
   ERR_INFO = 2,                           // just print if INFO is set
@@ -65,23 +65,23 @@ struct t_ERROR {
   char * err_title;
 };
 // errors records structure for errorsDB
-struct ERROR {
+struct ERROR_REC {
   int errorID;
   unsigned long errorCnt;
 };
 //
 // Running errors are collected in errorsDB structure which keeps a count for each error type
 // 
-struct ERROR errorsDB[] = {{ERR_INV_PAYLD_LEN, 0}, {ERR_TRM_MSG, 0}, {ERR_RCV_MSG, 0}, {ERR_BAD_CMD, 0}, {ERR_BAD_DST, 0}, \
+struct ERROR_REC errorsDB[] = {{ERR_INV_PAYLD_LEN, 0}, {ERR_TRM_MSG, 0}, {ERR_RCV_MSG, 0}, {ERR_BAD_CMD, 0}, {ERR_BAD_DST, 0}, \
               {ERR_RS485_BUF_OVERFLOW, 0}, {ERR_RS485_INV_BYTE_CODE, 0}, {ERR_RS485_BAD_CRC, 0}, {ERR_RS485_TIMEOUT, 0},\
               {ERR_RS485_FORCE_SCREW, 0}, {ERR_RS485_NO_CALLBACK, 0}, {ERR_TIMEOUT, 0}, {ERR_DB_INDEX_NOT_FND, 0}} ;
 // there is a backup cope of the DB, used to find a new errors after specific action (send/receive message)
 // before the action errorDB is mem-copied to errorDB_backup and after using mem-compare we find if new errors occured
 // print titles are kept separately in order to minimize copy/compare cycles
 //
-struct ERROR errorsDB_backup[sizeof(errorsDB)/sizeof(struct ERROR)];  // temp DB backup in order to find the new errors for each loop()
+struct ERROR_REC errorsDB_backup[sizeof(errorsDB)/sizeof(struct ERROR_REC)];  // temp DB backup in order to find the new errors for each loop()
 //
-struct t_ERROR errorsDBtitles[sizeof(errorsDB)/sizeof(struct ERROR)] = {{ERR_INV_PAYLD_LEN, t_ERR_INV_PAYLD_LEN}, {ERR_TRM_MSG, t_ERR_TRM_MSG}, {ERR_RCV_MSG, t_ERR_RCV_MSG},\
+struct t_ERROR errorsDBtitles[sizeof(errorsDB)/sizeof(struct ERROR_REC)] = {{ERR_INV_PAYLD_LEN, t_ERR_INV_PAYLD_LEN}, {ERR_TRM_MSG, t_ERR_TRM_MSG}, {ERR_RCV_MSG, t_ERR_RCV_MSG},\
                 {ERR_BAD_CMD, t_ERR_BAD_CMD}, {ERR_BAD_DST, t_ERR_BAD_DST}, {ERR_RS485_BUF_OVERFLOW, t_ERR_RS485_BUF_OVERFLOW},\
                 {ERR_RS485_INV_BYTE_CODE, t_ERR_RS485_INV_BYTE_CODE}, {ERR_RS485_BAD_CRC, t_ERR_RS485_BAD_CRC},\
                 {ERR_RS485_TIMEOUT, t_ERR_RS485_TIMEOUT}, {ERR_RS485_FORCE_SCREW, t_ERR_RS485_FORCE_SCREW},\
@@ -98,41 +98,70 @@ int ErrWrite (int err_code, char* what)           // callback to dump info to se
     //  logger.print (*what);
     //  break;
     case ERR_OK:    
-      logger.printf (what);
+      if(SERIAL_LOG)
+		  logger.printf (what);
+	  if(MQTT_LOG)
+		  ReportUpstream(LOG_TOPIC, what);
       break;    
   case ERR_DEBUG:    
-      if(DEBUG)
-      logger.printf (what);
+      if(DEBUG) {
+		  if(SERIAL_LOG)
+			logger.printf (what);
+		  if(MQTT_LOG)
+			ReportUpstream(DEBUG_TOPIC, what);
+	      }
       break;
   case ERR_INFO:    
-      if(INFO)
-      logger.printf (what);
+	  if(INFO) {
+		  if(SERIAL_LOG)
+			logger.printf (what);
+		  if(MQTT_LOG)
+			ReportUpstream(INFO_TOPIC, what);
+		  }
       break;
   case ERR_WARNING:    
-      if(WARNING)
-      logger.printf (what);
+      if(WARNING) {
+		  if(SERIAL_LOG)
+			logger.printf (what);
+		  if(MQTT_LOG)
+			ReportUpstream(WARNING_TOPIC, what);
+	      }
       break; 
-    case ERR_INV_PAYLD_LEN:
-    case ERR_BAD_CMD:
-    case ERR_TRM_MSG:
-    case ERR_RCV_MSG:
-    case ERR_RS485_BUF_OVERFLOW:                     // RS485 class receive buffer overflow
-    case ERR_RS485_FORCE_SCREW:                      // RS485 intentionally generated for testing purposes
-    case ERR_RS485_INV_BYTE_CODE:                    // RS485 byte encodding error detected
-    case ERR_RS485_BAD_CRC:                          // RS485 crc error
-    case ERR_RS485_TIMEOUT:                          // RS485 timeout waiting for ETX when STX is received
-    case ERR_RS485_NO_CALLBACK:    
-    case ERR_TIMEOUT:
-    case ERR_DB_INDEX_NOT_FND:                       // TODO risk of endless loop  ???
+	case ERR_INV_PAYLD_LEN:
+	case ERR_BAD_CMD:
+	case ERR_TRM_MSG:
+	case ERR_RCV_MSG:
+	case ERR_RS485_BUF_OVERFLOW:                     // RS485 class receive buffer overflow
+	case ERR_RS485_FORCE_SCREW:                      // RS485 intentionally generated for testing purposes
+	case ERR_RS485_INV_BYTE_CODE:                    // RS485 byte encodding error detected
+	case ERR_RS485_BAD_CRC:                          // RS485 crc error
+	case ERR_RS485_TIMEOUT:                          // RS485 timeout waiting for ETX when STX is received
+	case ERR_RS485_NO_CALLBACK:    
+	case ERR_TIMEOUT:
+	case ERR_DB_INDEX_NOT_FND:                       // TODO risk of endless loop  ???
       index = findErrorEntry(err_code, errorsDB);
       errorsDB[index].errorCnt++;
-      logger.printf (what);
+	  if(ERROR) {
+		if(SERIAL_LOG)
+			logger.printf (what);
+		if(MQTT_LOG)
+			ReportUpstream(ERROR_TOPIC, what);
+	  }
       break;
     default:
-      logger.printf ("-----------------Invalid error code %d received in errors handling callback\n------------------------", err_code);
-      if(what)
+      if(SERIAL_LOG) {
+		logger.printf ("-----------------Invalid error code %d received in errors handling callback\n------------------------", err_code);
+		if(what)
           logger.printf("%s\n", what);
-      break;
+	  }
+      if(MQTT_LOG) {
+		char tmpBuf[256];                         
+        sprintf(tmpBuf,"Invalid err code %d rcvd in err handling callback\n", err_code);                           
+		ReportUpstream(ERROR_TOPIC,tmpBuf);
+		if(what)
+          ReportUpstream(ERROR_TOPIC, what);
+	  }
+	  break;
   }
   return err_code;
 }
@@ -142,10 +171,10 @@ int ErrWrite (int err_code, char* formatStr, int arg)   {        // format str i
         return ErrWrite(err_code, tmpBuf);                               // process the error
 }
 
-int findErrorEntry(int err_code, struct ERROR errorsArray[]) {
+int findErrorEntry(int err_code, struct ERROR_REC errorsArray[]) {
   //ErrWrite(ERR_DEBUG, "Looking for record for error code   %d \n", err_code);
-  for (int i = 0; i < sizeof(errorsDB)/sizeof(struct ERROR); i++) {
-    //logger.printf("Looking at index  %d out of  %d:\n", err_code, sizeof(errorsDB)/sizeof(struct ERROR)-1);
+  for (int i = 0; i < sizeof(errorsDB)/sizeof(struct ERROR_REC); i++) {
+    //logger.printf("Looking at index  %d out of  %d:\n", err_code, sizeof(errorsDB)/sizeof(struct ERROR_REC)-1);
     if(errorsArray[i].errorID == err_code) {
       //ErrWrite(ERR_DEBUG,"Found error index %d\n", i);
       return  i;
@@ -169,13 +198,3 @@ void printNewErrors() {
           logger.printf("%ld\t- %s \n", errorsDB[i].errorCnt, errorsDBtitles[i].err_title);     
   }
 }
-//
-// ReportUpstream(cmd, err_code)  - called that UNRECOVERY  error occured while sending command
-//                  - this might triger some actions as send notification over MQTT, e-mail, watchdog reset, etc
-// params:      cmd - command with issues 
-//              err_code - what went wrong
-//
-
-//void ReportUpstream(byte cmd, int err_code) {
-//     logger.printf("\n\n!!!--------------------Error sending command code %d, error code %d\n------------------!!!\n\n", cmd, err_code);
-//}

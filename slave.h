@@ -5,16 +5,16 @@
 	if(retCode == MSG_READY) {				                            // ERR_OK (0)- no message, ERR_RCV_MSG (<0) -parsing error, MSG_READY (1)- message present          
 		switch (rcvMsg.cmd) {                                       // process command received
 		  case PING:
-  			ErrWrite (ERR_WARNING, "Unsupported command received PING\n");
+  			ErrWrite (ERR_WARNING, "Unsupported cmd received PING\n");
   			break;
 		  case POLL_ZONES:
-  			ErrWrite (ERR_WARNING,"Unsupported command received POLL_ZONES\n");
+  			ErrWrite (ERR_WARNING,"Unsupported cmd received POLL_ZONES\n");
   			break;
 		  case SET_OUTS:
-  			ErrWrite (ERR_WARNING,"Unsupported command received SET_OUTPUTS\n");
+  			ErrWrite (ERR_WARNING,"Unsupported cmd received SET_OUTPUTS\n");
   			break;
 		  case FREE_TEXT:
-  			ErrWrite (ERR_WARNING,"SLAVE: FREE TEXT command received\n");
+  			ErrWrite (ERR_INFO,"SLAVE: FREE TEXT cmd received\n");
   			// return the same payload converted to uppercase
   			byte tmp_msg [MAX_PAYLOAD_SIZE];
   			for (int i=0; i < rcvMsg.len; i++)
@@ -26,6 +26,8 @@
 			  ErrWrite (ERR_WARNING, "Slave: invalid command received %x\n", rcvMsg.cmd);
 		}  	// switch
 	}		// if retCode
+  else if(retCode != ERR_OK)                 
+        ErrWrite(ERR_WARNING, "Slave rcv cmd err"); 
 	// no message available for processing 
 	// do something usefull like take a nap or read ADC and process the zones info
 	// or collect some errors info to be send as status to MASTER some day

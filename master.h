@@ -23,7 +23,7 @@
   // no message available for processing and it is not time to send a new one
   // do something usefull like have a nap or read MQTT
   else {
-    //logger.print( "." );                      // no, do nothing
+    //logger.print( "." );                        // no, do nothing
   }
   // check for new errors and send via MQTT when it is availabel some sunny day
   if(memcmp(errorsDB, errorsDB_backup, sizeof(errorsDB))) {

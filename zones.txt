@@ -22,3 +22,38 @@ GPIO17	U2TxD
 GPIO18				TxEN
 GPIO21	U1RxD		SDA	
 GPIO22	U1TxD		SCL
+
+
+
+
+#define Zone1	GPIO35	// ADC1_CH7	
+#define Zone2	GPIO32	// ADC1_CH4	
+#define Zone3	GPIO33	// ADC1_CH5	
+#define Zone4	GPIO25	// ADC2_CH8	
+#define Zone5	GPIO26	// ADC2_CH9	
+#define Zone6	GPIO27	// ADC2_CH7	
+#define Zone7	GPIO14	// ADC2_CH6	
+#define Zone8	GPIO12	// ADC2_CH5	
+#define Zone9	GPIO13	// ADC2_CH4	
+#define Zone10	GPIO15	// ADC2_CH3	
+#define Zone11	GPIO2 	// ADC2_CH2	
+#define Zone12	GPIO4	// ADC2_CH0	
+
+
+
+#define GPIO35	35
+#define GPIO32	32
+#define GPIO33	33
+#define GPIO25	25
+#define GPIO26	26
+#define GPIO27	27
+#define GPIO14	28
+#define GPIO12	29
+#define GPIO13	13
+#define GPIO15	15
+#define GPIO2 	2
+#define GPIO4	4
+
+GPIO36	ADC1_CH0	#define VzoneRef	GPIO36	
+GPIO39	ADC1_CH3	#define ADC_AUX     GPIO39	
+GPIO34	ADC1_CH6	#define ADC_BAT     GPIO34	

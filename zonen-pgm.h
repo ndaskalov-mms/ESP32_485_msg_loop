@@ -24,14 +24,14 @@
 #define Zone4_			GPIO25	// ADC2_CH8	
 #define Zone5_			GPIO26	// ADC2_CH9	
 #define Zone6_			GPIO27	// ADC2_CH7	
-#define Zone7_			PIO14	// ADC2_CH6	
+#define Zone7_			GPIO14	// ADC2_CH6	
 #define Zone8_			GPIO12	// ADC2_CH5	
 #define Zone9_			GPIO13	// ADC2_CH4	
 #define Zone10_			GPIO15	// ADC2_CH3	
 #define Zone11_			GPIO2 	// ADC2_CH2	
 #define Zone12_			GPIO4	// ADC2_CH0	
 
-#define CLUSTER_RD	12
+#define CLUSTER_SIZE	4
 
 // zone records structure for zoneDB
 struct ZONE {
@@ -48,21 +48,40 @@ struct ZONE ADC_BAT 	= {ADC_BAT_, 0, 0, 0};
 //
 // zones database to store data
 // 
-struct ZONE zoneDB[] = {	{Zone1 , 0, 0, 0}\
-							{Zone2 , 0, 0, 0}\
-							{Zone3 , 0, 0, 0}\
-							{Zone4 , 0, 0, 0}\
-							{Zone5 , 0, 0, 0}\
-							{Zone6 , 0, 0, 0}\
-							{Zone7 , 0, 0, 0}\
-							{Zone8 , 0, 0, 0}\
-							{Zone9 , 0, 0, 0}\
-							{Zone10, 0, 0, 0}\
-							{Zone11, 0, 0, 0}\
-							{Zone12, 0, 0, 0}}
-void convert zones() {
-	static int i = 0; 
-	int j = 0;
+struct ZONE zoneDB[] = {	{Zone1_ , 0, 0, 0},\
+							{Zone2_ , 0, 0, 0},\
+							{Zone3_ , 0, 0, 0},\
+							{Zone4_ , 0, 0, 0},\
+							{Zone5_ , 0, 0, 0},\
+							{Zone6_ , 0, 0, 0},\
+							{Zone7_ , 0, 0, 0},\
+							{Zone8_ , 0, 0, 0},\
+							{Zone9_ , 0, 0, 0},\
+							{Zone10_, 0, 0, 0},\
+							{Zone11_, 0, 0, 0},\
+							{Zone12_, 0, 0, 0},};
+             
+void convert_zones() {
+	static int j = 0; 
+	int i = 0;
+  static unsigned long last_read = 0;
+  
 	// read zones analog value 
-	for (i; i < (sizeof(zoneDB[])/sizeof(struct ZONE); i++) {
-		for j
+  if (ZONES_READ_THROTTLE)  {                  // time to read??
+    unsigned long temp = millis();
+    if ((unsigned long)(temp - last_read) < (unsigned long)ZONES_READ_INTERVAL) {
+      //logger.printf("Cur %u, last %u, interval %u\n", temp, last_read,ZONES_READ_INTERVAL );
+      return;   
+    } 
+  }     
+	ErrWrite(ERR_DEBUG, " Reading zones:", j+i);
+	for (i = 0; i < CLUSTER_SIZE; i++) {				// read up to cluster size to minimize the time spent in the function
+		// read and conver here
+		ErrWrite(ERR_DEBUG, " %d ", j+i);
+	}
+	j += CLUSTER_SIZE;
+  if(j == (sizeof(zoneDB)/sizeof(struct ZONE))) // all zones read?
+		j = 0;											                // yes, restart 
+  last_read = millis();
+	
+}

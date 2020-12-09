@@ -5,14 +5,17 @@
 #define LOOPBACK
 
 // debug print levels
-#define DEBUG	  1
-#define INFO    1
-#define WARNING	1
-#define ERROR   1
+#define DEBUG	  true
+#define INFO    true
+#define WARNING	true
+#define ERROR   true
 
 // define log and errors channel
-#define SERIAL_LOG 	1
-#define MQTT_LOG	0
+#define SERIAL_LOG 	true
+#define MQTT_LOG	  false
+
+#define ZONES_READ_THROTTLE true
+#define ZONES_READ_INTERVAL 100     // read all zones at 100mS
 
 
 constexpr int BITRATE = 115200;
@@ -47,8 +50,8 @@ SLAVE_ADDRESS7,
 #include "helpers.h"                  // include helper functions. INCLUDE ONLY AFTER SERIAL PORT DEFINITIONS!!!!
 #include "Alarm_RS485-cpp.h"          // RS485 transport implementation (library)
 
-#define POLL_INTERVAL  1000               // Shall be 200ms 
-#define REPLY_TIMEOUT  100               // REPLY_TIMEOUT MUST be at least 2x less POLL_INTERVAL to avoid sending a new command while waiting for 
+#define POLL_INTERVAL  1000           // Shall be 200ms 
+#define REPLY_TIMEOUT  100            // REPLY_TIMEOUT MUST be at least 2x less POLL_INTERVAL to avoid sending a new command while waiting for 
 #define NO_TIMEOUT      0
 
 // ------------------------- global variables definition -----------------------------
@@ -61,6 +64,7 @@ RS485 MasterMsgChannel (MasterRead, MasterAvailable, MasterWrite, ErrWrite, RxBU
 RS485 SlaveMsgChannel  (SlaveRead, SlaveAvailable, SlaveWrite, ErrWrite, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
 
 #include "protocol.h"                     // send/receive and compse messgaes staff
+#include "zonen-pgm.h"                    // all xones and pgms related staff
 
 void setup() {
   logger.begin(LOG_BITRATE,SERIAL_8N1);

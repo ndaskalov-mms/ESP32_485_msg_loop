@@ -26,11 +26,12 @@
 			  ErrWrite (ERR_WARNING, "Slave: invalid command received %x\n", rcvMsg.cmd);
 		}  	// switch
 	}		// if retCode
-  else if(retCode != ERR_OK)                 
+	else if(retCode != ERR_OK)                 
         ErrWrite(ERR_WARNING, "Slave rcv cmd err"); 
 	// no message available for processing 
 	// do something usefull like take a nap or read ADC and process the zones info
 	// or collect some errors info to be send as status to MASTER some day
+	convert_zones();
 	
 	// find out if some new errors occured while receiving/processing the message
 	if(memcmp(errorsDB, errorsDB_backup, sizeof(errorsDB))) 

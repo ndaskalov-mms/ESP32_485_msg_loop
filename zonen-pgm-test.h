@@ -41,7 +41,7 @@
 
 
 unsigned long zone_result;
-unsigned long lastRead = 0;           // time in msec when the zones were read
+
 // zone records structure for zoneDB
 struct ZONE {
   byte gpio;
@@ -56,19 +56,19 @@ struct ZONE ADC_BAT 	= {ADC_BAT_, 0, 0, 0};
 //
 // zones database to store data
 // 
-struct ZONE zoneDB[] =		 {	{Zone4_ , 0, 0, 0}, 	{Zone5_ , 0, 0, 0}, 	{Zone6_ , 0, 0, 0},\
-								{Zone7_ , 0, 0, 0}, 	{Zone8_ , 0, 0, 0}, 	{Zone9_ , 0, 0, 0},\
-								{Zone10_, 0, 0, 0}, 	{Zone11_, 0, 0, 0}, 	{Zone12_, 0, 0, 0}};
+struct ZONE zoneDB[] =		 {{Zone4_ , 0, 0, 0}, 	{Zone5_ , 0, 0, 0}, 	{Zone6_ , 0, 0, 0},\
+								            {Zone7_ , 0, 0, 0}, 	{Zone8_ , 0, 0, 0}, 	{Zone9_ , 0, 0, 0},\
+								            {Zone10_, 0, 0, 0}, 	{Zone11_, 0, 0, 0}, 	{Zone12_, 0, 0, 0}};
 // those zones are using 4053 mux to double the capacity. Mux control is via AltZoneSelect GPIO								
-struct ZONE muxZoneDB[] = 	{    {Zone1_ , 0, 0, 0},		{Zone2_ , 0, 0, 0}, 	{Zone3_ , 0, 0, 0}};
+struct ZONE muxZoneDB[] = 	{{Zone1_ , 0, 0, 0},		{Zone2_ , 0, 0, 0}, 	{Zone3_ , 0, 0, 0}};
 // those zones are using 4053 mux to double the capacity. Mux control is via AltZoneSelect GPIO								
-struct ZONE altMuxZoneDB[] = {	 {Zone1_ , 0, 0, 0},		{Zone2_ , 0, 0, 0}, 	{Zone3_ , 0, 0, 0}};
+struct ZONE altMuxZoneDB[] = {{Zone1_ , 0, 0, 0},		{Zone2_ , 0, 0, 0}, 	{Zone3_ , 0, 0, 0}};
 // those are special zones which might or might not be present depends on the board configuration
-struct ZONE specZoneDB[] = 	{	 {VzoneRef_, 0, 0, 0}, 	{ADC_AUX_, 0, 0, 0}, 	{ADC_BAT_, 0, 0, 0}};
+struct ZONE specZoneDB[] = 	{{VzoneRef_, 0, 0, 0}, 	{ADC_AUX_, 0, 0, 0}, 	{ADC_BAT_, 0, 0, 0}};
 
 struct ZONE * allZones[] = 	{muxZoneDB, altMuxZoneDB, zoneDB, specZoneDB};
  
-void zonesSetup() {
+void zoneSetup() {
 	pinMode (muxCtlPin, OUTPUT);			// set mux ctl as output
 	selectZones	(Azones);					// select A zones
 	//set adc channels???
@@ -84,28 +84,27 @@ float convert2mV (unsigned long adcVal) {
 //  Read and convert all zone inputs
 //  parms: struct ZONE DB[] * - pointer to array of ZONE  containing the zones to be read and converted
 //
-void readZones(struct ZONE DB[]) {							
-  int i;
-  for (i = 0; i< OVERSAMPLE_CNT; i++) {								// will read and accumulate values for each zone  OVERSAMPLE_CNT times
-  	for (i = 0; i < (sizeof(DB)/sizeof(struct ZONE)); i++)
-  		DB[i].accValue = 0;										// initialize
-  	  for (i = 0; i < (sizeof(DB)/sizeof(struct ZONE)); i++) {		// read zone and store value
+void readZones(struct ZONE DB[], int zones_cnt) {							
+  int i, j;
+  for (j = 0; j< OVERSAMPLE_CNT; j++) {								// will read and accumulate values for each zone  OVERSAMPLE_CNT times
+   		DB[j].accValue = 0;									// initialize
+  	  for (i = 0; i < zones_cnt; i++) {		// read zone and store value
+    		//logger.printf(" Reading zone index %d gpio %d value %d\n",i, DB[i].gpio, DB[i].accValue ); 
     		// read and conver here
-    		ErrWrite(ERR_DEBUG, " %d ", i);
-    		DB[i].accValue += analogRead(DB[i].gpio);					// accumulate
+        int val = analogRead(DB[i].gpio);
+    		//logger.printf(" Reading zone gpio: %d acc current val: %d",DB[i].gpio,  DB[i].accValue ); 
+    		DB[i].accValue += val;            // accumulate
+        //logger.printf(" Read val: %d new acc val: %d\n", val, DB[i].accValue); 
   		  }
-  	ErrWrite(ERR_DEBUG, "\n");
     }
     // convert values to voltages
-  	for (i = 0; i < (sizeof(DB)/sizeof(struct ZONE)); i++) {		// convert acumulated values to voltages 
+  	for (i = 0; i <  zones_cnt; i++) {		// convert acumulated values to voltages 
   		DB[i].mvValue = convert2mV(DB[i].accValue);                           // full scale (4096) represent 3.2V, and value is oversampled 8 times
-      //ErrWrite(ERR_DEBUG, "Converting zone %d ADC value %u = %f mV\n", i, DB[i]->accValue, DB[i]->mvValue );
-      logger.printf ("Converting zone %d ADC value %u = %f mV\n", i, DB[i].accValue, DB[i].mvValue );
+      logger.printf ("Converted zone GPIO: %2d \tADC Value %6lu = \t%f V\n", DB[i].gpio, DB[i].accValue, DB[i].mvValue );
 		}
-  	ErrWrite(ERR_DEBUG, "\n");
 }
 	
-void convert_zones() {
+void convertZones() {
   int i = 0;
   static unsigned long lastRead = 0;
   unsigned long bitVal = 0;
@@ -115,25 +114,22 @@ void convert_zones() {
 	if (ZONES_READ_THROTTLE)  {                  		// time to read??
 		unsigned long temp = millis();
 		if ((unsigned long)(temp - lastRead) < (unsigned long)ZONES_READ_INTERVAL) {
-		  //logger.printf("Cur %u, last %u, interval %u\n", temp, last_read,ZONES_READ_INTERVAL );
+		  //logger.printf("Cur %u, last %u, interval %u\n", temp, lastRead,ZONES_READ_INTERVAL );
 		  return;   
-		} 
+		}
 	}     
-	ErrWrite(ERR_DEBUG, " Reading mux zones:");
+  lastRead = millis();                // record read time
 	selectZones(Azones);
-	readZones(muxZoneDB);								// reads and accumulates OVERSAMPLE_CNT times all zones in xxxxxDB 
+	readZones(muxZoneDB, sizeof(muxZoneDB)/sizeof(struct ZONE));								// reads and accumulates OVERSAMPLE_CNT times all zones in xxxxxDB 
 	selectZones(Bzones);								// read interleaved with other zones to give time to settle input voltages
 	// now read normal zones
-	ErrWrite(ERR_DEBUG, "\n Reading normal zones:");
-	readZones(zoneDB);
+	readZones(zoneDB, sizeof(zoneDB)/sizeof(struct ZONE) );
 	// now read alt zones
-	ErrWrite(ERR_DEBUG, "\n Reading alt zones:");
-	readZones(altMuxZoneDB);
+	readZones(altMuxZoneDB, sizeof(altMuxZoneDB)/sizeof(struct ZONE));
 	selectZones(Azones);								// toggle GPIO to select main mux channel
 	// now read special zones
-	ErrWrite(ERR_DEBUG, "\n Reading special zones:");
-	readZones(specZoneDB);	
-  
+	readZones(specZoneDB, sizeof(specZoneDB)/sizeof(struct ZONE));	
+  logger.printf ("Elapsed time %d millisec\n", (unsigned long)(millis() - lastRead));
   
   /* 
   // convert to binary value here
@@ -142,7 +138,6 @@ void convert_zones() {
   for (i = 0; i < CLUSTER_SIZE; i++) {        // 
     bitTmp = (bitTmp << 1) | (zoneDB[i].binValue?0x1:0x0)
     bitMask = (bitMask << 1) | (0x1;
-    ErrWrite(ERR_DEBUG, " %x %x", bitTmp, bitMask);
     }
 
 	j += CLUSTER_SIZE;

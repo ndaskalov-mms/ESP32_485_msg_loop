@@ -38,17 +38,37 @@
 #define AltZoneSelect	      0x1			  // selects aternative zones via 4053 mux
 #define selectZones(which)  digitalWrite(muxCtlPin, which)
 #define OVERSAMPLE_CNT      8
-
+#define ZONE_ERROR_SHORT    0x2
+#define ZONE_ERROR_OPEN     0x3
+#define ZONE_OPEN           0x1   
+#define ZONE_CLOSED         0x0
 
 unsigned long zone_result;
+
+
+struct THRESHOLD {
+  unsigned tMin;                     // level in mV, TODO change to ADC code
+  unsigned tMax;
+  byte  ZoneAcode;
+  byte  ZoneBcode;
+};
+
+
+// zone codes ERROR_FLAG (b10)  | ZONE OPEN or ZONE CLOSED
+struct THRESHOLD thresholds[] =     {{0,    450,    ZONE_ERROR_SHORT, ZONE_ERROR_SHORT}, // below 450mV; LINE SHORT, zoneA error, zoneB error LINE SHORT
+                                    {451,  1300,   ZONE_CLOSED,      ZONE_CLOSED},      // from 451 to 1300mV;  zoneA closed, zoneB closed
+                                    {1301, 2000,   ZONE_CLOSED,      ZONE_OPEN},        // from 1301 to 2000mV; zoneA closed, zoneB open
+                                    {2001, 2400,   ZONE_OPEN,        ZONE_CLOSED},      // from 2001 to 2400mV; zoneA open,   zoneB closed
+                                    {2401, 3000,   ZONE_OPEN,        ZONE_OPEN},        // from 2401 to 3000mV; zoneA open,   zoneB open
+                                    {3001, 3500,   ZONE_ERROR_OPEN,  ZONE_ERROR_OPEN}};  // above 3001mV; zoneA error LINE OPEN , zoneB error LINE OPEN 
 
 // zone records structure for zoneDB
 struct ZONE {
   byte gpio;
   unsigned long accValue;								// oversampled value
   float mvValue;								        // converted value in mV
-  bool  binValue;
-};
+}; 
+                                     
 // some important voltages 
 struct ZONE VzoneRef 	= {VzoneRef_, 0, 0, 0};
 struct ZONE ADC_AUX 	= {ADC_AUX_, 0, 0, 0};
@@ -78,37 +98,63 @@ void zoneSetup() {
 //convert oversampled ADC value to mV
 //
 float convert2mV (unsigned long adcVal) {
-    return float (((adcVal*3.2)/4096)/OVERSAMPLE_CNT);
+    return float (((adcVal*3200)/4096)/OVERSAMPLE_CNT);
+}
+
+
+//
+//  print single zone data
+//  parms: struct ZONE DB[]  - (pointer ???) to array of ZONE  containing the zones to be read and converted
+//
+void printZone(struct ZONE DB[], int zones_cnt) { 
+    int i; 
+    for (i = 0; i <  zones_cnt; i++) {               // iterate
+       logger.printf ("Zone data GPIO: %2d \tAvg ADC Value =  %lu\tAvg mV value = \t%4.3f mV\n", DB[i].gpio, DB[i].accValue, DB[i].mvValue );
+    }
+}
+//
+//  print all zone data
+//  parms: none
+void printZones() {
+  printZone(muxZoneDB, sizeof(muxZoneDB)/sizeof(struct ZONE));                // reads and accumulates OVERSAMPLE_CNT times all zones in xxxxxDB 
+  printZone(zoneDB, sizeof(zoneDB)/sizeof(struct ZONE) );
+  printZone(altMuxZoneDB, sizeof(altMuxZoneDB)/sizeof(struct ZONE));
+  printZone(specZoneDB, sizeof(specZoneDB)/sizeof(struct ZONE));  
 }
 //
 //  Read and convert all zone inputs
-//  parms: struct ZONE DB[] * - pointer to array of ZONE  containing the zones to be read and converted
+//  parms: struct ZONE DB[]  - (pointer ???) to array of ZONE  containing the zones to be read and converted
 //
-void readZones(struct ZONE DB[], int zones_cnt) {							
+void readZones(struct ZONE DB[], int zones_cnt) {              
   int i, j;
-  for (j = 0; j< OVERSAMPLE_CNT; j++) {								// will read and accumulate values for each zone  OVERSAMPLE_CNT times
-   		DB[j].accValue = 0;									// initialize
-  	  for (i = 0; i < zones_cnt; i++) {		// read zone and store value
-    		//logger.printf(" Reading zone index %d gpio %d value %d\n",i, DB[i].gpio, DB[i].accValue ); 
-    		// read and conver here
+  for (i = 0;  i < zones_cnt; i++)
+    DB[i].accValue = 0;                 // initialize
+  for (j = 0; j< OVERSAMPLE_CNT; j++) {   // will read and accumulate values for each zone  OVERSAMPLE_CNT times
+     for (i = 0;  i < zones_cnt; i++) {    // read zone and store value
+        //logger.printf(" Reading zone index %d gpio %d value %d\n",i, DB[i].gpio, DB[i].accValue ); 
+        // read and conver here
         int val = analogRead(DB[i].gpio);
-    		//logger.printf(" Reading zone gpio: %d acc current val: %d",DB[i].gpio,  DB[i].accValue ); 
-    		DB[i].accValue += val;            // accumulate
+        //logger.printf(" Reading zone gpio: %d acc current val: %d",DB[i].gpio,  DB[i].accValue ); 
+        //logger.printf("address of DB index %d = %d\n",i, &DB[i]);
+        DB[i].accValue = DB[i].accValue+val;            // accumulate
         //logger.printf(" Read val: %d new acc val: %d\n", val, DB[i].accValue); 
-  		  }
+        }
     }
     // convert values to voltages
-  	for (i = 0; i <  zones_cnt; i++) {		// convert acumulated values to voltages 
-  		DB[i].mvValue = convert2mV(DB[i].accValue);                           // full scale (4096) represent 3.2V, and value is oversampled 8 times
-      logger.printf ("Converted zone GPIO: %2d \tADC Value %6lu = \t%f V\n", DB[i].gpio, DB[i].accValue, DB[i].mvValue );
-		}
+    for (i = 0; i <  zones_cnt; i++) {    // convert acumulated values to voltages 
+      DB[i].mvValue = convert2mV(DB[i].accValue);    // full scale (4096) represent 3.2V, and value is oversampled 8 times
+      logger.printf ("Converted zone GPIO: %2d \tAvg ADC Value %lu = \t%4.3f mV\n", DB[i].gpio, DB[i].accValue, DB[i].mvValue );
+    }
 }
-	
+//
+// read and convert zone adc values to mV first and after to zone status
+//
 void convertZones() {
   int i = 0;
   static unsigned long lastRead = 0;
   unsigned long bitVal = 0;
   unsigned long bitMask = 0;
+  byte encVal= 0;
   
 	// read zones analog value 
 	if (ZONES_READ_THROTTLE)  {                  		// time to read??
@@ -130,19 +176,24 @@ void convertZones() {
 	// now read special zones
 	readZones(specZoneDB, sizeof(specZoneDB)/sizeof(struct ZONE));	
   logger.printf ("Elapsed time %d millisec\n", (unsigned long)(millis() - lastRead));
-  
-  /* 
+  printZones();
+
   // convert to binary value here
   // reflect the new values in zones_result variable, which will be returned to master
-  bitTmp = 0; bitMask = 0;
-  for (i = 0; i < CLUSTER_SIZE; i++) {        // 
+  bitTmp = 0; bitMask = 3;              // each zone read will produce 2bits result
+  for (i = 0; i < sizeof(muxZoneDB)/sizeof(struct ZONE); i++) {    // for all zones in the array
+    for (j = 0; muxZoneDB.mvValue > thresholds[j].tMin; j ++) // look-up the input voltage  in the input voltage ranges
+      ;                                                       // keep searching while the input voltage is lower than min input voltage for the range
+  
+    j--;                                                      // correct the index to point to the exact range
+    encVal = thresholds[j].code;                              // get the range code
     bitTmp = (bitTmp << 1) | (zoneDB[i].binValue?0x1:0x0)
     bitMask = (bitMask << 1) | (0x1;
     }
 
-	j += CLUSTER_SIZE;
+  j += CLUSTER_SIZE;
   if(j == (sizeof(zoneDB)/sizeof(struct ZONE))) // all zones read?
-		j = 0;											                // yes, restart 
+    j = 0;  										                // yes, restart 
   lastRead = millis();
-*/	
+*/
 }

@@ -31,7 +31,7 @@
 	// no message available for processing 
 	// do something usefull like take a nap or read ADC and process the zones info
 	// or collect some errors info to be send as status to MASTER some day
-	convert_zones();
+	convertZones();
 	
 	// find out if some new errors occured while receiving/processing the message
 	if(memcmp(errorsDB, errorsDB_backup, sizeof(errorsDB))) 

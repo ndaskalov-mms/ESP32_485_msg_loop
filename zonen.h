@@ -1,20 +1,5 @@
 # define TEST 1
-#define GPIO35	35
-#define GPIO32	32
-#define GPIO33	33
-#define GPIO25	25
-#define GPIO26	26
-#define GPIO27	27
-#define GPIO14	28
-#define GPIO12	29
-#define GPIO13	13
-#define GPIO15	15
-#define GPIO2 	2
-#define GPIO4	4
-#define GPIO36	36
-#define GPIO39 	39
-#define GPIO34	34
-#define GPIO0  0
+#include "gpio-def.h"
 
 #define VzoneRef_		GPIO36	// ADC1_CH0	              // 4053 mux with zone1A_  - use selectZones(SYSTEM_VOLTAGES) to read
 #define ADC_AUX_    GPIO39	// ADC1_CH3	              // 4053 mux with zone2A_  - use selectZones(SYSTEM_VOLTAGES) to read
@@ -47,11 +32,12 @@
 #define OVERSAMPLE_CNT      8
 #define ZONE_ERROR_SHORT    0x4
 #define ZONE_ERROR_OPEN     0x8
-#define ZONE_A_OPEN           0x1   
-#define ZONE_A_CLOSED         0x0
-#define ZONE_B_OPEN           0x2   
-#define ZONE_B_CLOSED         0x0
-#define ZONE_ENC_BITS         4
+#define ZONE_A_OPEN         0x1   
+#define ZONE_A_CLOSED       0x0
+#define ZONE_B_OPEN         0x2   
+#define ZONE_B_CLOSED       0x0
+#define ZONE_ENC_BITS       4
+#define ZONE_ENC_MASK       0xF
 //
 // struct to hold zone voltages ranges and corresponding binary code
 //
@@ -96,6 +82,8 @@ struct ZONE zoneDB[] =		    {{Zone1_ , 0,   0, 0, 0*2, 0}, {Zone2_ , 0, 0, 0, 1*
  
 #define ZONES_CNT          (sizeof(zoneDB)/sizeof(struct ZONE))
 #define ZONE_PAYLOAD_LEN   (sizeof(zoneDB)/2 + sizeof(zoneDB)%2)
+
+
 byte zoneResult[ZONE_PAYLOAD_LEN];
 unsigned long zoneTest[ZONES_CNT];
 //
@@ -110,6 +98,7 @@ void fillZones(unsigned long zoneTest[], int zones_cnt) {
        zoneTest[i] = i*increment+increment/3;
        logger.printf ("Zone filled data %d\n", zoneTest[i]);
     }
+    //zoneTest[0] = 4000;
 }
 //
 // add to arduino setup func
@@ -134,7 +123,7 @@ float convert2mV (unsigned long adcVal) {
 //
 void printZones(struct ZONE DB[], int zones_cnt) { 
     int i; 
-    for (i = 0; i <  zones_cnt; i++) {               // iterate
+    for (i = 0; i <  zones_cnt; i++) {                        // iterate
        logger.printf ("Zone data: Zone Nr: %d: GPIO: %2d: \tAvg ADC Value: %lu\tAvg mV val: %4.3f mV;\tZoneABstat: %x\n", DB[i].zNum/2, DB[i].gpio, DB[i].accValue, DB[i].mvValue, DB[i].zoneABstat );
     }
 }
@@ -147,7 +136,7 @@ void zoneVal2Code(struct ZONE DB[]) {
     for (thrIndex = 0; DB[i].mvValue > thresholds[thrIndex].tMin; thrIndex++) // look-up the input voltage  in the input voltage ranges
       ;                                                       // keep searching while the input voltage is lower than min input voltage for the range
     thrIndex--;                                               // correct the index to point to the exact range
-    DB[i].zoneABstat = thresholds[thrIndex].zoneABstat;   // get zones A&B status  code   
+    DB[i].zoneABstat = thresholds[thrIndex].zoneABstat;       // get zones A&B status  code   
     } 
 }
 //
@@ -192,7 +181,7 @@ void convertZones() {
   int thrIndex; 
   
 	// read zones analog value 
-	if (ZONES_READ_THROTTLE)  {                  		// time to read??
+	if (ZONES_READ_THROTTLE)  {                  		          // time to read??
 		unsigned long temp = millis();
 		if ((unsigned long)(temp - lastRead) < (unsigned long)ZONES_READ_INTERVAL) {
 		  //logger.printf("Cur %u, last %u, interval %u\n", temp, lastRead,ZONES_READ_INTERVAL );
@@ -212,15 +201,15 @@ void convertZones() {
   for (i = 0; i < ZONES_CNT; i++) {  // for all zones in the array
     for (thrIndex = 0; zoneDB[i].mvValue > thresholds[thrIndex].tMin; thrIndex++) // look-up the input voltage  in the input voltage ranges
       ;                                                       // keep searching while the input voltage is lower than min input voltage for the range
-    thrIndex--;                                                 // correct the index to point to the exact range
+    thrIndex--;                                               // correct the index to point to the exact range
     zoneDB[i].zoneABstat = thresholds[thrIndex].zoneABstat;   // get zones A&B status  code   
     }                                                         // loop over zones
   printZones(zoneDB, ZONES_CNT);
   // time to copy results to results array
   for (i=0; i < ZONE_PAYLOAD_LEN; i++)                        // clear results array
-    zoneResult[ZONE_PAYLOAD_LEN] = 0;   
+    zoneResult[i] = 0;   
   for (i=0; i < ZONES_CNT; i++) {                             // combine two zones in one byte, 12, 34, 56, ....
-    zoneResult[i/2] = (zoneResult[i/2] << ZONE_ENC_BITS) | zoneDB[i].zoneABstat ;
+    zoneResult[i/2] = ((zoneResult[i/2] << ZONE_ENC_BITS) & ~ZONE_ENC_MASK) | zoneDB[i].zoneABstat ;
     if(i%2 || i==ZONES_CNT-1)
       logger.printf("Payload: %d content: %2x\n", i/2, zoneResult[i/2]);
     }  

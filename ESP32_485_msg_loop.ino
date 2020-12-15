@@ -64,8 +64,11 @@ RS485 MasterMsgChannel (MasterRead, MasterAvailable, MasterWrite, ErrWrite, RxBU
 RS485 SlaveMsgChannel  (SlaveRead, SlaveAvailable, SlaveWrite, ErrWrite, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
 
 #include "protocol.h"                     // send/receive and compse messgaes staff
-#include "zonen-pgm.h"                    // all xones and pgms related staff
-
+#include "zonen.h"                        // all xones and pgms related staff
+#include "pgm.h"
+//
+//  Arduino setup function - call all local setups her
+//
 void setup() {
   logger.begin(LOG_BITRATE,SERIAL_8N1);
   logger.printf("\n\nStaring setup\n\n");
@@ -83,6 +86,7 @@ void setup() {
   // allocate data buffers and init message encoding/decoding engines (485_non_blocking library)
   MasterMsgChannel.begin ();      
   SlaveMsgChannel.begin ();  
+  
   logger.printf("Loopback example for Esp32+485\n");
   logger.printf("MAX_MSG_LENGHT = %d\n", MAX_MSG_LENGHT  );
   logger.printf("MAX_PAYLOAD_SIZE = %d\n", MAX_PAYLOAD_SIZE );

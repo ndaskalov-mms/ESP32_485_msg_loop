@@ -66,6 +66,8 @@ RS485 SlaveMsgChannel  (SlaveRead, SlaveAvailable, SlaveWrite, ErrWrite, RxBUF_S
 #include "protocol.h"                     // send/receive and compse messgaes staff
 #include "zonen.h"                        // all xones and pgms related staff
 #include "pgm.h"
+//#include "gpio-def.h"
+
 //
 //  Arduino setup function - call all local setups her
 //
@@ -99,6 +101,7 @@ void loop ()
   #include "master.h"
 #endif
 #ifdef SLAVE
+
   #include "slave.h"
 #endif
 }  // end of loop

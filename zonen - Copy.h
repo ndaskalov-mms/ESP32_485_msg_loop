@@ -1,11 +1,33 @@
-#define TEST 1
+# define TEST 1
+#include "gpio-def.h"
 
+#define VzoneRef_		GPIO36	// ADC1_CH0	              // 4053 mux with zone1A_  - use selectZones(SYSTEM_VOLTAGES) to read
+#define ADC_AUX_    GPIO39	// ADC1_CH3	              // 4053 mux with zone2A_  - use selectZones(SYSTEM_VOLTAGES) to read
+#define ADC_BAT_    GPIO34	// ADC1_CH6	              // 4053 mux with zone3A_  - use selectZones(SYSTEM_VOLTAGES) to read
+#define Zone1A_     GPIO36  // ADC1_CH0               // 4053 mux with VzoneRef_  - default, use selectZones(Azones) to read 
+#define Zone2A_     GPIO39  // ADC1_CH3               // 4053 mux with ADC_AUX    - default, use selectZones(Azones) to read  
+#define Zone3A_     GPIO34  // ADC1_CH6               // 4053 mux with ADC_BAT    - default, use selectZones(Azones) to read 
+#define Zone1B_     GPIO36  // ADC1_CH0               // jumper mux with VzoneRef_
+#define Zone2B_     GPIO39  // ADC1_CH3               // jumper mux with ADC_AUX
+#define Zone3B_     GPIO34  // ADC1_CH6               // jumper mux with ADC_BAT
+#define Zone1_			GPIO35	// ADC1_CH7	
+#define Zone2_			GPIO32	// ADC1_CH4	
+#define Zone3_			GPIO33	// ADC1_CH5	
+#define Zone4_			GPIO25	// ADC2_CH8	
+#define Zone5_			GPIO26	// ADC2_CH9	
+#define Zone6_			GPIO27	// ADC2_CH7	
+#define Zone7_			GPIO14	// ADC2_CH6	
+#define Zone8_			GPIO12	// ADC2_CH5	
+#define Zone9_			GPIO13	// ADC2_CH4	
+#define Zone10_			GPIO15	// ADC2_CH3	
+#define Zone11_			GPIO2 	// ADC2_CH2	
+#define Zone12_			GPIO4	  // ADC2_CH0	
 
 #define Azones			        HIGH
-#define Bzones              LOW
+#define Bzones              HIGH
 #define SYSTEM_VOLTAGES     LOW
+#define muxCtlPin  		      GPIO0			// 4053 mux control GPIO
 #define AltZoneSelect	      0x1			  // selects aternative zones via 4053 mux
-#define muxCtlPin            GPIO0     // 4053 mux control GPIO
 #define selectZones(which)  digitalWrite(muxCtlPin, which)
 #define OVERSAMPLE_CNT      8
 #define ZONE_ERROR_SHORT    0x4
@@ -43,11 +65,27 @@ struct ZONE {
   byte  zNum;                   // the number of zone by which the master will identify it. As each zone supports two channels, zNum must be multiple of 2
   byte  zoneABstat;             // encodded status of the A and B parts of the zone
 };                              
+//                                     
+// some important voltages 
+struct ZONE VzoneRef 	= {VzoneRef_, 1, 0, 0, 0, 0};
+struct ZONE ADC_AUX 	= {ADC_AUX_,  1, 0, 0, 0, 0};
+struct ZONE ADC_BAT 	= {ADC_BAT_,  1, 0, 0, 0, 0};
+//
+// zones database to store data
+//                              gpio, mux,  accValue,  mvValue, zNum, zoneABstat
+struct ZONE zoneDB[] =		    {{Zone1_ , 0,   0, 0, 0*2, 0}, {Zone2_ , 0, 0, 0, 1*2, 0}, {Zone3_ , 0, 0, 0, 2*2, 0},\
+                               {Zone4_ , 0,   0, 0, 3*2, 0}, {Zone5_ , 0, 0, 0, 4*2, 0}, {Zone6_ , 0, 0, 0, 5*2, 0},\
+								               {Zone7_ , 0,   0, 0, 6*2, 0}, {Zone8_ , 0, 0, 0, 7*2, 0}, {Zone9_ , 0, 0, 0, 8*2, 0},\
+								               {Zone10_, 0,   0, 0, 9*2, 0}, {Zone11_, 0, 0, 0,10*2, 0}, {Zone12_, 0, 0, 0,11*2, 0},\
+                               {Zone1A_, 0,   0, 0,12*2, 0}, {Zone2A_, 0, 0, 0,13*2, 0}, {Zone3A_, 0, 0, 0,14*2, 0}};						
+// these are muxed zones -->   {Zone1B_, 1,   0, 0,15*2, 0}, {Zone2B_, 1, 0, 0,16*2, 0}, {Zone3B_, 1, 0, 0,17*2, 0}};//accessible with altZoneSelect
+ 
+#define ZONES_CNT          (sizeof(zoneDB)/sizeof(struct ZONE))
+#define ZONE_PAYLOAD_LEN   (sizeof(zoneDB)/2 + sizeof(zoneDB)%2)
 
-#include "gpio-def.h"       // include gpio and zones definitions and persistant storage
 
-unsigned long zoneTest[64];
-
+byte zoneResult[ZONE_PAYLOAD_LEN];
+unsigned long zoneTest[ZONES_CNT];
 //
 //  fill zone data for test 
 //  parms: struct ZONE DB[]  - (pointer ???) to array of ZONE  containing the zones to be read and converted
@@ -69,7 +107,9 @@ void zoneSetup() {
 	pinMode (muxCtlPin, OUTPUT);			// set mux ctl as output
 	selectZones	(Azones);					// select A zones
 	//set adc channels???
-  logger.printf("Nr of zones defined = %d\n");        //, ZONES_CNT);
+  logger.printf("Nr of zones defined = %d\n", ZONES_CNT);
+  if(TEST)
+    fillZones(zoneTest, ZONES_CNT);
 }
 //
 //convert oversampled ADC value to mV
@@ -90,9 +130,9 @@ void printZones(struct ZONE DB[], int zones_cnt) {
 //
 //  Convert zone analog value (mV or ADC code)  to binary code using look-up in thresholds array. Store in zoneABcode field
 //
-void zoneVal2Code(struct ZONE DB[], int zoneCnt) {
+void zoneVal2Code(struct ZONE DB[]) {
   int i, thrIndex;
-  for (i = 0; i < zoneCnt; i++){                              // for all zones in the array
+  for (i = 0; i < ZONES_CNT; i++){                            // for all zones in the array
     for (thrIndex = 0; DB[i].mvValue > thresholds[thrIndex].tMin; thrIndex++) // look-up the input voltage  in the input voltage ranges
       ;                                                       // keep searching while the input voltage is lower than min input voltage for the range
     thrIndex--;                                               // correct the index to point to the exact range
@@ -135,12 +175,11 @@ void readZones(struct ZONE DB[], int zones_cnt, bool mux) {
 //
 // read and convert zone adc values to mV first and after to zone status
 //
-void convertZones(struct ZONE DB[], int zoneCnt, byte zoneResult[]) {
+void convertZones() {
   int i = 0;
   static unsigned long lastRead = 0;
   int thrIndex; 
-  if(TEST)                                                  // prepare test data
-   fillZones(zoneTest, zoneCnt);
+  
 	// read zones analog value 
 	if (ZONES_READ_THROTTLE)  {                  		          // time to read??
 		unsigned long temp = millis();
@@ -149,29 +188,29 @@ void convertZones(struct ZONE DB[], int zoneCnt, byte zoneResult[]) {
 		  return;   
 		}
 	}     
-  lastRead = millis();                                        // record read time
+  lastRead = millis();                                      // record read time
 	selectZones(Azones);
 	logger.printf("Switching mux to A channel\n");
-	readZones(DB, zoneCnt, false);                              // reads  and accumulates OVERSAMPLE_CNT times all zones in zone DB with mux chan A
-	//selectZones(Bzones);                                      // toggle GPIO to select mux channel B                       								                     
+	readZones(zoneDB, ZONES_CNT, false);                      // reads  and accumulates OVERSAMPLE_CNT times all zones in zoneDB with mux chan A
+	//selectZones(Bzones);                                    // toggle GPIO to select mux channel B                       								                     
 	//logger.printf("Switching mux to B channel\n");
-	//readZones(DB, zoneCnt, true);                             // now read zones with mux switched to mux channel B
-	//selectZones(Azones);								                      // toggle GPIO to select A mux channel again
+	//readZones(zoneDB, ZONES_CNT, true);                     // now read zones with mux switched to mux channel B
+	//selectZones(Azones);								                    // toggle GPIO to select A mux channel again
   logger.printf ("Elapsed time %d millisec\n", (unsigned long)(millis() - lastRead));
   // convert all zones ADC values to encodded binary value here
-  for (i = 0; i < zoneCnt; i++) {                             // for all zones in the array
-    for (thrIndex = 0; DB[i].mvValue > thresholds[thrIndex].tMin; thrIndex++) // look-up the input voltage  in the input voltage ranges
+  for (i = 0; i < ZONES_CNT; i++) {  // for all zones in the array
+    for (thrIndex = 0; zoneDB[i].mvValue > thresholds[thrIndex].tMin; thrIndex++) // look-up the input voltage  in the input voltage ranges
       ;                                                       // keep searching while the input voltage is lower than min input voltage for the range
     thrIndex--;                                               // correct the index to point to the exact range
-    DB[i].zoneABstat = thresholds[thrIndex].zoneABstat;   // get zones A&B status  code   
+    zoneDB[i].zoneABstat = thresholds[thrIndex].zoneABstat;   // get zones A&B status  code   
     }                                                         // loop over zones
-  printZones(DB, zoneCnt);
+  printZones(zoneDB, ZONES_CNT);
   // time to copy results to results array
-  for (i=0; i < zoneCnt; i++) {                             // combine two zones in one byte, 12, 34, 56, ....
-    if(!i%2)
-      zoneResult[i] = 0;                                    // clear results array
-    zoneResult[i/2] = ((zoneResult[i/2] << ZONE_ENC_BITS) & ~ZONE_ENC_MASK) | DB[i].zoneABstat ;
-    if(i%2 || i==zoneCnt-1)
+  for (i=0; i < ZONE_PAYLOAD_LEN; i++)                        // clear results array
+    zoneResult[i] = 0;   
+  for (i=0; i < ZONES_CNT; i++) {                             // combine two zones in one byte, 12, 34, 56, ....
+    zoneResult[i/2] = ((zoneResult[i/2] << ZONE_ENC_BITS) & ~ZONE_ENC_MASK) | zoneDB[i].zoneABstat ;
+    if(i%2 || i==ZONES_CNT-1)
       logger.printf("Payload: %d content: %2x\n", i/2, zoneResult[i/2]);
     }  
   lastRead = millis();

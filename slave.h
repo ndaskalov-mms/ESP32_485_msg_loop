@@ -3,10 +3,6 @@
 //
 // ----------- slave simulation -------------------------------------------
 //
-
-  using slave::zoneDB;
-  using slave::zonesCnt;
-  using slave::zoneResult;
 //
 	boardID = SLAVE_ADDRESS1;        // Slave destination ---------   TODO - only for loopback testing
 	memcpy(errorsDB_backup, errorsDB, sizeof(errorsDB_backup));   // backup error DB
@@ -40,7 +36,7 @@
 	// no message available for processing 
 	// do something usefull like take a nap or read ADC and process the zones info
 	// or collect some errors info to be send as status to MASTER some day
-	convertZones(zoneDB, zonesCnt, zoneResult);
+	convertZones(SzoneDB, SLAVE_PGM_CNT, SzoneResult);
 	
 	// find out if some new errors occured while receiving/processing the message
 	if(memcmp(errorsDB, errorsDB_backup, sizeof(errorsDB))) 

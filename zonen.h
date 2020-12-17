@@ -1,5 +1,5 @@
 #define TEST 1
-
+#include "gpio-def.h"       // include gpio and zones definitions and persistant storage
 
 #define Azones			        HIGH
 #define Bzones              LOW
@@ -33,18 +33,6 @@ struct THRESHOLD thresholds[] = {{0,    450,    ZONE_ERROR_SHORT  | ZONE_ERROR_S
                                  {2001, 2400,   ZONE_A_CLOSED     | ZONE_B_OPEN},   // from 2001 to 2400mV; zoneA open,   zoneB closed
                                  {2401, 3000,   ZONE_A_OPEN       | ZONE_B_OPEN},     // from 2401 to 3000mV; zoneA open,   zoneB open
                                  {3001, 3500,   ZONE_ERROR_OPEN   | ZONE_ERROR_OPEN}};// above 3001mV; zoneA error LINE OPEN , zoneB error LINE OPEN 
-//
-// zone records structure to hold all zone related info
-struct ZONE {
-  byte gpio;
-  byte mux;                     // 1 - activate mux to read, 0 - read direct
-  unsigned long accValue;				// oversampled value
-  float mvValue;								// converted value in mV
-  byte  zNum;                   // the number of zone by which the master will identify it. As each zone supports two channels, zNum must be multiple of 2
-  byte  zoneABstat;             // encodded status of the A and B parts of the zone
-};                              
-
-#include "gpio-def.h"       // include gpio and zones definitions and persistant storage
 
 unsigned long zoneTest[64];
 
@@ -171,7 +159,7 @@ void convertZones(struct ZONE DB[], int zoneCnt, byte zoneResult[]) {
     if(!(i%2))
       zoneResult[i/2] = 0;                                    // clear results array
     zoneResult[i/2] = ((zoneResult[i/2] << ZONE_ENC_BITS) & ~ZONE_ENC_MASK) | DB[i].zoneABstat ;
-    if(i%2 || i==zoneCnt-1)
+    //if(i%2 || i==zoneCnt-1)
       logger.printf("Payload: %d content: %2x\n", i/2, zoneResult[i/2]);
     }  
   lastRead = millis();

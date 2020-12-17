@@ -1,0 +1,45 @@
+#define MASTER
+#define SLAVE
+
+HardwareSerial& logger(Serial);
+constexpr int LOG_BITRATE = 115200;
+
+#define ERR_DEBUG 1
+#define ZONES_READ_THROTTLE false
+#define ZONES_READ_INTERVAL 100     // read all zones at 100mS
+
+#include "zonen.h"
+
+unsigned long lastRead = 0;
+
+//
+void setup() {
+  logger.printf("Starting setup\n");
+  logger.begin(LOG_BITRATE,SERIAL_8N1);
+  logger.printf("\n\nStaring setup\n\n");
+  // put your setup code here, to run once:
+  zoneSetup();
+}
+//
+byte MzoneResult[MASTER_ZONES_CNT/2 + MASTER_ZONES_CNT%2];       //each zone will be in 4bits
+byte SzoneResult[SLAVE_ZONES_CNT/2 + SLAVE_ZONES_CNT%2];          //each zone will be in 4bits
+
+void loop() {
+
+  logger.printf("Master pgm cnt = %d\n", MASTER_PGM_CNT);
+  convertZones(MzoneDB, MASTER_PGM_CNT, MzoneResult);
+  logger.printf("Slave pgm cnt = %d\n", SLAVE_PGM_CNT);
+  //convertZones(SzoneDB, SLAVE_PGM_CNT, SzoneResult);
+/*
+  logger.printf("Using slave namespace\n");
+  using slave::zoneDB;
+  using slave::zonesCnt;
+  using slave::zoneResult;
+  convertZones(zoneDB, zonesCnt, zoneResult);
+  logger.printf("Using master namespace\n");
+  using master::zoneDB;
+  using master::zonesCnt;
+  using master::zoneResult;
+  convertZones(zoneDB, zonesCnt, zoneResult);
+*/
+}

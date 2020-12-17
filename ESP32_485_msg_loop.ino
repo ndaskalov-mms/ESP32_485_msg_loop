@@ -62,12 +62,9 @@ struct MSG rcvMsg;                        // temp structs for message tr/rcv
 //these are channels to send/receive packets over serial if. The comm to serial is via fRead, fWrite,...
 RS485 MasterMsgChannel (MasterRead, MasterAvailable, MasterWrite, ErrWrite, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
 RS485 SlaveMsgChannel  (SlaveRead, SlaveAvailable, SlaveWrite, ErrWrite, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
-
+//
 #include "protocol.h"                     // send/receive and compse messgaes staff
 #include "zonen.h"                        // all xones and pgms related staff
-#include "pgm.h"
-//#include "gpio-def.h"
-
 //
 //  Arduino setup function - call all local setups her
 //

@@ -5,7 +5,7 @@
 #define Bzones              LOW
 #define SYSTEM_VOLTAGES     LOW
 #define AltZoneSelect	      0x1			  // selects aternative zones via 4053 mux
-#define muxCtlPin            GPIO0     // 4053 mux control GPIO
+#define muxCtlPin           GPIO0     // 4053 mux control GPIO
 #define selectZones(which)  digitalWrite(muxCtlPin, which)
 #define OVERSAMPLE_CNT      8
 #define ZONE_ERROR_SHORT    0x4
@@ -168,11 +168,41 @@ void convertZones(struct ZONE DB[], int zoneCnt, byte zoneResult[]) {
   printZones(DB, zoneCnt);
   // time to copy results to results array
   for (i=0; i < zoneCnt; i++) {                             // combine two zones in one byte, 12, 34, 56, ....
-    if(!i%2)
-      zoneResult[i] = 0;                                    // clear results array
+    if(!(i%2))
+      zoneResult[i/2] = 0;                                    // clear results array
     zoneResult[i/2] = ((zoneResult[i/2] << ZONE_ENC_BITS) & ~ZONE_ENC_MASK) | DB[i].zoneABstat ;
     if(i%2 || i==zoneCnt-1)
       logger.printf("Payload: %d content: %2x\n", i/2, zoneResult[i/2]);
     }  
   lastRead = millis();
+}
+//
+//  PGM control code here
+//
+void pgmSetup(struct PGM pgmDB[], const int pgmCnt) {
+  for(int i =0; i < pgmCnt; i++) {                   // for each PGM 
+    pinMode (pgmDB[i].gpio, OUTPUT);                  // set GPIO as output
+    digitalWrite(pgmDB[i].gpio, pgmDB[i].iValue);     // set initial value
+    pgmDB[i].cValue = pgmDB[i].iValue;
+  }
+}
+//
+// set PGM
+//
+void setPgm(struct PGM pgmDB[], byte idx, bool val, const int pgmCnt) {
+  for (int i = 0; i < pgmCnt; i++) {
+    //logger.printf("Looking at index  %d out of  %d:\n", idx, pgmCnt-1);
+    if(idx == pgmDB[i].rNum)  
+      digitalWrite(pgmDB[i].gpio, val);               // set output value
+    } 
+}
+//
+// get PGM
+//
+bool getPgm(struct PGM pgmDB[], byte idx, const int pgmCnt) {
+  for (int i = 0; i < pgmCnt; i++) {
+    //logger.printf("Looking at index  %d out of  %d:\n", idx, pgmCnt-1);
+    if(idx == pgmDB[i].rNum) 
+      return pgmDB[i].cValue;               // read output value
+    }
 }

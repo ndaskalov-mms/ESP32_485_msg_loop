@@ -55,6 +55,8 @@
 #define SLAVE_PWR_CTL      GPIO23
 #define SLAVE_PWR_ON       LOW
 #define SLAVE_PWR_OFF      HIGH
+#define Azones              HIGH
+#define Bzones              LOW
 #endif
 //
 // PGM database record to store PGM outputs (relay's) parameters and status
@@ -71,14 +73,14 @@ struct PGM {
 struct ZONE {
   byte gpio;
   byte mux;                     // 1 - activate mux to read, 0 - read direct
-  unsigned long accValue;        // oversampled value
+  unsigned long accValue;       // oversampled value
   float mvValue;                // converted value in mV
-  byte  zNum;                   // the number of zone by which the master will identify it. As each zone supports two channels, zNum must be multiple of 2
+  byte  zoneID;                 // the number of zone by which the master will identify it. Zero based. Each ADC gpio produces one zone, but with two results
   byte  zoneABstat;             // encodded status of the A and B parts of the zone
 };                              
 
 //                                     
-// some important voltages 
+// some important voltages - gpio, mux,  accValue,  mvValue, zoneID, zoneABstat
 struct ZONE VzoneRef   = {VzoneRef_, 1, 0, 0, 0, 0};
 struct ZONE ADC_AUX   = {ADC_AUX_,  1, 0, 0, 0, 0};
 struct ZONE ADC_BAT   = {ADC_BAT_,  1, 0, 0, 0, 0};
@@ -90,14 +92,13 @@ struct ZONE ADC_BAT   = {ADC_BAT_,  1, 0, 0, 0, 0};
 #ifdef SLAVE
 // Zones 1A, 2A, 3A are read with Mux = Azones (0, default); Zones 1B, 2B, 3B  are read with Mux = Bzones (1) AND if selected by jumpers
 // othervise SYSTEM VOLTAGES VzoneRef, ADC_AUX, ADC_BAT are read with  Mux = Bzones (1)
-//
-// ZONES                        gpio, mux,  accValue,  mvValue, zNum, zoneABstat
-struct ZONE SzoneDB[] =        {{Zone1_ , 0,   0, 0, 0*2, 0}, {Zone2_ , 0, 0, 0, 1*2, 0}, {Zone3_ , 0, 0, 0, 2*2, 0},\
-                                {Zone4_ , 0,   0, 0, 3*2, 0}, {Zone5_ , 0, 0, 0, 4*2, 0}, {Zone6_ , 0, 0, 0, 5*2, 0},\
-                                {Zone7_ , 0,   0, 0, 6*2, 0}, {Zone8_ , 0, 0, 0, 7*2, 0}, {Zone9_ , 0, 0, 0, 8*2, 0},\
-                                {Zone10_, 0,   0, 0, 9*2, 0}, {Zone11_, 0, 0, 0,10*2, 0}, {Zone12_, 0, 0, 0,11*2, 0},\
-                                {Zone1A_, 0,   0, 0,12*2, 0}, {Zone2A_, 0, 0, 0,13*2, 0}, {Zone3A_, 0, 0, 0,14*2, 0}};           
-// placeholder for mux zones -->{Zone1B_, 1,   0, 0,15*2, 0}, {Zone2B_, 1, 0, 0,16*2, 0}, {Zone3B_, 1, 0, 0,17*2, 0}};//accessible with altZoneSelect
+// that means that when Bzones selected by GPIO, Zone<X>B zones will read either VzoneRef, ADC_AUX, ADC_BAT or Zone<X>B depends on jumper settings
+// ZONES                     gpio,   mux, accValue,  mvValue, zoneID, zoneABstat
+struct ZONE SzoneDB[] =    {{Zone1_, Azones, 0, 0, 0, 0}, {Zone2_, Azones, 0, 0, 1, 0}, {Zone3_, Azones, 0, 0, 2, 0}, {Zone4_, Azones, 0, 0, 3, 0},\
+                            {Zone5_, Azones, 0, 0, 4, 0}, {Zone6_, Azones, 0, 0, 5, 0}, {Zone7_, Azones, 0, 0, 6, 0}, {Zone8_, Azones, 0, 0, 7, 0},\
+                            {Zone9_, Azones, 0, 0, 8, 0}, {Zone10_,Azones, 0, 0, 9, 0}, {Zone11_,Azones, 0, 0,10, 0}, {Zone12_,Azones, 0, 0,11, 0},\
+                            {Zone1A_,Azones, 0, 0,12, 0}, {Zone2A_,Azones, 0, 0,13, 0}, {Zone3A_,Azones, 0, 0,14, 0},\            
+                            {Zone1B_,Bzones, 0, 0,15, 0}, {Zone2B_,Bzones, 0, 0,16, 0}, {Zone3B_,Bzones, 0, 0,17, 0}};
 //
 #define SLAVE_ZONES_CNT  (sizeof(SzoneDB)/sizeof(struct ZONE))
 //
@@ -111,11 +112,11 @@ struct PGM SpgmDB[] =          {{PGM1_, 1, HIGH, 0}, {PGM2_, 2, HIGH, 0}};
 // Zones 1A, 2A, 3A are read with Mux = Azones (0, default); Zones 1B, 2B, 3B  are read with Mux = Bzones (1) AND if selected by jumpers
 // othervise SYSTEM VOLTAGES VzoneRef, ADC_AUX, ADC_BAT are read with  Mux = Bzones (1)
 //
-//  ZONES                      gpio, mux,  accValue,  mvValue, zNum, zoneABstat
-struct ZONE MzoneDB[] =        {{Zone1_ , 0,   0, 0, 0*2, 0}, {Zone2_ , 0, 0, 0, 1*2, 0}, {Zone3_ , 0, 0, 0, 2*2, 0},\
-                                {Zone8_ , 0,   0, 0, 4*2, 0}, {Zone10_, 0, 0, 0, 5*2, 0}, {Zone11_, 0, 0, 0, 6*2, 0},\
-                                {Zone1A_, 0,   0, 0, 7*2, 0}, {Zone2A_, 0, 0, 0, 8*2, 0}, {Zone3A_, 0, 0, 0, 9*2, 0}};           
-// placeholder for mux zones -->{Zone1B_, 1,   0, 0,10*2, 0}, {Zone2B_, 1, 0, 0,11*2, 0}, {Zone3B_, 1, 0, 0,12*2, 0}};//accessible with altZoneSelect
+//  ZONES                         gpio, mux,  accValue,  mvValue, zoneID, zoneABstat
+struct ZONE MzoneDB[] =        {{Zone1_ , Azones,   0, 0, 0, 0}, {Zone2_ , Azones, 0, 0, 1, 0}, {Zone3_ , Azones, 0, 0, 2, 0},\
+                                {Zone8_ , Azones,   0, 0, 3, 0}, {Zone10_, Azones, 0, 0, 4, 0}, {Zone11_, Azones, 0, 0, 5, 0},\
+                                {Zone1A_, Azones,   0, 0, 6, 0}, {Zone2A_, Azones, 0, 0, 7, 0}, {Zone3A_, Azones, 0, 0, 8, 0},\           
+                                {Zone1B_, Bzones,   0, 0, 9, 0}, {Zone2B_, Bzones, 0, 0,10, 0}, {Zone3B_, Bzones, 0, 0, 11, 0}};//accessible with altZoneSelect
 //
 #define MASTER_ZONES_CNT       (sizeof(MzoneDB)/sizeof(struct ZONE))
 //

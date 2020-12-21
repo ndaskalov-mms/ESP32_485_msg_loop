@@ -1,8 +1,6 @@
 #define TEST 1
 #include "gpio-def.h"       // include gpio and zones definitions and persistant storage
-
-#define Azones			        HIGH
-#define Bzones              LOW
+//
 #define SYSTEM_VOLTAGES     LOW
 #define AltZoneSelect	      0x1			  // selects aternative zones via 4053 mux
 #define muxCtlPin           GPIO0     // 4053 mux control GPIO
@@ -72,7 +70,7 @@ float convert2mV (unsigned long adcVal) {
 void printZones(struct ZONE DB[], int zones_cnt) { 
     int i; 
     for (i = 0; i <  zones_cnt; i++) {                        // iterate
-       logger.printf ("Zone data: Zone Nr: %d: GPIO: %2d: \tAvg ADC Value: %lu\tAvg mV val: %4.3f mV;\tZoneABstat: %x\n", DB[i].zNum/2, DB[i].gpio, DB[i].accValue, DB[i].mvValue, DB[i].zoneABstat );
+       logger.printf ("Zone data: Zone ID: %d: GPIO: %2d: \tAvg ADC Value: %lu\tAvg mV val: %4.3f mV;\tZoneABstat: %x\n", DB[i].zoneID, DB[i].gpio, DB[i].accValue, DB[i].mvValue, DB[i].zoneABstat );
     }
 }
 //
@@ -92,18 +90,19 @@ void zoneVal2Code(struct ZONE DB[], int zoneCnt) {
 //  parms: struct ZONE DB[]  - (pointer ???) to array of ZONE  containing the zones to be read and converted
 //  NOTE: if mux is set, only muxed zones will be read and convert, if mux == false, only non-muxed zones will be read
 //
-void readZones(struct ZONE DB[], int zones_cnt, bool mux) {              
+void readZones(struct ZONE DB[], int zones_cnt, int mux) {              
   int i, j; 
   unsigned long val;
+//
   for (i = 0;  i < zones_cnt; i++) 
-     if(!mux == !DB[i].mux)   {                         
+     if(mux == DB[i].mux)   {                           // init only zones selected by mux
        DB[i].accValue = 0;                              // init only records that will be read 
        //logger.printf(" Zeroing zone %d\t GPIO: %d\n", i , DB[i].gpio);
-     }
+       }
   for (j = 0; j< OVERSAMPLE_CNT; j++) {                 // will read and accumulate values for each zone  OVERSAMPLE_CNT times
      for (i = 0;  i < zones_cnt; i++) {                 // read zone and store value
         //logger.printf(" Reading zone index %d gpio %d value %d\n",i, DB[i].gpio, DB[i].accValue ); 
-        if(!mux != !DB[i].mux)                          // logical exclusive, read only the zones selected by mux     
+        if(mux != DB[i].mux)                            // skip the zones not selected by mux     
           continue;                                     // but the one under consideration is not muxed
         // read and convert here
         if(TEST)                                        // skip reading in test mode as the data are filled already by fillZones()
@@ -117,7 +116,7 @@ void readZones(struct ZONE DB[], int zones_cnt, bool mux) {
     // convert values to voltages
     for (i = 0; i <  zones_cnt; i++) {    // convert acumulated values to voltages 
       DB[i].mvValue = convert2mV(DB[i].accValue);    // full scale (4096) represent 3.2V, and value is oversampled 8 times
-      logger.printf ("Converted zone zone %d: GPIO: %2d \tAvg ADC Value %lu = \t%4.3f mV\n",DB[i].zNum/2, DB[i].gpio, DB[i].accValue, DB[i].mvValue );
+      logger.printf ("Converted zone zone %d: GPIO: %2d \tAvg ADC Value %lu = \t%4.3f mV\n",DB[i].zoneID, DB[i].gpio, DB[i].accValue, DB[i].mvValue );
     }
 }
 //
@@ -125,26 +124,40 @@ void readZones(struct ZONE DB[], int zones_cnt, bool mux) {
 //
 void convertZones(struct ZONE DB[], int zoneCnt, byte zoneResult[]) {
   int i = 0;
+  static unsigned long lastAread = 0;
+  static unsigned long lastBread = 0;
   static unsigned long lastRead = 0;
   int thrIndex; 
+  static int  muxState = Azones;
   if(TEST)                                                  // prepare test data
-   fillZones(zoneTest, zoneCnt);
-	// read zones analog value 
-	if (ZONES_READ_THROTTLE)  {                  		          // time to read??
-		unsigned long temp = millis();
-		if ((unsigned long)(temp - lastRead) < (unsigned long)ZONES_READ_INTERVAL) {
-		  //logger.printf("Cur %u, last %u, interval %u\n", temp, lastRead,ZONES_READ_INTERVAL );
-		  return;   
-		}
-	}     
-  lastRead = millis();                                        // record read time
-	selectZones(Azones);
-	logger.printf("Switching mux to A channel\n");
-	readZones(DB, zoneCnt, false);                              // reads  and accumulates OVERSAMPLE_CNT times all zones in zone DB with mux chan A
-	//selectZones(Bzones);                                      // toggle GPIO to select mux channel B                       								                     
-	//logger.printf("Switching mux to B channel\n");
-	//readZones(DB, zoneCnt, true);                             // now read zones with mux switched to mux channel B
-	//selectZones(Azones);								                      // toggle GPIO to select A mux channel again
+    fillZones(zoneTest, zoneCnt);
+
+  // read zones analog value   
+  if(muxState == Azones) {
+    if (ZONES_A_READ_INTERVAL)  {                           // time to A zones  read??
+      if ((unsigned long)(millis() - lastAread) < (unsigned long)ZONES_A_READ_INTERVAL) {
+        //logger.printf("Cur %u, last %u, interval %u\n", millis(), lastRead,ZONES_A_READ_INTERVAL );
+        return;   
+      }
+    } 
+    lastRead = millis();                                     // used for instrumentation only 
+  	readZones(DB, zoneCnt, muxState);                        // reads  and accumulates OVERSAMPLE_CNT times all zones in zone DB with mux chan A
+  	lastAread = millis();                                    // record read time
+  	selectZones(muxState = Bzones);                          // select the channel to be read on the next call of the convertZones()                   								                     
+    }
+  else {
+    if (ZONES_B_READ_INTERVAL)  {                           // time to B zones read??
+      if ((unsigned long)(millis() - lastBread) < (unsigned long)ZONES_B_READ_INTERVAL) {
+        //logger.printf("Cur %u, last %u, interval %u\n", millis(), lastRead,ZONES_B_READ_INTERVAL );
+        return;   
+      }
+    } 
+    lastRead = millis();                                     // used for instrumentation only 
+    readZones(DB, zoneCnt, muxState);                        // reads  and accumulates OVERSAMPLE_CNT times all zones in zone DB with mux chan A
+    lastBread = millis();                                    // record read time
+    selectZones(muxState = Azones);                          // select the channel to be read on the next call of the convertZones()                                                         
+    }
+  logger.printf("Switching mux to %s channel\n", (muxState?"Azones":"Bzones"));
   logger.printf ("Elapsed time %d millisec\n", (unsigned long)(millis() - lastRead));
   // convert all zones ADC values to encodded binary value here
   for (i = 0; i < zoneCnt; i++) {                             // for all zones in the array

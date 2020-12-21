@@ -18,8 +18,8 @@
 // define log and errors channel
 #define SERIAL_LOG 	true
 #define MQTT_LOG	  false
-#define ZONES_READ_THROTTLE true
-#define ZONES_READ_INTERVAL 100                                   // read all zones at 100mS
+#define ZONES_A_READ_INTERVAL 100     // read A zones at 100mS
+#define ZONES_B_READ_INTERVAL 500    // read system voltages (B zones) at 100mS
 constexpr int BITRATE = 115200;
 constexpr int LOG_BITRATE = 115200;
 HardwareSerial& logger(Serial);
@@ -80,7 +80,7 @@ void setup() {
   // allocate data buffers and init message encoding/decoding engines (485_non_blocking library)
   MasterMsgChannel.begin ();      
   SlaveMsgChannel.begin ();  
-    logger.printf("Loopback example for Esp32+485\n");
+  logger.printf("Loopback example for Esp32+485\n");
   logger.printf("MAX_MSG_LENGHT = %d\n", MAX_MSG_LENGHT  );
   logger.printf("MAX_PAYLOAD_SIZE = %d\n", MAX_PAYLOAD_SIZE );
   zoneSetup();                                  // init mux for zones selection

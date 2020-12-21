@@ -66,12 +66,11 @@ void setup() {
   logger.printf("\n\nStaring setup\n\n");
   // set UARTs
 #ifdef MASTER
-    MasterUART.begin(BITRATE,SERIAL_8N1);  
-    pgmSetup(MpgmDB, MASTER_PGM_CNT);             // init PGMs (output and default value)
+   MasterUART.begin(BITRATE,SERIAL_8N1);  
+   pgmSetup(MpgmDB, MASTER_PGM_CNT);             // init PGMs (output and default value)
 #endif
 #ifdef SLAVE
-pgmSetup(SpgmDB, SLAVE_PGM_CNT);                  // init PGMs (output and default value)
-#endif
+   pgmSetup(SpgmDB, SLAVE_PGM_CNT);                  // init PGMs (output and default value)
 #ifdef LOOPBACK
   SlaveUART.begin(BITRATE,SERIAL_8N1, 21, 22);    // re-routing RxD to  GPIO21 and TxD to GPIO22
 #else

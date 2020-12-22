@@ -20,6 +20,8 @@
 #define MQTT_LOG	  false
 #define ZONES_A_READ_INTERVAL 100     // read A zones at 100mS
 #define ZONES_B_READ_INTERVAL 500    // read system voltages (B zones) at 100mS
+#define MUX_SET_INTERVAL      10      // time to set the analog lines after mux switch
+
 constexpr int BITRATE = 115200;
 constexpr int LOG_BITRATE = 115200;
 HardwareSerial& logger(Serial);

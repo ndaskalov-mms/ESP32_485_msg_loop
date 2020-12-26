@@ -5,15 +5,18 @@ HardwareSerial& logger(Serial);
 constexpr int LOG_BITRATE = 115200;
 
 #define ERR_DEBUG 1
-#define ZONES_A_READ_INTERVAL 100     // read A zones at 100mS
+#define ZONES_A_READ_INTERVAL 200     // read A zones at 100mS
 #define ZONES_B_READ_INTERVAL 500     // read system voltages (B zones) at 100mS
 #define MUX_SET_INTERVAL      10      // time to set the analog lines after mux switch
 //
+void ErrWrite(int err, const char * str) {
+  logger.printf(str);
+}
+#define ERR_DB_INDEX_NOT_FND 5
+
+//
 #include "zonen.h"
 //
-unsigned long lastRead = 0;
-//
- 
 //
 void setup() {
   logger.begin(LOG_BITRATE,SERIAL_8N1);

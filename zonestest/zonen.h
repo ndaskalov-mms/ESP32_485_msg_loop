@@ -17,44 +17,51 @@ enum timeoutOper {
   SET = 1,
   GET = 2,
 };
+
+enum TIMERS {
+  ZONES_A_READ_TIMER = 1,
+  ZONES_B_READ_TIMER = 2,
+  MUX_SET_TIMER = 3,
+};
+
+
+
+// command records structure for cmdDB
+struct TIMER {
+  int timerID;
+  unsigned long interval;
+  unsigned long setAt;
+};
+//
+// commands database to look-up command params and store temporary data (like last transmition time)
+// 
+struct TIMER timerDB[] = {{ZONES_A_READ_TIMER, ZONES_A_READ_INTERVAL,  0}, {ZONES_B_READ_TIMER, ZONES_B_READ_INTERVAL, 0}, {MUX_SET_TIMER, MUX_SET_INTERVAL, 0}} ;
+//
+int findTimer(byte timer) {
+  //ErrWrite(ERR_DEBUG, "Looking for record for timer ID   %d \n", timer);
+    for (int i = 0; i < sizeof(timerDB)/sizeof(struct TIMER); i++) {
+    //logger.printf("Looking at index  %d out of  %d:\n", i, sizeof(cmdDB)/sizeof(struct COMMAND)-1);
+    if(timerDB[i].timerID == timer) {
+      //ErrWrite(ERR_DEBUG,"Found timer at  index %d\n", i);
+      return  i;
+    }
+  }
+  ErrWrite(ERR_DEBUG, "Timer not found!!!!!!!\n");
+  return ERR_DB_INDEX_NOT_FND;
+}
 // 
 // set timeout / check if timeout expired
 // TODO - organize all timeouts as separate database similar to commands
 // 
 bool timeout(int oper, int whichOne) {
-static unsigned long zonesAinterval = 0;
-static unsigned long zonesBinterval = 0;
-static unsigned long muxSetInterval = 0;
-//
-//
-  if (oper == SET) {                     // remenber the current time in milliseconds
-    switch (whichOne) {
-      case ZONES_A_READ_INTERVAL:
-        zonesAinterval = millis();
-        break;
-      case ZONES_B_READ_INTERVAL:
-        zonesBinterval = millis();
-        break;
-      case MUX_SET_INTERVAL:
-        muxSetInterval = millis();
-        break;
-      default:
-        break;
-      }
-    }  
-  else {
-    switch (whichOne) {
-      case ZONES_A_READ_INTERVAL:
-        return ((unsigned long)(millis() - zonesAinterval) > (unsigned long)ZONES_A_READ_INTERVAL);
-      case ZONES_B_READ_INTERVAL:
-        return ((unsigned long)(millis() - zonesBinterval) > (unsigned long)ZONES_B_READ_INTERVAL);
-      case MUX_SET_INTERVAL:
-        return ((unsigned long)(millis() - muxSetInterval) > (unsigned long)MUX_SET_INTERVAL);
-      default:
-        break;
-      }
-    }  
-  return false;
+int index;
+// find timer index first
+  if((index = findTimer(whichOne))<0)	    // timer not found
+  	return false;						              // TODO - report error
+  if (oper == SET)                        // record the current time in milliseconds
+	  timerDB[index].setAt = millis();
+  else 
+    return ((unsigned long)(millis() - timerDB[index].setAt) > (unsigned long)timerDB[index].interval);
 }
 //
 // struct to hold zone voltages ranges and corresponding binary code
@@ -67,18 +74,18 @@ struct THRESHOLD {
 //
 // array to hold all possible zone voltages
 // zone codes ERROR_FLAG (b10)  | ZONE OPEN or ZONE CLOSED
-struct THRESHOLD thresholds[] = {{0,    450,    ZONE_ERROR_SHORT  | ZONE_ERROR_SHORT},// below 450mV; LINE SHORT, zoneA error, zoneB error LINE SHORT
-                                 {451,  1300,   ZONE_A_CLOSED     | ZONE_B_CLOSED},   // from 451 to 1300mV;  zoneA closed, zoneB closed
-                                 {1301, 2000,   ZONE_A_OPEN       | ZONE_B_CLOSED},     // from 1301 to 2000mV; zoneA closed, zoneB open
-                                 {2001, 2400,   ZONE_A_CLOSED     | ZONE_B_OPEN},   // from 2001 to 2400mV; zoneA open,   zoneB closed
-                                 {2401, 3000,   ZONE_A_OPEN       | ZONE_B_OPEN},     // from 2401 to 3000mV; zoneA open,   zoneB open
-                                 {3001, 3500,   ZONE_ERROR_OPEN   | ZONE_ERROR_OPEN}};// above 3001mV; zoneA error LINE OPEN , zoneB error LINE OPEN 
+struct THRESHOLD thresholds[] = {{0,    450,    ZONE_ERROR_SHORT},                   // below 450mV; LINE SHORT, zoneA error, zoneB error LINE SHORT
+                                 {451,  1300,   ZONE_A_CLOSED     | ZONE_B_CLOSED},  // from 451 to 1300mV;  zoneA closed, zoneB closed
+                                 {1301, 2000,   ZONE_A_OPEN       | ZONE_B_CLOSED},  // from 1301 to 2000mV; zoneA closed, zoneB open
+                                 {2001, 2400,   ZONE_A_CLOSED     | ZONE_B_OPEN},    // from 2001 to 2400mV; zoneA open,   zoneB closed
+                                 {2401, 3000,   ZONE_A_OPEN       | ZONE_B_OPEN},    // from 2401 to 3000mV; zoneA open,   zoneB open
+                                 {3001, 3500,   ZONE_ERROR_OPEN}};                   // above 3001mV; zoneA error LINE OPEN , zoneB error LINE OPEN 
 
 unsigned long zoneTest[64];
 //
 void selectZones(int which) {
   digitalWrite(muxCtlPin, which);
-  logger.printf("Switching mux to %s channel\n", (which?"Azones":"Bzones"));
+  logger.printf("%ld: Switching mux to %s channel\n", millis(), (which?"Azones":"Bzones"));
 }
 //
 //  fill zone data for test 
@@ -137,7 +144,16 @@ void zoneVal2Code(struct ZONE DB[], int zoneCnt) {
       ;                                                       // keep searching while the input voltage is lower than min input voltage for the range
     thrIndex--;                                               // correct the index to point to the exact range
     DB[i].zoneABstat = thresholds[thrIndex].zoneABstat;       // get zones A&B status  code   
+    logger.printf("Index %d values %d\n",thrIndex,DB[i].zoneABstat );
     } 
+}
+//
+void printZonesPayload(byte buffer[], int cnt) {
+int i;
+    logger.printf("Payload: ");
+    for (i = 0; i < cnt; i++)      
+      logger.printf(" %2x", buffer[i]);
+    logger.printf("\n");
 }
 //
 //  Read and convert all zone inputs
@@ -182,52 +198,54 @@ void readZones(struct ZONE DB[], int zones_cnt, int mux) {
 void convertZones(struct ZONE DB[], int zoneCnt, byte zoneResult[]) {
   int i = 0;
   int thrIndex; 
+  unsigned long lastRead = 0;
   static int  muxState = Azones;
 //
   // read zones analog value   
-  if(!timeout(GET, MUX_SET_INTERVAL))
-    return;                                                 // can't do anything, wait for analog inputs to settle
-  unsigned long lastRead = millis();
+  if(!timeout(GET, MUX_SET_TIMER))
+    return;                                               // can't do anything, wait for analog inputs to settle
+  lastRead = millis();                                    // to calculate how much time we spend in here
   if(muxState == Azones) {
-    if(timeout(GET, ZONES_A_READ_INTERVAL)) {               // time to read A zones
-      logger.printf("Reading A zones\n");
-      readZones(DB, zoneCnt, muxState);                     // do read
-      timeout(SET, ZONES_A_READ_INTERVAL);                  // remember when
+    if(timeout(GET, ZONES_A_READ_TIMER)) {                // time to read A zones
+      logger.printf("%ld: Reading A zones\n", millis());
+      readZones(DB, zoneCnt, muxState);                   // do read
+      timeout(SET, ZONES_A_READ_TIMER);                   // remember when
       }
-    else if(timeout(GET, ZONES_B_READ_INTERVAL)) {               // time to read B zones?
-      timeout(SET, MUX_SET_INTERVAL);                       // start mux settle time
-      logger.printf("Mux B timeout started\n");
-      selectZones(muxState = Bzones);                       // switch mux
+    else if(timeout(GET, ZONES_B_READ_TIMER)) {           // time to read B zones?
+      timeout(SET, MUX_SET_TIMER);                        // start mux settle time
+      //logger.printf("%ld: Mux B timeout started\n", millis());
+      selectZones(muxState = Bzones);                     // switch mux
+      return;                                             // nothing to do, wait mux timeout to expire
       }
     else
       return;
   }
-  else {                                                    // zones B are selected and mux set interval expired                   
-    logger.printf("Reading B zones\n");
-    readZones(DB, zoneCnt, muxState);                       // do read
-    timeout(SET, ZONES_B_READ_INTERVAL);                    // remember when    
-    logger.printf("Mux A timeout started\n");
+  else {                                                  // zones B are selected and mux set interval expired                   
+    logger.printf("%ld: Reading B zones\n", millis());
+    readZones(DB, zoneCnt, muxState);                     // do read
+    timeout(SET, ZONES_B_READ_TIMER);                     // remember when    
+    timeout(SET, MUX_SET_TIMER);                          // start mux settle time
+    //logger.printf("%ld: Mux A timeout started\n", millis());
     selectZones(muxState = Azones);   
     }
-
-  logger.printf ("Elapsed time %d millisec\n", (unsigned long)(millis() - lastRead));
+  // done reading
   // convert all zones ADC values to encodded binary value here
-  for (i = 0; i < zoneCnt; i++) {                             // for all zones in the array
+/*  for (i = 0; i < zoneCnt; i++) {                          // for all zones in the array
     for (thrIndex = 0; DB[i].mvValue > thresholds[thrIndex].tMin; thrIndex++) // look-up the input voltage  in the input voltage ranges
-      ;                                                       // keep searching while the input voltage is lower than min input voltage for the range
-    thrIndex--;                                               // correct the index to point to the exact range
-    DB[i].zoneABstat = thresholds[thrIndex].zoneABstat;   // get zones A&B status  code   
-    }                                                         // loop over zones
-  //printZones(DB, zoneCnt);
+      ;                                                    // keep searching while the input voltage is lower than min input voltage for the range
+    thrIndex--;                                            // correct the index to point to the exact range
+    DB[i].zoneABstat = thresholds[thrIndex].zoneABstat;    // get zones A&B status  code   
+    } */                                                   // loop over zones
+  zoneVal2Code(DB, zoneCnt);                               // convert analog values to digital status
+  printZones(DB, zoneCnt);
   // time to copy results to results array
-  for (i=0; i < zoneCnt; i++) {                             // combine two zones in one byte, 12, 34, 56, ....
+  for (i=0; i < zoneCnt; i++) {                            // combine two zones in one byte, 12, 34, 56, ....
     if(!(i%2))
-      zoneResult[i/2] = 0;                                    // clear results array
+      zoneResult[i/2] = 0;                                 // clear results array
     zoneResult[i/2] = ((zoneResult[i/2] << ZONE_ENC_BITS) & ~ZONE_ENC_MASK) | DB[i].zoneABstat ;
-    //if(i%2 || i==zoneCnt-1)
-      //logger.printf("Payload: %d content: %2x\n", i/2, zoneResult[i/2]);
     }  
-  lastRead = millis();
+  printZonesPayload(zoneResult, zoneCnt%2?(zoneCnt/2+1):zoneCnt/2);
+  logger.printf ("Elapsed time %d millisec\n", (unsigned long)(millis() - lastRead));
 }
 //
 //  PGM control code here

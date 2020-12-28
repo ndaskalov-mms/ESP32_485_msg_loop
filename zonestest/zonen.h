@@ -81,6 +81,8 @@ struct THRESHOLD thresholds[] = {{0,    450,    ZONE_ERROR_SHORT},              
                                  {2401, 3000,   ZONE_A_OPEN       | ZONE_B_OPEN},    // from 2401 to 3000mV; zoneA open,   zoneB open
                                  {3001, 3500,   ZONE_ERROR_OPEN}};                   // above 3001mV; zoneA error LINE OPEN , zoneB error LINE OPEN 
 
+#define THRESHOLDS_CNT (sizeof(thresholds)/(sizeof(struct THRESHOLD)))
+
 unsigned long zoneTest[64];
 //
 void selectZones(int which) {
@@ -97,7 +99,7 @@ void fillZones(unsigned long zoneTest[], int zones_cnt) {
     increment = 4096/zones_cnt;
     logger.printf ("Zone filled data: ");
     for (i = 0; i <  zones_cnt; i++) {               // iterate
-       zoneTest[i] = i*increment+increment/3;
+       zoneTest[i] = i*increment; //+increment/3;
        logger.printf ("%d ", zoneTest[i]);
     }
     logger.printf ("\n");
@@ -140,11 +142,17 @@ void printZones(struct ZONE DB[], int zones_cnt) {
 void zoneVal2Code(struct ZONE DB[], int zoneCnt) {
   int i, thrIndex;
   for (i = 0; i < zoneCnt; i++){                              // for all zones in the array
-    for (thrIndex = 0; DB[i].mvValue > thresholds[thrIndex].tMin; thrIndex++) // look-up the input voltage  in the input voltage ranges
+    for (thrIndex = 0;((thrIndex < THRESHOLDS_CNT)&&(DB[i].mvValue >= thresholds[thrIndex].tMin)); thrIndex++) {// look-up the input voltage  in the input voltage ranges
       ;                                                       // keep searching while the input voltage is lower than min input voltage for the range
-    thrIndex--;                                               // correct the index to point to the exact range
+      //logger.printf("zone val: %.2f ; Index: %d Threshold %.2f\n", DB[i].mvValue, thrIndex, (float)(thresholds[thrIndex].tMin));
+      }
+    //   
+    if (thrIndex == THRESHOLDS_CNT)                           // check for out of range, shall never happen
+      if(DB[i].mvValue > thresholds[thrIndex-1].tMax)         // correct the index to point to the exact range
+        ErrWrite(ERR_DEBUG, "ADC value out of range!!!!!!!\n");
+    thrIndex--;                                               // correct the index to point to the exact range                                           
     DB[i].zoneABstat = thresholds[thrIndex].zoneABstat;       // get zones A&B status  code   
-    logger.printf("Index %d values %d\n",thrIndex,DB[i].zoneABstat );
+    //logger.printf("Index %d value %d\n",thrIndex,DB[i].zoneABstat );
     } 
 }
 //
@@ -180,8 +188,8 @@ void readZones(struct ZONE DB[], int zones_cnt, int mux) {
         else
           val = analogRead(DB[i].gpio);                 // read from ADC
         DB[i].accValue = DB[i].accValue+val;            // accumulate
-        //if((j==0))                                        // print once
-          //logger.printf("Reading zone %d: gpio: %d; mux %d; Acc val = %d; Current val: %d\n",DB[i].zoneID, DB[i].gpio, mux,  DB[i].accValue, val); 
+        if((j==0))                                        // print once
+          logger.printf("Reading zone %d: gpio: %d; mux %d; Acc val = %d; Current val: %d\n",DB[i].zoneID, DB[i].gpio, mux,  DB[i].accValue, val); 
         }                                               // zones loop
      }                                                  // oversample loop
     // convert values to voltages

@@ -5,15 +5,15 @@ HardwareSerial& logger(Serial);
 constexpr int LOG_BITRATE = 115200;
 
 #define ERR_DEBUG 1
-#define ZONES_A_READ_INTERVAL 200     // read A zones at 100mS
-#define ZONES_B_READ_INTERVAL 500     // read system voltages (B zones) at 100mS
+#define ZONES_A_READ_INTERVAL 500     // read A zones at 100mS
+#define ZONES_B_READ_INTERVAL 1000     // read system voltages (B zones) at 100mS
 #define MUX_SET_INTERVAL      10      // time to set the analog lines after mux switch
 //
 void ErrWrite(int err, const char * str) {
   logger.printf(str);
 }
 #define ERR_DB_INDEX_NOT_FND 5
-
+bool zonesValid = false;
 //
 #include "zonen.h"
 //
@@ -25,6 +25,7 @@ void setup() {
   logger.printf("Slave pgm cnt = %d\n", SLAVE_PGM_CNT);
   logger.printf("Master zones cnt = %d\n", MASTER_ZONES_CNT);
   logger.printf("Slave zones cnt = %d\n", SLAVE_ZONES_CNT);
+  logger.printf("Thresholds cnt = %d\n", THRESHOLDS_CNT);
   // put your setup code here, to run once:
   zoneSetup();
 }

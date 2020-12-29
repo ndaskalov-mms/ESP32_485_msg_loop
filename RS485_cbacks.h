@@ -2,7 +2,7 @@
  Callbacks and helper functions for RS485 non-blocking library
  Licence: Released for public use.
  RS485 non-blocking requires callbacks for read, write, etc ops
- Hear are the definitions for Master and Slave channes
+ Here are the definitions for Master and Slave channes
  
 
 */

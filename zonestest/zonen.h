@@ -90,7 +90,7 @@ unsigned long zoneTest[64];
 //
 void selectZones(int which) {
   digitalWrite(muxCtlPin, which);
-  logger.printf("%ld: Switching mux to %s channel\n", millis(), (which?"Azones":"Bzones"));
+  //logger.printf("%ld: Switching mux to %s channel\n", millis(), (which?"Azones":"Bzones"));
 }
 //
 //  fill zone data for test 
@@ -100,10 +100,10 @@ void fillZones(unsigned long zoneTest[], int zones_cnt) {
     int i; 
     int increment;
     increment = 4096/zones_cnt;
-    logger.printf ("Zone filled data: ");
+    //logger.printf ("Zone filled data: ");
     for (i = 0; i <  zones_cnt; i++) {               // iterate
        zoneTest[i] = i*increment; //+increment/3;
-       logger.printf ("%d ", zoneTest[i]);
+       //logger.printf ("%d ", zoneTest[i]);
     }
     logger.printf ("\n");
     //zoneTest[0] = 4000;
@@ -191,8 +191,8 @@ void readZones(struct ZONE DB[], int zones_cnt, int mux) {
         else
           val = analogRead(DB[i].gpio);                 // read from ADC
         DB[i].accValue = DB[i].accValue+val;            // accumulate
-        if((j==0))                                        // print once
-          logger.printf("Reading zone %d: gpio: %d; mux %d; Acc val = %d; Current val: %d\n",DB[i].zoneID, DB[i].gpio, mux,  DB[i].accValue, val); 
+        //if((j==0))                                        // print once
+          //logger.printf("Reading zone %d: gpio: %d; mux %d; Acc val = %d; Current val: %d\n",DB[i].zoneID, DB[i].gpio, mux,  DB[i].accValue, val); 
         }                                               // zones loop
      }                                                  // oversample loop
     // convert values to voltages
@@ -218,7 +218,7 @@ void convertZones(struct ZONE DB[], int zoneCnt, byte zoneResult[]) {
   lastRead = millis();                                    // to calculate how much time we spend in here
   if(muxState == Azones) {
     if(timeout(GET, ZONES_A_READ_TIMER)) {                // time to read A zones
-      logger.printf("%ld: Reading A zones\n", millis());
+      //logger.printf("%ld: Reading A zones\n", millis());
 	  zoneInfoValid |=	ZONE_A_VALID;					  // mark as valid to avoid sending invalid info	
       readZones(DB, zoneCnt, muxState);                   // do read
       timeout(SET, ZONES_A_READ_TIMER);                   // remember when
@@ -233,7 +233,7 @@ void convertZones(struct ZONE DB[], int zoneCnt, byte zoneResult[]) {
       return;
   }
   else {                                                  // zones B are selected and mux set interval expired                   
-    logger.printf("%ld: Reading B zones\n", millis());
+    //logger.printf("%ld: Reading B zones\n", millis());
     readZones(DB, zoneCnt, muxState);                     // do read
 	zoneInfoValid |=	ZONE_B_VALID;					  // mark as valid to avoid sending invalid info	
     timeout(SET, ZONES_B_READ_TIMER);                     // remember when    
@@ -250,15 +250,15 @@ void convertZones(struct ZONE DB[], int zoneCnt, byte zoneResult[]) {
     DB[i].zoneABstat = thresholds[thrIndex].zoneABstat;    // get zones A&B status  code   
     } */                                                   // loop over zones
   zoneVal2Code(DB, zoneCnt);                               // convert analog values to digital status
-  printZones(DB, zoneCnt);
+  //printZones(DB, zoneCnt);
   // time to copy results to results array
   for (i=0; i < zoneCnt; i++) {                            // combine two zones in one byte, 12, 34, 56, ....
     if(!(i%2))
       zoneResult[i/2] = 0;                                 // clear results array
     zoneResult[i/2] = ((zoneResult[i/2] << ZONE_ENC_BITS) & ~ZONE_ENC_MASK) | DB[i].zoneABstat ;
     }  
-  printZonesPayload(zoneResult, zoneCnt%2?(zoneCnt/2+1):zoneCnt/2);
-  logger.printf ("Elapsed time %d millisec\n", (unsigned long)(millis() - lastRead));
+  //printZonesPayload(zoneResult, zoneCnt%2?(zoneCnt/2+1):zoneCnt/2);
+  //logger.printf ("Elapsed time %d millisec\n", (unsigned long)(millis() - lastRead));
 }
 //
 //  PGM control code here

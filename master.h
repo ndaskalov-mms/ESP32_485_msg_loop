@@ -14,9 +14,9 @@
     }                                           // if ERR_OK
   }                                             // if (waiting)
   // not waiting for reply, check if it is time to send new command
-  else if (isTimeFor(FREE_TEXT, POLL_INTERVAL))  {
+  else if (isTimeFor(FREE_CMD, POLL_INTERVAL))  {
     ErrWrite(ERR_INFO, "\nMaster: time to transmit \n");
-    if(ERR_OK == sendCmd(FREE_TEXT, SLAVE_ADDRESS1, test_msg[(++i)%3])) // sendCmd handle and reports errors internally 
+    if(ERR_OK == sendFreeCmd(FREE_TEXT, SLAVE_ADDRESS1, FREE_CMD_PAYLD_LEN, test_msg[(++i)%3])) // sendCmd handle and reports errors internally 
       ErrWrite( ERR_INFO, ("Master MSG transmitted, receive timeout started\n"));
   }
   //

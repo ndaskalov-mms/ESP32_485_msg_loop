@@ -23,13 +23,13 @@
 		  case SET_OUTS:
   			ErrWrite (ERR_WARNING,"Unsupported cmd received SET_OUTPUTS\n");
   			break;
-		  case FREE_TEXT:
+		  case FREE_CMD:
   			ErrWrite (ERR_INFO,"SLAVE: FREE TEXT cmd received\n");
   			// return the same payload converted to uppercase
   			byte tmp_msg [MAX_PAYLOAD_SIZE];
   			for (int i=0; i < rcvMsg.len; i++)
   			  tmp_msg[i] = toupper(rcvMsg.payload[i]);
-  			if(ERR_OK != SendMessage(SlaveMsgChannel, SlaveUART, (FREE_TEXT | REPLY_OFFSET), MASTER_ADDRESS, tmp_msg, rcvMsg.len))
+  			if(ERR_OK != SendMessage(SlaveMsgChannel, SlaveUART, (FREE_CMD | REPLY_OFFSET), MASTER_ADDRESS, tmp_msg, rcvMsg.len))
   			  ErrWrite(ERR_TRM_MSG, "Slave: Error in sendMessage\n");
   			break;
 		  default:
@@ -41,7 +41,7 @@
 	// no message available for processing 
 	// do something usefull like take a nap or read ADC and process the zones info
 	// or collect some errors info to be send as status to MASTER some day
-	convertZones(SzoneDB, SLAVE_PGM_CNT, SzoneResult);
+	convertZones(SzoneDB, SLAVE_ZONES_CNT, SzoneResult);
 	
 	// find out if some new errors occured while receiving/processing the message
 	if(memcmp(errorsDB, errorsDB_backup, sizeof(errorsDB))) 

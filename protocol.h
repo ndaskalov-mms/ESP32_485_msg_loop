@@ -32,7 +32,6 @@ int checkTimeout(RS485& Channel, unsigned long timeout) {
 //
 int compose_msg(byte cmd, byte dest, byte *payload, byte *out_buf, int payload_len) {
   int index = 0;
-  char tmpBuf[256];
   
   // first byte is COMMMAND/REPLY code (4 MS BITS) combined with the destination address (4 ls BITS)
   out_buf[index++] = ((cmd << 4) | (dest & 0x0F));
@@ -43,9 +42,9 @@ int compose_msg(byte cmd, byte dest, byte *payload, byte *out_buf, int payload_l
   // copy  
   for (int i =0; i< payload_len; i++) 
     out_buf[index++] = payload[i];
-  return index;           // return number of bytes to transmit
+  return index;           							// return number of bytes to transmit
 }
-
+//
 // send message using 485 interface. Message parameters are transferred as separate arguments
 // params:
 //      RS485& trmChannel     - reference to instanse of RS485 class, defined in RS485 lib to handle frame (STX, ETX, CRC) level send/receive staff
@@ -67,7 +66,11 @@ int SendMessage(RS485& trmChannel, HardwareSerial& uart, byte cmd, byte dst, byt
       ErrWrite (ERR_INV_PAYLD_LEN, "SendMessage: error composing message -  too long???\n");   // must be already reported by compose_msg
       return ERR_INV_PAYLD_LEN;
     }
-    LogMsg("SendMsg: sending message LEN = %d, CMD|DST = %x, PAYLOAD: ", tmpLen, tmpBuf[0], &tmpBuf[1]);
+    if(cmd == FREE_CMD) 
+      logger.printf("SendMsg: sending message LEN = %d, CMD|DST = %x, subCMD = %x, payload len = %d, PAYLOAD: %s\n ",\
+                                                tmpLen,    tmpBuf[0],    tmpBuf[1],       tmpBuf[2],    &tmpBuf[3]);
+    else
+      LogMsg("SendMsg: sending message LEN = %d, CMD|DST = %x, PAYLOAD: ", tmpLen, tmpBuf[0], &tmpBuf[1]);
     uartTrmMode(uart);                  	// switch line dir to transmit_mode;
     if(!trmChannel.sendMsg (tmpBuf, tmpLen)) { // send fail. The only error which can originate for RS485 lib in sendMsg fuction isfor missing write callback
       err = ERR_TRM_MSG;
@@ -111,11 +114,11 @@ struct MSG  parse_msg(RS485& rcv_channel) {
       return rmsg;                                        // error, no command code in message
     } 
     memcpy (tmpBuf, rcv_channel.getData (), rmsg.len);     // copy message in temp buf
-    //LogMsg("Parse_meg: message recv: LEN = %d, CMD|DST = %x, PAYLOAD: ", rmsg.len, tmpBuf[0], &tmpBuf[1]);
+    //LogMsg("Parse_msg: message recv: LEN = %d, CMD|DST = %x, PAYLOAD: ", rmsg.len, tmpBuf[0], &tmpBuf[1]);
     // extract command and destination
     rmsg.cmd = ((tmpBuf[0] >> 4) & 0x0F);                  // cmd is hihg nibble
     rmsg.dst = tmpBuf[0] & 0x0F;                           // destination is low nibble
-    //LogMsg("Parse_meg: message recv: LEN = %d, CMD = %x, DST = %x, PAYLOAD: ", rmsg.len, rmsg.cmd, rmsg.dst, &tmpBuf[1]);
+    LogMsg("Parse_msg: message recv: LEN = %d, CMD = %x, DST = %x, PAYLOAD: ", rmsg.len, rmsg.cmd, rmsg.dst, &tmpBuf[1]);
     switch (rmsg.cmd & ~(0xF0 | REPLY_OFFSET )) {          // check for valid commands and replies. clear reply bit to facilitate test
       case PING:
         if (--rmsg.len == PING_PAYLD_LEN)
@@ -144,9 +147,11 @@ struct MSG  parse_msg(RS485& rcv_channel) {
           return rmsg;
         }
         break;
-      case FREE_TEXT:
-        if (--rmsg.len == FREE_TEXT_PAYLD_LEN) 
-          memcpy(rmsg.payload, &tmpBuf[1], rmsg.len);
+      case FREE_CMD:
+        if (--rmsg.len == FREE_CMD_PAYLD_LEN) {
+          memcpy(rmsg.payload, &tmpBuf[3], tmpBuf[2]);               // two bytes for subCmd and payload len
+          LogMsg("Parse_msg: FREE CMD recv: LEN = %d, CMD = %x, DST = %x, PAYLOAD: ", rmsg.len, rmsg.cmd, rmsg.dst, rmsg.payload);
+          }      
         else  {
           rmsg.parse_err = ERR_INV_PAYLD_LEN;
           ErrWrite(rmsg.parse_err, "Parse message: invalid payload len for FREE TEXT msg received\n");
@@ -196,7 +201,7 @@ int check4msg(RS485& Channel, unsigned long timeout) {
 	if(rcvMsg.dst != boardID)           		        // check if the destination is another board
 		return ERR_OK;                                // yes, do nothing
 	// we got message for us
-	LogMsg ("Received MSG: CMD: %x; DEST: %x; payload len: %d; PAYLOAD: ", rcvMsg.len, rcvMsg.cmd, rcvMsg.dst, rcvMsg.payload);
+	LogMsg ("Received MSG: CMD: %x; DEST: %x; payload len: %d; PAYLOAD: ", rcvMsg.cmd, rcvMsg.dst, rcvMsg.len, rcvMsg.payload);
 	return MSG_READY;								                // have message
 } // check4msg
 
@@ -211,8 +216,8 @@ void masterProcessMsg(struct MSG msg) {
     case SET_OUTS_RES:
       ErrWrite(ERR_INFO, "Master: Unsupported reply command received SET_OUTPUTS_RES\n");
       break;
-    case FREE_TEXT_RES:
-      ErrWrite(ERR_INFO, "Master: reply received for FREE_TEXT cmd: \n");
+    case FREE_CMD_RES:
+      ErrWrite(ERR_INFO, "Master: reply received for FREE_CMD cmd: \n");
       break;
     default:
       ErrWrite(ERR_WARNING, "Master: invalid command received %x\n", rcvMsg.cmd);
@@ -260,4 +265,26 @@ int sendCmd(byte cmd, byte dst, byte * payload) {
       waiting_for_reply = 1;
       return ERR_OK;
     }
+}
+//
+// send free command and register the transmission time
+// in case of error, ErrWrite will register the err in the database and to do some global staff (like sending error over MQTT, SMTP, etc)
+// params:  subCmd - sub command code, valid only with FREE_CMD command
+//          dst - destination address
+//			payloadLen - len of payload to be send
+//          * payload - pointer to payload to be send
+// returns: ERR_OK on success
+//          ERR_BAD_CMD on wrong command send request
+//          ERR_TRM_MSG on error while sending (payload size > max, no write callback for RS485 class, etc
+//
+int sendFreeCmd(byte subCmd, byte dst, byte payloadLen, byte * payload) {
+byte tmpBuf[256];
+//
+	if(payloadLen > FREE_CMD_PAYLD_LEN)					// check payload size
+	  payloadLen = FREE_CMD_PAYLD_LEN;					// if too long, trunkate, sendCmd will issue error later
+	tmpBuf[0] = subCmd;										      // prepare the message payload, first byte is the subCmd,
+	tmpBuf[1] = payloadLen;									    //  followed by actual payload len
+	for (int i =0; i<payloadLen; i++) 					// and payload
+		tmpBuf[i+2] = payload[i];
+	return sendCmd(FREE_CMD, dst, tmpBuf);
 }

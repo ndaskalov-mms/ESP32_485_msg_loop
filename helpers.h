@@ -44,11 +44,13 @@
 #define SET_OUTS_RES          (SET_OUTS|REPLY_OFFSET)   // set output relay reply
 #define SET_OUTS_RES_PAYLD_LEN 2                        // SET_OUTS payload is 2 bytes 1 byte for outputs (8 outputs, LSB is OUT1) and 1 byte status
 
-// ----------------- FREE_TEXT -----------------------------
-#define FREE_TEXT             0x3                        // send free text (can be binary too)
-#define FREE_TEXT_PAYLD_LEN    MAX_PAYLOAD_SIZE          // FREE_TEXT payload is up to MAX_PAYLOAD_SIZE
-#define FREE_TEXT_RES         (FREE_TEXT  | REPLY_OFFSET)
-#define FREE_TEXT_RES_PAYLD_LEN MAX_PAYLOAD_SIZE         // FREE_TEXT_RES payload is up to MAX_PAYLOAD_SIZE
+// ----------------- FREE_CMD -----------------------------
+#define FREE_CMD             0x3                        // send free text (can be binary too)
+#define FREE_CMD_PAYLD_LEN   (MAX_PAYLOAD_SIZE-2)       // FREE_CMD payload is up to MAX_PAYLOAD_SIZE - subCmd - payload size
+#define FREE_CMD_RES         (FREE_CMD  | REPLY_OFFSET)
+#define FREE_CMD_RES_PAYLD_LEN MAX_PAYLOAD_SIZE         // FREE_CMD_RES payload is up to MAX_PAYLOAD_SIZE
+#define	FREE_TEXT			0x1
+
 
 #define RS485_DATA_PRESENT    1         // RS485.update returns 0 (ERR_OK) if no data, 1 (RS485_DATA_PRESENT) if data avail or negative if error
 
@@ -62,7 +64,7 @@ struct COMMAND {
 // commands database to look-up command params and store temporary data (like last transmition time)
 // 
 struct COMMAND cmdDB[] = {{PING, PING_PAYLD_LEN,  0}, {POLL_ZONES, POLL_PAYLD_LEN, 0}, {SET_OUTS, SET_OUTS_PAYLD_LEN, 0}, \
-                          {FREE_TEXT, FREE_TEXT_PAYLD_LEN,  0}} ;
+                          {FREE_CMD, FREE_CMD_PAYLD_LEN,  0}} ;
 
 struct MSG {
   byte cmd;
@@ -76,17 +78,19 @@ struct MSG {
 void LogMsg(char *formatStr, int len, byte cmd_dst, byte *payload) {
 	if(!DEBUG)
 		return;
-    logger.printf(formatStr, len, cmd_dst);
-    logger.write (payload, len-1);                // there is one byte cmd|dst
-    logger.println();
+  logger.printf(formatStr, len, cmd_dst);
+  for(int i =0; i< len; i++)
+    logger.printf ("%2x ", payload[i]);                // there is one byte cmd|dst
+  logger.println();
 }
 
 void LogMsg(char *formatStr, int len, byte cmd, byte dst, byte *payload) {
     	if(!DEBUG)
 		return;
 	logger.printf(formatStr, len, cmd, dst);
-    logger.write (payload, len-1);                // there is one byte cmd|dst
-    logger.println();
+  for(int i =0; i< len; i++)
+    logger.printf ("%2x ", payload[i]);                // there is one byte cmd|dst
+   logger.println();
 }
 
 int findCmdEntry(byte cmd) {
@@ -103,8 +107,8 @@ int findCmdEntry(byte cmd) {
   return ERR_DB_INDEX_NOT_FND;
 }
 
-byte test_msg [][MAX_PAYLOAD_SIZE] = {{"5Hello world;6Hello world;7Hello world;8Hello world;9Hello"},\
-                                     {"123456789012345678901234567890123456789012345678901234567890"},\
-                                     {"~!@#$%^&*()_+~!@#$%^&*()_+~!@#$%^&*()_+~!@#$%^&*()_+~!@#$%"},
-                                     {"zxcvbnm,./';lkjhgfdsaqwertyuiop[]\\][poiuytrewqasdfghjkl;'"}};
+byte test_msg [][FREE_CMD_PAYLD_LEN] = {{"5Hello world;6Hello world;7Hello world;8Hello world;9Hel"},\
+                                     {"1234567890123456789012345678901234567890123456789012345678"},\
+                                     {"~!@#$%^&*()_+~!@#$%^&*()_+~!@#$%^&*()_+~!@#$%^&*()_+~!@#"},
+                                     {"zxcvbnm,./';lkjhgfdsaqwertyuiop[]\\][poiuytrewqasdfghjkl"}};
  

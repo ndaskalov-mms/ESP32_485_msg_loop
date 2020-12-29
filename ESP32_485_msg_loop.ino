@@ -75,9 +75,13 @@ void setup() {
 #ifdef MASTER
    MasterUART.begin(BITRATE,SERIAL_8N1);  
    pgmSetup(MpgmDB, MASTER_PGM_CNT);             // init PGMs (output and default value)
+   logger.printf("Master pgm cnt = %d\n", MASTER_PGM_CNT);
+   logger.printf("Master zones cnt = %d\n", MASTER_ZONES_CNT);
 #endif
 #ifdef SLAVE
    pgmSetup(SpgmDB, SLAVE_PGM_CNT);                  // init PGMs (output and default value)
+   logger.printf("Slave pgm cnt = %d\n", SLAVE_PGM_CNT);
+   logger.printf("Slave zones cnt = %d\n", SLAVE_ZONES_CNT);
 #ifdef LOOPBACK
   SlaveUART.begin(BITRATE,SERIAL_8N1, 21, 22);    // re-routing RxD to  GPIO21 and TxD to GPIO22
 #else
@@ -90,6 +94,7 @@ void setup() {
   logger.printf("Loopback example for Esp32+485\n");
   logger.printf("MAX_MSG_LENGHT = %d\n", MAX_MSG_LENGHT  );
   logger.printf("MAX_PAYLOAD_SIZE = %d\n", MAX_PAYLOAD_SIZE );
+  logger.printf("Size of test msg: %d\n", FREE_CMD_PAYLD_LEN);
   zoneSetup();                                  // init mux for zones selection
   //printErrorsDB();
 }

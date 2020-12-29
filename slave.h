@@ -13,7 +13,12 @@
   			ErrWrite (ERR_WARNING, "Unsupported cmd received PING\n");
   			break;
 		  case POLL_ZONES:
-  			ErrWrite (ERR_WARNING,"Unsupported cmd received POLL_ZONES\n");
+  			ErrWrite (ERR_DEBUG,"POLL ZONES command received\n");
+        // send the zones status, stored by convertZones in SzoneResult[]
+        if(zoneInfoValid == ZONE_A_VALID | ZONE_B_VALID) {
+          if(ERR_OK != SendMessage(SlaveMsgChannel, SlaveUART, (POLL_ZONES | REPLY_OFFSET), MASTER_ADDRESS, SzoneResult, sizeof(SzoneResult)));
+            ErrWrite(ERR_TRM_MSG, "Slave: Error in sendMessage\n");
+        }
   			break;
 		  case SET_OUTS:
   			ErrWrite (ERR_WARNING,"Unsupported cmd received SET_OUTPUTS\n");

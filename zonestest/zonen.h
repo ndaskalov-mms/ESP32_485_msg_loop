@@ -12,6 +12,8 @@
 #define ZONE_B_CLOSED       0x0
 #define ZONE_ENC_BITS       4
 #define ZONE_ENC_MASK       0xF
+#define ZONE_A_VALID		1
+#define ZONE_B_VALID		2
 //
 enum timeoutOper {
   SET = 1,
@@ -24,6 +26,7 @@ enum TIMERS {
   MUX_SET_TIMER = 3,
 };
 
+byte zoneInfoValid = 0;                   // track if zonesResult array contain valid info as the host can request info before they are read
 
 
 // command records structure for cmdDB
@@ -216,6 +219,7 @@ void convertZones(struct ZONE DB[], int zoneCnt, byte zoneResult[]) {
   if(muxState == Azones) {
     if(timeout(GET, ZONES_A_READ_TIMER)) {                // time to read A zones
       logger.printf("%ld: Reading A zones\n", millis());
+	  zoneInfoValid |=	ZONE_A_VALID;					  // mark as valid to avoid sending invalid info	
       readZones(DB, zoneCnt, muxState);                   // do read
       timeout(SET, ZONES_A_READ_TIMER);                   // remember when
       }
@@ -231,6 +235,7 @@ void convertZones(struct ZONE DB[], int zoneCnt, byte zoneResult[]) {
   else {                                                  // zones B are selected and mux set interval expired                   
     logger.printf("%ld: Reading B zones\n", millis());
     readZones(DB, zoneCnt, muxState);                     // do read
+	zoneInfoValid |=	ZONE_B_VALID;					  // mark as valid to avoid sending invalid info	
     timeout(SET, ZONES_B_READ_TIMER);                     // remember when    
     timeout(SET, MUX_SET_TIMER);                          // start mux settle time
     //logger.printf("%ld: Mux A timeout started\n", millis());

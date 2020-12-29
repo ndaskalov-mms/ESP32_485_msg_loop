@@ -100,7 +100,6 @@ void loop ()
   #include "master.h"
 #endif
 #ifdef SLAVE
-
   #include "slave.h"
 #endif
 }  // end of loop

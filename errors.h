@@ -91,6 +91,7 @@ struct t_ERROR errorsDBtitles[sizeof(errorsDB)/sizeof(struct ERROR_REC)] = {{ERR
 int ErrWrite (int err_code, char* what)           // callback to dump info to serial console from inside RS485 library
 {
   int index = 0;
+  //logger.printf ("error code %d received in errors handling callback\n------------------------", err_code);
   // update errors struct here
   switch (err_code)
   {
@@ -150,7 +151,7 @@ int ErrWrite (int err_code, char* what)           // callback to dump info to se
       break;
     default:
       if(SERIAL_LOG) {
-		logger.printf ("-----------------Invalid error code %d received in errors handling callback\n------------------------", err_code);
+		logger.printf ("-----------------Invalid error code %d received in errors handling callback\n------------------------", (int)err_code);
 		if(what)
           logger.printf("%s\n", what);
 	  }

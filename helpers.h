@@ -72,7 +72,7 @@ struct MSG {
   byte dst;
   int  len;
   byte payload[MAX_PAYLOAD_SIZE];
-  byte parse_err;
+  int parse_err;
   byte subCmd;
 } ;
 

@@ -203,7 +203,7 @@ int check4msg(RS485& Channel, unsigned long timeout) {
 	if(rcvMsg.dst != boardID)           		        // check if the destination is another board
 		return ERR_OK;                                // yes, do nothing
 	// we got message for us
-	LogMsg ("Received MSG: CMD: %x; DEST: %x; payload len: %d; PAYLOAD: ", rcvMsg.cmd, rcvMsg.dst, rcvMsg.len, rcvMsg.payload);
+	LogMsg ("Received MSG: LEN = %d, CMD = %x, DST = %x, PAYLOAD: ",rcvMsg.len, rcvMsg.cmd, rcvMsg.dst,  rcvMsg.payload);
 	return MSG_READY;								                // have message
 } // check4msg
 

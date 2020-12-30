@@ -94,7 +94,7 @@ void setup() {
   logger.printf("Loopback example for Esp32+485\n");
   logger.printf("MAX_MSG_LENGHT = %d\n", MAX_MSG_LENGHT  );
   logger.printf("MAX_PAYLOAD_SIZE = %d\n", MAX_PAYLOAD_SIZE );
-  logger.printf("Size of test msg: %d\n", FREE_CMD_PAYLD_LEN);
+  logger.printf("Size of test msg: %d\n", FREE_CMD_DATA_LEN);
   zoneSetup();                                  // init mux for zones selection
   //printErrorsDB();
 }

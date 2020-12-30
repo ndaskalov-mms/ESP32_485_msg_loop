@@ -46,7 +46,8 @@
 
 // ----------------- FREE_CMD -----------------------------
 #define FREE_CMD             0x3                        // send free text (can be binary too)
-#define FREE_CMD_PAYLD_LEN   (MAX_PAYLOAD_SIZE-2)       // FREE_CMD payload is up to MAX_PAYLOAD_SIZE - subCmd - payload size
+#define FREE_CMD_PAYLD_LEN   (MAX_PAYLOAD_SIZE)       // FREE_CMD payload is up to MAX_PAYLOAD_SIZE
+#define FREE_CMD_DATA_LEN   (MAX_PAYLOAD_SIZE-2)       // FREE_CMD payload is up to MAX_PAYLOAD_SIZE - subCmd - payload size
 #define FREE_CMD_RES         (FREE_CMD  | REPLY_OFFSET)
 #define FREE_CMD_RES_PAYLD_LEN MAX_PAYLOAD_SIZE         // FREE_CMD_RES payload is up to MAX_PAYLOAD_SIZE
 #define	FREE_TEXT			0x1
@@ -72,6 +73,7 @@ struct MSG {
   int  len;
   byte payload[MAX_PAYLOAD_SIZE];
   byte parse_err;
+  byte subCmd;
 } ;
 
 
@@ -85,7 +87,7 @@ void LogMsg(char *formatStr, int len, byte cmd_dst, byte *payload) {
 }
 
 void LogMsg(char *formatStr, int len, byte cmd, byte dst, byte *payload) {
-    	if(!DEBUG)
+  if(!DEBUG)
 		return;
 	logger.printf(formatStr, len, cmd, dst);
   for(int i =0; i< len; i++)

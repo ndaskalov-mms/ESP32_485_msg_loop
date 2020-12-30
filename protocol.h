@@ -114,11 +114,11 @@ struct MSG  parse_msg(RS485& rcv_channel) {
       return rmsg;                                        // error, no command code in message
     } 
     memcpy (tmpBuf, rcv_channel.getData (), rmsg.len);     // copy message in temp buf
-    //LogMsg("Parse_msg: message recv: LEN = %d, CMD|DST = %x, PAYLOAD: ", rmsg.len, tmpBuf[0], &tmpBuf[1]);
+    LogMsg("Parse_msg: message recv: LEN = %d, CMD|DST = %x, PAYLOAD: ", rmsg.len-1, tmpBuf[0], &tmpBuf[1]);
     // extract command and destination
     rmsg.cmd = ((tmpBuf[0] >> 4) & 0x0F);                  // cmd is hihg nibble
     rmsg.dst = tmpBuf[0] & 0x0F;                           // destination is low nibble
-    LogMsg("Parse_msg: message recv: LEN = %d, CMD = %x, DST = %x, PAYLOAD: ", rmsg.len, rmsg.cmd, rmsg.dst, &tmpBuf[1]);
+    LogMsg("Parse_msg: message recv: LEN = %d, CMD = %x, DST = %x, PAYLOAD: ", rmsg.len-1, rmsg.cmd, rmsg.dst, &tmpBuf[1]);
     switch (rmsg.cmd & ~(0xF0 | REPLY_OFFSET )) {          // check for valid commands and replies. clear reply bit to facilitate test
       case PING:
         if (--rmsg.len == PING_PAYLD_LEN)
@@ -149,8 +149,10 @@ struct MSG  parse_msg(RS485& rcv_channel) {
         break;
       case FREE_CMD:
         if (--rmsg.len == FREE_CMD_PAYLD_LEN) {
-          memcpy(rmsg.payload, &tmpBuf[3], tmpBuf[2]);               // two bytes for subCmd and payload len
-          LogMsg("Parse_msg: FREE CMD recv: LEN = %d, CMD = %x, DST = %x, PAYLOAD: ", rmsg.len, rmsg.cmd, rmsg.dst, rmsg.payload);
+          rmsg.len = tmpBuf[2];                                     // actual free cmd payload size
+          rmsg.subCmd = tmpBuf[1]; 
+          memcpy(rmsg.payload, &tmpBuf[3], rmsg.len);               // two bytes for subCmd and payload len
+          LogMsg("Parse_msg: FREE CMD recv: DATA LEN = %d, subCMD = %x, DST = %x, DATA: ", rmsg.len, rmsg.subCmd, rmsg.dst, rmsg.payload);
           }      
         else  {
           rmsg.parse_err = ERR_INV_PAYLD_LEN;

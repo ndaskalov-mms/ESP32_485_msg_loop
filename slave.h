@@ -2,7 +2,6 @@
 //
 //
 // ----------- slave simulation -------------------------------------------
-// added support for free cmd
 //
 //
 	boardID = SLAVE_ADDRESS1;        // Slave destination ---------   TODO - only for loopback testing

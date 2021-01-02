@@ -78,6 +78,7 @@ struct MSG {
   byte payload[MAX_PAYLOAD_SIZE];
   int parse_err;
   byte subCmd;
+  int dataLen;
 } ;
 
 
@@ -95,10 +96,27 @@ void LogMsg(char *formatStr, int len, byte cmd, byte dst, byte *payload) {
 		return;
 	logger.printf(formatStr, len, cmd, dst);
   for(int i =0; i< len; i++)
-    logger.printf ("%2x ", payload[i]);                // there is one byte cmd|dst
+    logger.printf ("%d ", payload[i]);                // there is one byte cmd|dst
    logger.println();
 }
 
+void LogMsg(char *formatStr, int len, byte cmd_dst, byte subCmd, int pldLen,  byte *payload) {
+  if(!DEBUG)
+		return;
+	logger.printf(formatStr, len, cmd_dst, subCmd, pldLen);
+  for(int i =0; i< pldLen; i++)
+    logger.printf ("%d ", payload[i]);                // there is one byte cmd|dst
+   logger.println();
+}
+
+void LogMsg(char *formatStr, int len, byte cmd, byte dst, byte subCmd, int pldLen,  byte *payload) {
+  if(!DEBUG)
+    return;
+  logger.printf(formatStr, len, cmd, dst, subCmd, pldLen);
+  for(int i =0; i< pldLen; i++)
+    logger.printf ("%d ", payload[i]);                // there is one byte cmd|dst
+   logger.println();
+}
 int findCmdEntry(byte cmd) {
   //ErrWrite(ERR_DEBUG, "Looking for record for cmd code   %d \n", cmd);
   cmd = cmd & ~(0xF0 | REPLY_OFFSET );                      // clear reply flag if any

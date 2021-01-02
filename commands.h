@@ -56,12 +56,21 @@ byte tmpBuf[256];
 //
 //
 //
-int setSlaveZone(struct ALARM_ZONE zone) {
-byte tmpBuf[32];
-	tmpBuf[0] = zone.gpio;
-	tmpBuf[1] = zone.mux;
-	tmpBuf[2] = zone.zoneID;
-	return sendFreeCmd(SET_ZONE_SUB_CMD, zone.boardID, SET_ZONE_DATA_LEN, tmpBuf);
+int setSlaveZones(struct ALARM_ZONE zone[]) {
+byte tmpBuf[FREE_CMD_DATA_LEN];
+int j = 0; int i = 0;
+	for(i=0; (i<SLAVE_ZONES_CNT) && (j<FREE_CMD_DATA_LEN); i++) {
+		tmpBuf[j++] = zone[i].gpio;
+		tmpBuf[j++] = zone[i].mux;
+		tmpBuf[j++] = zone[i].zoneID;
+		}
+	if(DEBUG) {
+			logger.printf ("Zone set data: Zone GPIO:\tMUX:\tZoneID:\n");
+		    for (i = 0; i <  j; i+=3)                         // iterate
+				  logger.printf ("%d %d %d   ", tmpBuf[i], tmpBuf[i+1], tmpBuf[i+2]);
+			logger.printf("\n");
+			}
+	return sendFreeCmd(SET_ZONE_SUB_CMD, zone[0].boardID, j, tmpBuf);
 }	
 //
 // master process messages root function. It is called when message (should be reply)  is received at master

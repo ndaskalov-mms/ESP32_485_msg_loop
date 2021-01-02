@@ -16,7 +16,9 @@
   // not waiting for reply, check if it is time to send new command
   else if (isTimeFor(FREE_CMD, POLL_INTERVAL))  {// calculate the time elapsed sinse the particular command was send, yes if > interval
     ErrWrite(ERR_INFO, "\nMaster: time to transmit \n");
-    if(ERR_OK == sendFreeCmd(FREE_TEXT_SUB_CMD, SLAVE_ADDRESS1, FREE_CMD_DATA_LEN, test_msg[(++i)%3])) // sendCmd handle and reports errors internally 
+    //if(ERR_OK == sendFreeCmd(FREE_TEXT_SUB_CMD, SLAVE_ADDRESS1, FREE_CMD_DATA_LEN, test_msg[(++i)%3])) // sendCmd handle and reports errors internally 
+      //ErrWrite( ERR_INFO, ("Master MSG transmitted, receive timeout started\n"));
+	if(ERR_OK == setSlaveZones(zonesDB[SLAVE_ADDRESS1])); // sendCmd handle and reports errors internally 
       ErrWrite( ERR_INFO, ("Master MSG transmitted, receive timeout started\n"));
   }
   //

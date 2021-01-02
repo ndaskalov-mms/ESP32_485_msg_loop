@@ -57,8 +57,8 @@ int SendMessage(RS485& trmChannel, HardwareSerial& uart, byte cmd, byte dst, byt
       return ERR_INV_PAYLD_LEN;
     }
     if(cmd == FREE_CMD) 
-      logger.printf("SendMsg: sending message LEN = %d, CMD|DST = %x, subCMD = %x, payload len = %d, PAYLOAD: %s\n ",\
-                                                tmpLen,    tmpBuf[0],    tmpBuf[1],       tmpBuf[2],    &tmpBuf[3]);
+	    LogMsg("SendMsg: sending message LEN = %d, CMD|DST = %x, subCMD = %x, payload len = %d, PAYLOAD: ",\
+										                     tmpLen, tmpBuf[0],   tmpBuf[1],      tmpBuf[2],    &tmpBuf[3]);	
     else
       LogMsg("SendMsg: sending message LEN = %d, CMD|DST = %x, PAYLOAD: ", tmpLen, tmpBuf[0], &tmpBuf[1]);
     uartTrmMode(uart);                  	// switch line dir to transmit_mode;
@@ -139,7 +139,7 @@ struct MSG  parse_msg(RS485& rcv_channel) {
         break;
       case FREE_CMD:
         if (--rmsg.len == FREE_CMD_PAYLD_LEN) {
-          rmsg.len = tmpBuf[2];                                     // actual free cmd payload size
+          rmsg.dataLen = tmpBuf[2];                                     // actual free cmd payload size
           rmsg.subCmd = tmpBuf[1]; 
           memcpy(rmsg.payload, &tmpBuf[3], rmsg.len);               // two bytes for subCmd and payload len
           //LogMsg("Parse_msg: FREE CMD recv: DATA LEN = %d, subCMD = %x, DST = %x, DATA: ", rmsg.len, rmsg.subCmd, rmsg.dst, rmsg.payload);
@@ -193,7 +193,7 @@ int check4msg(RS485& Channel, unsigned long timeout) {
 	if(rcvMsg.dst != boardID)           		        // check if the destination is another board
 		return ERR_OK;                                // yes, do nothing
 	// we got message for us
-	LogMsg ("Received MSG: LEN = %d, CMD = %x, DST = %x, PAYLOAD: ",rcvMsg.len, rcvMsg.cmd, rcvMsg.dst,  rcvMsg.payload);
+	LogMsg ("Received MSG: LEN = %d, CMD = %x, DST = %x, PAYLOAD: ",rcvMsg.len,rcvMsg.cmd,rcvMsg.dst, rcvMsg.payload);
 	return MSG_READY;								                // have message
 } // check4msg
 

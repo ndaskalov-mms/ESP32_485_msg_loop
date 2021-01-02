@@ -78,6 +78,7 @@ RS485 MasterMsgChannel (MasterRead, MasterAvailable, MasterWrite, ErrWrite, RxBU
 RS485 SlaveMsgChannel  (SlaveRead, SlaveAvailable, SlaveWrite, ErrWrite, RxBUF_SIZE);      //RS485 myChannel (read_func, available_func, write_func, msg_len);
 //
 #include "protocol.h"                     // send/receive and compse messgaes staff
+#include "commands.h"                     // master/slave commands implementation
 //
 //
 //  Arduino setup function - call all local setups her

@@ -88,7 +88,7 @@ struct t_ERROR errorsDBtitles[sizeof(errorsDB)/sizeof(struct ERROR_REC)] = {{ERR
                 {ERR_RS485_NO_CALLBACK, t_ERR_RS485_NO_CALLBACK}, {ERR_TIMEOUT, t_ERR_TIMEOUT}, {ERR_DB_INDEX_NOT_FND, t_ERR_DB_INDEX_NOT_FND}} ;
 
 
-int ErrWrite (int err_code, char* what)           // callback to dump info to serial console from inside RS485 library
+int ErrWrite (int err_code, char * what)           // callback to dump info to serial console from inside RS485 library
 {
   int index = 0;
   //logger.printf ("error code %d received in errors handling callback\n------------------------", err_code);

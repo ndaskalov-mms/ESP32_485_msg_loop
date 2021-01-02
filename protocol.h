@@ -197,24 +197,7 @@ int check4msg(RS485& Channel, unsigned long timeout) {
 	return MSG_READY;								                // have message
 } // check4msg
 
-void masterProcessMsg(struct MSG msg) {
-  switch (msg.cmd) {
-    case PING_RES:
-      ErrWrite(ERR_INFO, "Master: Unsupported reply command received PING_RES\n");
-      break;
-    case POLL_ZONES_RES:
-      ErrWrite(ERR_INFO, "Master: Unsupported reply command received POLL_ZONES_RES\n");
-      break;
-    case SET_OUTS_RES:
-      ErrWrite(ERR_INFO, "Master: Unsupported reply command received SET_OUTPUTS_RES\n");
-      break;
-    case FREE_CMD_RES:
-      ErrWrite(ERR_INFO, "Master: reply received for FREE_CMD cmd: \n");
-      break;
-    default:
-      ErrWrite(ERR_WARNING, "Master: invalid command received %x\n", rcvMsg.cmd);
-    }  // switch
-} 
+
 //
 // check if it is time to send reccuring command (like POLL)
 // params: cmd - command code (can be with reply flag set as well
@@ -228,55 +211,4 @@ int isTimeFor(byte cmd, unsigned long timeout) {
 	  return false;                                      // this is a bit ugly, but will notify the world  
     }                                                    // that we cannot send this command 
     return ((unsigned long)(millis() - cmdDB[cmd_index].last_transmitted) > timeout);
-}
-//
-// send command and register the transmission time
-// in case of error, ErrWrite will register the err in the database and to do some global staff (like sending error over MQTT, SMTP, etc)
-// params:  cmd - command code (can be with reply flag set as well
-//          dst - destination address
-//          * payload - pointer to payload to be send
-// returns: ERR_OK on success
-//          ERR_BAD_CMD on wrong command send request
-//          ERR_TRM_MSG on error while sending (payload size > max, no write callback for RS485 class, etc
-//
-int sendCmd(byte cmd, byte dst, byte * payload) {
-    int ret_code;
-    if (waiting_for_reply)
-      return ERR_OK;                                     // TODO not sure if it is not better to return error, otherwise we can lock-up on waiting_for_repy
-    int cmd_index = findCmdEntry(cmd);                   // get index into database in order to access command parameters
-    if(ERR_DB_INDEX_NOT_FND == cmd_index) {              //  the command is not found in the database
-      ErrWrite(ERR_DB_INDEX_NOT_FND, "\n\nMaster: err in findCmdEntry lookup for %d cmd\n\n", cmd);
-      return ERR_BAD_CMD; 
-    }
-    cmdDB[cmd_index].last_transmitted = millis();        // register the send time
-    if (ERR_OK != (ret_code = SendMessage(MasterMsgChannel, MasterUART, cmd, dst, payload, cmdDB[cmd_index].len))) {
-      ErrWrite(ERR_TRM_MSG, "\n\nMaster: Err in sendMessage sending %d cmd\n\n", cmd);
-      return ERR_TRM_MSG;
-    }
-    else {
-      waiting_for_reply = cmd;
-      return ERR_OK;
-    }
-}
-//
-// send free command and register the transmission time
-// in case of error, ErrWrite will register the err in the database and to do some global staff (like sending error over MQTT, SMTP, etc)
-// params:  subCmd - sub command code, valid only with FREE_CMD command
-//          dst - destination address
-//			payloadLen - len of payload to be send
-//          * payload - pointer to payload to be send
-// returns: ERR_OK on success
-//          ERR_BAD_CMD on wrong command send request
-//          ERR_TRM_MSG on error while sending (payload size > max, no write callback for RS485 class, etc
-//
-int sendFreeCmd(byte subCmd, byte dst, byte payloadLen, byte * payload) {
-byte tmpBuf[256];
-//
-	if(payloadLen > FREE_CMD_PAYLD_LEN)					// check payload size
-	  payloadLen = FREE_CMD_PAYLD_LEN;					// if too long, trunkate, sendCmd will issue error later
-	tmpBuf[0] = subCmd;										      // prepare the message payload, first byte is the subCmd,
-	tmpBuf[1] = payloadLen;									    //  followed by actual payload len
-	for (int i =0; i<payloadLen; i++) 					// and payload
-		tmpBuf[i+2] = payload[i];
-	return sendCmd(FREE_CMD, dst, tmpBuf);
 }

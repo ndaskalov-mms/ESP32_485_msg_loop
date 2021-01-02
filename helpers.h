@@ -50,9 +50,13 @@
 #define FREE_CMD_DATA_LEN   (MAX_PAYLOAD_SIZE-2)       // FREE_CMD payload is up to MAX_PAYLOAD_SIZE - subCmd - payload size
 #define FREE_CMD_RES         (FREE_CMD  | REPLY_OFFSET)
 #define FREE_CMD_RES_PAYLD_LEN MAX_PAYLOAD_SIZE         // FREE_CMD_RES payload is up to MAX_PAYLOAD_SIZE
-#define	FREE_TEXT			0x1
-
-
+// free cmd sub-commands
+#define	FREE_TEXT_SUB_CMD	0x1
+#define	FREE_TEXT_DATA_LEN	FREE_CMD_DATA_LEN
+// 
+#define SET_ZONE_SUB_CMD	0x2
+#define SET_ZONE_DATA_LEN	3						// 4 bytes: [0] = zone.gpio; [1] = zone.mux; [2] = zoneID;
+//
 #define RS485_DATA_PRESENT    1         // RS485.update returns 0 (ERR_OK) if no data, 1 (RS485_DATA_PRESENT) if data avail or negative if error
 
 // command records structure for cmdDB

@@ -27,8 +27,8 @@
   			ErrWrite (ERR_INFO,"SLAVE: FREE TEXT cmd received\n");
   			// return the same payload converted to uppercase
   			byte tmp_msg [MAX_PAYLOAD_SIZE];
-  			for (int i=2; i < rcvMsg.len; i++)
-  			  tmp_msg[i] = toupper(rcvMsg.payload[i]); 
+  			for (int i=0; i < rcvMsg.len; i++)
+  			  tmp_msg[i+2] = toupper(rcvMsg.payload[i]); 
         tmp_msg[0] = rcvMsg.subCmd;
         tmp_msg[1]  = rcvMsg.len;
   			if(ERR_OK != SendMessage(SlaveMsgChannel, SlaveUART, (FREE_CMD | REPLY_OFFSET), MASTER_ADDRESS, tmp_msg, rcvMsg.len+2))

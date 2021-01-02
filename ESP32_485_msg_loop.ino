@@ -1,10 +1,21 @@
 
-// define role
+// define roles
 #define MASTER
 #define SLAVE
 #define LOOPBACK
 #define MAX_SLAVES 1
-
+// boaerd IDs
+enum ADDR {                                         // board adresses, MASTER is ALLWAYS 0
+	MASTER_ADDRESS =  0,
+	SLAVE_ADDRESS1,
+	SLAVE_ADDRESS2,
+	SLAVE_ADDRESS3,
+	SLAVE_ADDRESS4,
+	SLAVE_ADDRESS5,
+	SLAVE_ADDRESS6,
+	SLAVE_ADDRESS7,
+};
+//
 // debug print levels
 #define DEBUG	  true
 #define INFO    true
@@ -48,7 +59,7 @@ HardwareSerial& SlaveUART(Serial2);
 #include "RS485_cbacks.h"             // callbacks required by RS485 lib and UART related staff (ESP32 specific)
 #include "helpers.h"                  // include helper functions. INCLUDE ONLY AFTER SERIAL PORT DEFINITIONS!!!!
 #include "Alarm_RS485-cpp.h"          // RS485 transport implementation (library)
-//#include "alarm_logic.h"
+#include "alarm_logic.h"
 //
 //
 // ------------------------- global variables definition -----------------------------
@@ -80,6 +91,8 @@ void setup() {
    pgmSetup(MpgmDB, MASTER_PGM_CNT);             // init PGMs (output and default value)
    logger.printf("Master pgm cnt = %d\n", MASTER_PGM_CNT);
    logger.printf("Master zones cnt = %d\n", MASTER_ZONES_CNT);
+   initAlarmZones();
+   printAlarmZones();
 #endif
 #ifdef SLAVE
    pgmSetup(SpgmDB, SLAVE_PGM_CNT);                  // init PGMs (output and default value)

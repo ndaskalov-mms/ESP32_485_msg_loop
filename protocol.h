@@ -1,16 +1,6 @@
 /*
  * protocol.h
  */
-enum ADDR {                                         // board adresses, MASTER is ALLWAYS 0
-MASTER_ADDRESS =  0,
-SLAVE_ADDRESS1,
-SLAVE_ADDRESS2,
-SLAVE_ADDRESS3,
-SLAVE_ADDRESS4,
-SLAVE_ADDRESS5,
-SLAVE_ADDRESS6,
-SLAVE_ADDRESS7,
-};
 //
 // check for timeout waiting for receive message
 // the transmission time is captured in RS485 class sending function and is retrieved by getLastTransmitTime

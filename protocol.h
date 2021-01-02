@@ -264,7 +264,7 @@ int sendCmd(byte cmd, byte dst, byte * payload) {
       return ERR_TRM_MSG;
     }
     else {
-      waiting_for_reply = 1;
+      waiting_for_reply = cmd;
       return ERR_OK;
     }
 }

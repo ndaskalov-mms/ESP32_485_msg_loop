@@ -26,26 +26,26 @@
 // Master ID is always 0x0, while 0xF is reserved for broadcast message (not used so far)
 // RESULT CODES - the result code is simply the command code with MS bit set:  REPLY_OFFSET = 0x80
 // ----------------- PING -----------------------------------
-#define PING                  0x0                  // ping 
+#define PING                  0x1                  // ping 
 #define PING_PAYLD_LEN        0                    // ping message has no payload
 #define PING_RES              (PING|REPLY_OFFSET)  // ping reply code 
 #define PING_RES_PAYLD_LEN    4                    // ping payload is 4 bytes, content not defined yet
 
 // ----------------- POLL -----------------------------------
-#define POLL_ZONES            0x1 // poll the extenders for zones status
+#define POLL_ZONES            0x2 // poll the extenders for zones status
 #define POLL_PAYLD_LEN        0   // poll pmessage has no payload
 #define POLL_ZONES_RES        (POLL_ZONES|REPLY_OFFSET) // poll the extenders for zones status
 #define POLL_RES_PAYLD_LEN    6                         // poll payload is 6 bytes, 4 bytes zones (32 zones, 1 bit per zone, LSB is zone 1,
                                                         // 1 byte for outputs (8 outputs, LSB is OUT1) and 1 byte status
 
 // ----------------- SET OUTPUTS -----------------------------
-#define SET_OUTS              0x2                       // set output relay
+#define SET_OUTS              0x3                       // set output relay
 #define SET_OUTS_PAYLD_LEN    1                         // SET_OUTS payload is 1 byte, 1 byte for outputs (8 outputs, LSB is OUT1)
 #define SET_OUTS_RES          (SET_OUTS|REPLY_OFFSET)   // set output relay reply
 #define SET_OUTS_RES_PAYLD_LEN 2                        // SET_OUTS payload is 2 bytes 1 byte for outputs (8 outputs, LSB is OUT1) and 1 byte status
 
 // ----------------- FREE_CMD -----------------------------
-#define FREE_CMD             0x3                        // send free text (can be binary too)
+#define FREE_CMD             0x4                        // send free text (can be binary too)
 #define FREE_CMD_PAYLD_LEN   (MAX_PAYLOAD_SIZE)       // FREE_CMD payload is up to MAX_PAYLOAD_SIZE
 #define FREE_CMD_DATA_LEN   (MAX_PAYLOAD_SIZE-2)       // FREE_CMD payload is up to MAX_PAYLOAD_SIZE - subCmd - payload size
 #define FREE_CMD_RES         (FREE_CMD  | REPLY_OFFSET)

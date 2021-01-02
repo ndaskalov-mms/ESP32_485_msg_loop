@@ -89,7 +89,7 @@ struct ZONE ADC_BAT   = {ADC_BAT_,  1, 0, 0, 0, 0};
 // Zones  and pgms database to store data
 //   
 //
-#ifdef SLAVE
+#ifdef SLAVE  
 // Zones 1A, 2A, 3A are read with Mux = Azones (0, default); Zones 1B, 2B, 3B  are read with Mux = Bzones (1) AND if selected by jumpers
 // othervise SYSTEM VOLTAGES VzoneRef, ADC_AUX, ADC_BAT are read with  Mux = Bzones (1)
 // that means that when Bzones selected by GPIO, Zone<X>B zones will read either VzoneRef, ADC_AUX, ADC_BAT or Zone<X>B depends on jumper settings
@@ -98,7 +98,7 @@ struct ZONE SzoneDB[] =    {{Zone1_, Azones, 0, 0, 0, 0}, {Zone2_, Azones, 0, 0,
                             {Zone5_, Azones, 0, 0, 4, 0}, {Zone6_, Azones, 0, 0, 5, 0}, {Zone7_, Azones, 0, 0, 6, 0}, {Zone8_, Azones, 0, 0, 7, 0},\
                             {Zone9_, Azones, 0, 0, 8, 0}, {Zone10_,Azones, 0, 0, 9, 0}, {Zone11_,Azones, 0, 0,10, 0}, {Zone12_,Azones, 0, 0,11, 0},\
                             {Zone1A_,Azones, 0, 0,12, 0}, {Zone2A_,Azones, 0, 0,13, 0}, {Zone3A_,Azones, 0, 0,14, 0},\            
-                            {Zone1B_,Bzones, 0, 0,15, 0}, {Zone2B_,Bzones, 0, 0,16, 0}, {Zone3B_,Bzones, 0, 0,17, 0}};
+                            {Zone1B_,Bzones, 0, 0,15, 0}, {Zone2B_,Bzones, 0, 0,16, 0}, {Zone3B_,Bzones, 0, 0,17, 0}}; 
 //
 #define SLAVE_ZONES_CNT  (sizeof(SzoneDB)/sizeof(struct ZONE))
 //

@@ -3,6 +3,7 @@
 #define MASTER
 #define SLAVE
 #define LOOPBACK
+#define MAX_SLAVES 1
 
 // debug print levels
 #define DEBUG	  true
@@ -47,6 +48,8 @@ HardwareSerial& SlaveUART(Serial2);
 #include "RS485_cbacks.h"             // callbacks required by RS485 lib and UART related staff (ESP32 specific)
 #include "helpers.h"                  // include helper functions. INCLUDE ONLY AFTER SERIAL PORT DEFINITIONS!!!!
 #include "Alarm_RS485-cpp.h"          // RS485 transport implementation (library)
+//#include "alarm_logic.h"
+//
 //
 // ------------------------- global variables definition -----------------------------
 #ifdef MASTER

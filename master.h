@@ -5,11 +5,13 @@
   // are we waiting for reply? MSG_READY means good msg,ERR_OK(0) means no msg,<0 means UART error or parse err
   if (waiting_for_reply)   {                    // check for message available
     if(ERR_OK != (retCode = check4msg(MasterMsgChannel, REPLY_TIMEOUT))) {    // see what we got so far at receiver
-     	waiting_for_reply = 0;                    // we got something, either message or error
-      if(retCode != MSG_READY)								 
+      if(retCode != MSG_READY)	{				// we got something, either message or error						 
 		    ErrWrite(ERR_WARNING, "Master rcv reply error or timeout\n"); 	 // error	  
+  			waiting_for_reply = 0;                  // stop waiting in case of error
+      }
       else {
-		    masterProcessMsg(rcvMsg);             // message, process it. 
+		    masterProcessMsg(rcvMsg);               // message, process it. 
+			  waiting_for_reply = 0;                  // stop waiting after processing message
 	    }                                         // else
     }                                           // if ERR_OK
   }                                             // if (waiting)

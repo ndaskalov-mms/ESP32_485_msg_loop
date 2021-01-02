@@ -56,11 +56,13 @@ int SendMessage(RS485& trmChannel, HardwareSerial& uart, byte cmd, byte dst, byt
       ErrWrite (ERR_INV_PAYLD_LEN, "SendMessage: error composing message -  too long???\n");   // must be already reported by compose_msg
       return ERR_INV_PAYLD_LEN;
     }
-    if(cmd == FREE_CMD) 
+	/*
+    if((cmd & ~(0xF0 | REPLY_OFFSET )) == FREE_CMD) 
 	    LogMsg("SendMsg: sending message LEN = %d, CMD|DST = %x, subCMD = %x, payload len = %d, PAYLOAD: ",\
 										                     tmpLen, tmpBuf[0],   tmpBuf[1],      tmpBuf[2],    &tmpBuf[3]);	
     else
       LogMsg("SendMsg: sending message LEN = %d, CMD|DST = %x, PAYLOAD: ", tmpLen, tmpBuf[0], &tmpBuf[1]);
+	*/
     uartTrmMode(uart);                  	// switch line dir to transmit_mode;
     if(!trmChannel.sendMsg (tmpBuf, tmpLen)) { // send fail. The only error which can originate for RS485 lib in sendMsg fuction isfor missing write callback
       err = ERR_TRM_MSG;
@@ -82,10 +84,10 @@ int SendMessage(RS485& trmChannel, HardwareSerial& uart, byte cmd, byte dst, byt
 //            ERR_RS485         - error in RS485 lib (sendMsg, no write callback)
 //            ERR_OK            - Alles in ordung   
 // other:     reflects error occured in global errors struct as well         
- 
-byte SendMessage(RS485& trmChannel, HardwareSerial& uart, struct MSG msg2trm ) {
-    return (SendMessage(trmChannel, uart, msg2trm.cmd, msg2trm.dst, msg2trm.payload, msg2trm.len ));
-}
+//byte SendMessage(RS485& trmChannel, HardwareSerial& uart, struct MSG msg2trm ) {
+//    return (SendMessage(trmChannel, uart, msg2trm.cmd, msg2trm.dst, msg2trm.payload, msg2trm.len ));
+//}
+
 // parse received message
 // byte[0] CMD | DST (4 MS bits is command and lower 4 bits is destination
 // byte [1] ......... byte[MAX_MSG_LENGHT] - payload

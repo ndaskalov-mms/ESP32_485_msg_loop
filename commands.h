@@ -76,8 +76,11 @@ int j = 0; int i = 0;
 // master process messages root function. It is called when message (should be reply)  is received at master
 //
 void masterProcessMsg(struct MSG msg) {
-  if(waiting_for_reply != msg.cmd)
-	ErrWrite(ERR_WARNING, "Master: Out of order reply \n");
+  //logger.printf("cmd = %d\n", msg.cmd);
+  //logger.printf("cmd anded = %d\n", msg.cmd & ~REPLY_OFFSET);
+  //logger.printf("waiting_for_reply %d\n", waiting_for_reply); 
+  if(waiting_for_reply != (msg.cmd & ~REPLY_OFFSET))
+	  ErrWrite(ERR_WARNING, "Master: Out of order reply \n");
   switch (msg.cmd) {
     case PING_RES:
 	  ErrWrite(ERR_INFO, "Master: Unsupported reply command received PING_RES\n");
@@ -95,16 +98,15 @@ void masterProcessMsg(struct MSG msg) {
   				ErrWrite(ERR_DEBUG, "Master: reply received for FREE_TEXT_SUB_CMD: ");
           logger.printf("%s\n", msg.payload);
   				break;
-  					switch(msg.subCmd)
-  			case SET_ZONE_SUB_CMD:	
+   			case SET_ZONE_SUB_CMD:
   				ErrWrite(ERR_DEBUG, "Master: reply received for SET_ZONE_SUB_CMD: %1x\n", msg.payload[0] );
   				break;
   			default:
-  				ErrWrite(ERR_WARNING, "Master: invalid sub-command received %x\n", rcvMsg.subCmd);
+  				ErrWrite(ERR_WARNING, "Master: invalid sub-command received %x\n", msg.subCmd);
   				break;
   		  }
 		  break;
     default:
-      ErrWrite(ERR_WARNING, "Master: invalid command received %x\n", rcvMsg.cmd);
+      ErrWrite(ERR_WARNING, "Master: invalid command received %x\n", msg.cmd);
     }  // switch
 } 

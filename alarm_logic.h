@@ -23,6 +23,7 @@ void initAlarmZones() {
 			}
 		}	
 }
+
 // 
 void printAlarmZones() {
 	logger.printf("BoardID\tZoneID\tGPIO\tMUX\tUSE ZONE\n");

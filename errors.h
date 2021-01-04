@@ -140,28 +140,28 @@ int ErrWrite (int err_code, char * what)           // callback to dump info to s
 	case ERR_RS485_NO_CALLBACK:    
 	case ERR_TIMEOUT:
 	case ERR_DB_INDEX_NOT_FND:                       // TODO risk of endless loop  ???
-      index = findErrorEntry(err_code, errorsDB);
-      errorsDB[index].errorCnt++;
+    index = findErrorEntry(err_code, errorsDB);
+    errorsDB[index].errorCnt++;
 	  if(ERROR) {
-		if(SERIAL_LOG)
-			logger.printf (what);
-		if(MQTT_LOG)
-			ReportUpstream(ERROR_TOPIC, what);
-	  }
-      break;
-    default:
-      if(SERIAL_LOG) {
-		logger.printf ("-----------------Invalid error code %d received in errors handling callback\n------------------------", (int)err_code);
-		if(what)
-          logger.printf("%s\n", what);
-	  }
+		  if(SERIAL_LOG)
+			  logger.printf (what);
+		  if(MQTT_LOG)
+			  ReportUpstream(ERROR_TOPIC, what);
+      }
+    break;
+   default:
+    if(SERIAL_LOG) {
+		  logger.printf ("-----------------Invalid error code %d received in errors handling callback\n------------------------", (int)err_code);
+  		if(what)
+            logger.printf("%s\n", what);
+  	  }
       if(MQTT_LOG) {
-		char tmpBuf[256];                         
-        sprintf(tmpBuf,"Invalid err code %d rcvd in err handling callback\n", err_code);                           
-		ReportUpstream(ERROR_TOPIC,tmpBuf);
-		if(what)
+        char tmpBuf[256];                         
+        sprintf(tmpBuf,"Invalid err code %d for CMD %d rcvd in err handling callback\n", err_code, waiting_for_reply);                           
+        ReportUpstream(ERROR_TOPIC,tmpBuf);
+        if(what)
           ReportUpstream(ERROR_TOPIC, what);
-	  }
+	      }
 	  break;
   }
   return err_code;

@@ -59,6 +59,7 @@ byte tmpBuf[256];
 int setSlaveZones(struct ALARM_ZONE zone[]) {
 byte tmpBuf[FREE_CMD_DATA_LEN];
 int j = 0; int i = 0;
+//
 	for(i=0; (i<SLAVE_ZONES_CNT) && (j<FREE_CMD_DATA_LEN); i++) {
 		tmpBuf[j++] = zone[i].gpio;
 		tmpBuf[j++] = zone[i].mux;
@@ -73,12 +74,22 @@ int j = 0; int i = 0;
 	return sendFreeCmd(SET_ZONE_SUB_CMD, zone[0].boardID, j, tmpBuf);
 }	
 //
+//
+void setAlarmZones(byte pldBuf[]) {
+  for(int i=0, j=0;j<SLAVE_ZONES_CNT;j++)  {         // TODO - add check for GPIO
+    memset((void*)&SzoneDB[j], 0, sizeof(struct ZONE));
+	  SzoneDB[j].gpio = pldBuf[i++];
+	  SzoneDB[j].mux 	= pldBuf[i++];
+	  SzoneDB[j].zoneID = pldBuf[i++];
+    }
+	if(DEBUG) 
+		printZones(SzoneDB, SLAVE_ZONES_CNT);
+}
+//
 // master process messages root function. It is called when message (should be reply)  is received at master
 //
 void masterProcessMsg(struct MSG msg) {
-  //logger.printf("cmd = %d\n", msg.cmd);
-  //logger.printf("cmd anded = %d\n", msg.cmd & ~REPLY_OFFSET);
-  //logger.printf("waiting_for_reply %d\n", waiting_for_reply); 
+//
   if(waiting_for_reply != (msg.cmd & ~REPLY_OFFSET))
 	  ErrWrite(ERR_WARNING, "Master: Out of order reply \n");
   switch (msg.cmd) {
@@ -110,3 +121,90 @@ void masterProcessMsg(struct MSG msg) {
       ErrWrite(ERR_WARNING, "Master: invalid command received %x\n", msg.cmd);
     }  // switch
 } 
+
+int slaveProcessCmd(struct MSG msg) {
+//
+  for(int i =0; i< MAX_MSG_LENGHT; i++)
+    tmpMsg[i] = 0;
+  LogMsg("slaveProcessCmd: message recv: LEN = %d, CMD = %x, DST = %x, PAYLOAD: ", msg.len-1, msg.cmd, msg.dst, msg.payload);
+  switch (msg.cmd) {
+    case PING:
+    ErrWrite(ERR_INFO, "Master: Unsupported command received PING_RES\n");
+      break;
+    case POLL_ZONES:
+        ErrWrite (ERR_DEBUG,"POLL ZONES command received\n");
+        // send the zones status, stored by convertZones in SzoneResult[]
+        if(zoneInfoValid == ZONE_A_VALID | ZONE_B_VALID) {
+          if(ERR_OK != SendMessage(SlaveMsgChannel, SlaveUART, (POLL_ZONES | REPLY_OFFSET), MASTER_ADDRESS, SzoneResult, sizeof(SzoneResult)));
+            ErrWrite(ERR_TRM_MSG, "Slave: Error in sendMessage\n");
+        }
+        break;
+      break;
+    case SET_OUTS:
+      ErrWrite(ERR_INFO, "Master: Unsupported command received SET_OUTPUTS_RES\n");
+      break;
+    case FREE_CMD:
+      ErrWrite(ERR_DEBUG, "Slave: received FREE_CMD cmd: \n");
+      switch(msg.subCmd) {
+        case FREE_TEXT_SUB_CMD:
+          ErrWrite(ERR_DEBUG, "Slave: received for FREE_TEXT_SUB_CMD: ");
+          logger.printf("%s\n", msg.payload);
+          break;
+        case SET_ZONE_SUB_CMD:
+          ErrWrite(ERR_DEBUG, "Slave: received SET_ZONE_SUB_CMD\n");
+		  setAlarmZones(msg.payload);
+          tmpMsg[0] = rcvMsg.subCmd;                           // prepare reply payload, first byte  is the subcommand we are replying to 
+          tmpMsg[1]  = 1;                                      // second бъте is the payload len,  which is 1 byte
+          tmpMsg[2]  = ERR_OK;           					   // third is the aktual payload which in this cas is no error (ERR_OK)	 
+          //for(int i =0; i< MAX_MSG_LENGHT; i++)
+              //logger.printf ("%2d ", tmpMsg[i]);             // there is one byte cmd|dst
+          //logger.printf("\n");
+          if(ERR_OK != SendMessage(SlaveMsgChannel, SlaveUART, (FREE_CMD | REPLY_OFFSET), MASTER_ADDRESS, tmpMsg, FREE_CMD_PAYLD_LEN))
+            ErrWrite(ERR_TRM_MSG, "Slave: Error in sendMessage\n");
+          break;
+        default:
+          ErrWrite(ERR_WARNING, "Slave: invalid sub-command received %x\n", msg.subCmd);
+          break;
+        }
+      break;
+    default:
+      ErrWrite(ERR_WARNING, "Master: invalid command received %x\n", msg.cmd);
+    }  // switch
+}
+
+/*
+    switch (rcvMsg.cmd) {                                       // process command received
+      case PING:
+        ErrWrite (ERR_WARNING, "Unsupported cmd received PING\n");
+        break;
+      case POLL_ZONES:
+        ErrWrite (ERR_DEBUG,"POLL ZONES command received\n");
+        // send the zones status, stored by convertZones in SzoneResult[]
+        if(zoneInfoValid == ZONE_A_VALID | ZONE_B_VALID) {
+          if(ERR_OK != SendMessage(SlaveMsgChannel, SlaveUART, (POLL_ZONES | REPLY_OFFSET), MASTER_ADDRESS, SzoneResult, sizeof(SzoneResult)));
+            ErrWrite(ERR_TRM_MSG, "Slave: Error in sendMessage\n");
+        }
+        break;
+      case SET_OUTS:
+        ErrWrite (ERR_WARNING,"Unsupported cmd received SET_OUTPUTS\n");
+        break;
+      case FREE_CMD:
+        ErrWrite (ERR_INFO,"SLAVE: FREE CMD cmd received\n");
+        // return the same payload converted to uppercase
+        byte tmp_msg [MAX_PAYLOAD_SIZE];
+        for (int i=0; i < rcvMsg.dataLen; i++)
+          tmp_msg[i+2] = toupper(rcvMsg.payload[i]); 
+        tmp_msg[0] = rcvMsg.subCmd;
+        tmp_msg[1]  = rcvMsg.len;
+        //logger.printf(" ---- rcvMsg.len %d\n", rcvMsg.len);
+        //for(int i =0; i< MAX_MSG_LENGHT; i++)
+        //    logger.printf ("%2d ", tmp_msg[i]);                // there is one byte cmd|dst
+        //logger.printf("\n");
+          if(ERR_OK != SendMessage(SlaveMsgChannel, SlaveUART, (FREE_CMD | REPLY_OFFSET), MASTER_ADDRESS, tmp_msg, rcvMsg.len))
+            ErrWrite(ERR_TRM_MSG, "Slave: Error in sendMessage\n");
+          break;
+        default:
+          ErrWrite (ERR_WARNING, "Slave: invalid command received %x\n", rcvMsg.cmd);
+    }   // switch
+
+*/

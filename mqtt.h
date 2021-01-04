@@ -14,6 +14,5 @@
 
 void ReportUpstream(char * topic, char * mqtt_msg) {
 
-     logger.printf("MQTT topic %s: %s", topic, mqtt_msg);
+     logger.printf("MQTT topic %s: CMD: %d MSG %s", topic, waiting_for_reply, mqtt_msg);
 }
-

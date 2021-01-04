@@ -8,39 +8,7 @@
 	memcpy(errorsDB_backup, errorsDB, sizeof(errorsDB_backup));   // backup error DB
 	retCode = check4msg(SlaveMsgChannel, NO_TIMEOUT);             // message if available will stored in global rcvMSG variable
 	if(retCode == MSG_READY) {				                            // ERR_OK (0)- no message, ERR_RCV_MSG (<0) -parsing error, MSG_READY (1)- message present          
-		switch (rcvMsg.cmd) {                                       // process command received
-		  case PING:
-  			ErrWrite (ERR_WARNING, "Unsupported cmd received PING\n");
-  			break;
-		  case POLL_ZONES:
-  			ErrWrite (ERR_DEBUG,"POLL ZONES command received\n");
-        // send the zones status, stored by convertZones in SzoneResult[]
-        if(zoneInfoValid == ZONE_A_VALID | ZONE_B_VALID) {
-          if(ERR_OK != SendMessage(SlaveMsgChannel, SlaveUART, (POLL_ZONES | REPLY_OFFSET), MASTER_ADDRESS, SzoneResult, sizeof(SzoneResult)));
-            ErrWrite(ERR_TRM_MSG, "Slave: Error in sendMessage\n");
-        }
-  			break;
-		  case SET_OUTS:
-  			ErrWrite (ERR_WARNING,"Unsupported cmd received SET_OUTPUTS\n");
-  			break;
-		  case FREE_CMD:
-  			ErrWrite (ERR_INFO,"SLAVE: FREE TEXT cmd received\n");
-  			// return the same payload converted to uppercase
-  			byte tmp_msg [MAX_PAYLOAD_SIZE];
-  			for (int i=0; i < rcvMsg.dataLen; i++)
-  			  tmp_msg[i+2] = toupper(rcvMsg.payload[i]); 
-			tmp_msg[0] = rcvMsg.subCmd;
-			tmp_msg[1]  = rcvMsg.len;
-			//logger.printf(" ---- rcvMsg.len %d\n", rcvMsg.len);
-			//for(int i =0; i< MAX_MSG_LENGHT; i++)
-			//		logger.printf ("%2d ", tmp_msg[i]);                // there is one byte cmd|dst
-			//logger.printf("\n");
-  			if(ERR_OK != SendMessage(SlaveMsgChannel, SlaveUART, (FREE_CMD | REPLY_OFFSET), MASTER_ADDRESS, tmp_msg, rcvMsg.len))
-  			  ErrWrite(ERR_TRM_MSG, "Slave: Error in sendMessage\n");
-  			break;
-		  default:
-			  ErrWrite (ERR_WARNING, "Slave: invalid command received %x\n", rcvMsg.cmd);
-		}  	// switch
+     slaveProcessCmd(rcvMsg);
 	}		// if retCode
 	else if(retCode != ERR_OK)                 
         ErrWrite(ERR_WARNING, "Slave rcv cmd err"); 

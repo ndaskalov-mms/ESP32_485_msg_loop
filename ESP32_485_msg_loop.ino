@@ -51,6 +51,9 @@ HardwareSerial& SlaveUART(Serial2);
 #endif
 #endif
 //
+byte boardID;                         // board ID: master is 0, expanders and others up to 0xE; OxF means bradcast
+int waiting_for_reply = 0;            // tracks current state of the protocol
+//
 // include all code as it is not possible to compile project from several user .cpp files:-(
 //
 #include "mqtt.h"
@@ -69,10 +72,9 @@ byte MzoneResult[MASTER_ZONES_CNT/2 + MASTER_ZONES_CNT%2];       //each zone wil
 #ifdef SLAVE
 byte SzoneResult[SLAVE_ZONES_CNT/2 + SLAVE_ZONES_CNT%2];          //each zone will be in 4bits
 #endif
-byte boardID;                             // board ID: master is 0, expanders and others up to 0xE; OxF means bradcast
-int waiting_for_reply = 0;                // tracks current state of the protocol
 int err, retCode;                         // holds error returns from some functions                         
 struct MSG rcvMsg;                        // temp structs for message tr/rcv
+byte tmpMsg [MAX_PAYLOAD_SIZE];
 //these are channels to send/receive packets over serial if. The comm to serial is via fRead, fWrite,...
 RS485 MasterMsgChannel (MasterRead, MasterAvailable, MasterWrite, ErrWrite, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
 RS485 SlaveMsgChannel  (SlaveRead, SlaveAvailable, SlaveWrite, ErrWrite, RxBUF_SIZE);      //RS485 myChannel (read_func, available_func, write_func, msg_len);

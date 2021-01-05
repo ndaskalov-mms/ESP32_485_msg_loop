@@ -56,7 +56,6 @@ int SendMessage(RS485& trmChannel, HardwareSerial& uart, byte cmd, byte dst, byt
       ErrWrite (ERR_INV_PAYLD_LEN, "SendMessage: error composing message -  too long???\n");   // must be already reported by compose_msg
       return ERR_INV_PAYLD_LEN;
     }
-	
     if((cmd & ~(0xF0 | REPLY_OFFSET )) == FREE_CMD) 
 	    LogMsg("SendMsg: sending message LEN = %d, CMD|DST = %x, subCMD = %x, payload len = %d, PAYLOAD: ",\
 										                     tmpLen, tmpBuf[0],   tmpBuf[1],      tmpBuf[2],    &tmpBuf[3]);	
@@ -140,10 +139,12 @@ struct MSG  parse_msg(RS485& rcv_channel) {
         }
         break;
       case FREE_CMD:
-        if (--rmsg.len == FREE_CMD_PAYLD_LEN) {
-          rmsg.dataLen = tmpBuf[2];                                     // actual free cmd payload size
-          rmsg.subCmd = tmpBuf[1]; 
-          memcpy(rmsg.payload, &tmpBuf[3], rmsg.len);               // two bytes for subCmd and payload len
+        rmsg.dataLen = tmpBuf[2];                                     // actual free cmd payload size
+        rmsg.subCmd = tmpBuf[1]; 
+        logger.printf("Data len:%d\n",rmsg.dataLen);
+        logger.printf("Msg len:%d\n",rmsg.len);
+        if ((--rmsg.len == rmsg.dataLen+FREE_CMD_HDR_LEN)) {         // (rmsg.dataLen < FREE_CMD_DATA_LEN)&&
+           memcpy(rmsg.payload, &tmpBuf[FREE_CMD_HDR_LEN+1], rmsg.len);               // two bytes for subCmd and payload len
           //LogMsg("Parse_msg: FREE CMD recv: DATA LEN = %d, subCMD = %x, DST = %x, DATA: ", rmsg.len, rmsg.subCmd, rmsg.dst, rmsg.payload);
           }      
         else  {

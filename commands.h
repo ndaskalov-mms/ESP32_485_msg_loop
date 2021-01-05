@@ -13,7 +13,7 @@
 //          ERR_TRM_MSG on error while sending (payload size > max, no write callback for RS485 class, etc
 //
 int sendCmd(byte cmd, byte dst, byte * payload) {
-    int ret_code;
+    int ret_code, len;
     if (waiting_for_reply)
       return ERR_OK;                                     // TODO not sure if it is not better to return error, otherwise we can lock-up on waiting_for_repy
     int cmd_index = findCmdEntry(cmd);                   // get index into database in order to access command parameters
@@ -22,7 +22,10 @@ int sendCmd(byte cmd, byte dst, byte * payload) {
       return ERR_BAD_CMD; 
     }
     cmdDB[cmd_index].last_transmitted = millis();        // register the send time
-    if (ERR_OK != (ret_code = SendMessage(MasterMsgChannel, MasterUART, cmd, dst, payload, cmdDB[cmd_index].len))) {
+	  len = cmdDB[cmd_index].len;                          // get payload len from cmd db 
+	  if(!len) 											                       // if len == 0, the len is at index 1 of the payload (FREE CMD)
+		  len = payload[1]+FREE_CMD_HDR_LEN;								                   // sendMessage will validate it
+    if (ERR_OK != (ret_code = SendMessage(MasterMsgChannel, MasterUART, cmd, dst, payload, len))) {
       ErrWrite(ERR_TRM_MSG, "\n\nMaster: Err in sendMessage sending %d cmd\n\n", cmd);
       return ERR_TRM_MSG;
     }
@@ -45,12 +48,14 @@ int sendCmd(byte cmd, byte dst, byte * payload) {
 int sendFreeCmd(byte subCmd, byte dst, byte payloadLen, byte * payload) {
 byte tmpBuf[256];
 //
-	if(payloadLen > FREE_CMD_PAYLD_LEN)					// check payload size
-	  payloadLen = FREE_CMD_PAYLD_LEN;					// if too long, trunkate, sendCmd will issue error later
+	if(payloadLen > FREE_CMD_DATA_LEN)	 {				// check payload size
+		ErrWrite (ERR_INV_PAYLD_LEN, "SendFreeCmd: error sending message -  too long???\n");   // must be already reported by compose_msg
+		return ERR_INV_PAYLD_LEN;
+		}
 	tmpBuf[0] = subCmd;										      // prepare the message payload, first byte is the subCmd,
 	tmpBuf[1] = payloadLen;									    //  followed by actual payload len
 	for (int i =0; i<payloadLen; i++) 					// and payload
-		tmpBuf[i+2] = payload[i];
+		tmpBuf[i+FREE_CMD_HDR_LEN] = payload[i];
 	return sendCmd(FREE_CMD, dst, tmpBuf);
 }
 //
@@ -71,6 +76,7 @@ int j = 0; int i = 0;
 				  logger.printf ("%d %d %d   ", tmpBuf[i], tmpBuf[i+1], tmpBuf[i+2]);
 			logger.printf("\n");
 			}
+	logger.printf("setSlaveZones data len: %d\n", j);
 	return sendFreeCmd(SET_ZONE_SUB_CMD, zone[0].boardID, j, tmpBuf);
 }	
 //
@@ -171,40 +177,3 @@ int slaveProcessCmd(struct MSG msg) {
       ErrWrite(ERR_WARNING, "Master: invalid command received %x\n", msg.cmd);
     }  // switch
 }
-
-/*
-    switch (rcvMsg.cmd) {                                       // process command received
-      case PING:
-        ErrWrite (ERR_WARNING, "Unsupported cmd received PING\n");
-        break;
-      case POLL_ZONES:
-        ErrWrite (ERR_DEBUG,"POLL ZONES command received\n");
-        // send the zones status, stored by convertZones in SzoneResult[]
-        if(zoneInfoValid == ZONE_A_VALID | ZONE_B_VALID) {
-          if(ERR_OK != SendMessage(SlaveMsgChannel, SlaveUART, (POLL_ZONES | REPLY_OFFSET), MASTER_ADDRESS, SzoneResult, sizeof(SzoneResult)));
-            ErrWrite(ERR_TRM_MSG, "Slave: Error in sendMessage\n");
-        }
-        break;
-      case SET_OUTS:
-        ErrWrite (ERR_WARNING,"Unsupported cmd received SET_OUTPUTS\n");
-        break;
-      case FREE_CMD:
-        ErrWrite (ERR_INFO,"SLAVE: FREE CMD cmd received\n");
-        // return the same payload converted to uppercase
-        byte tmp_msg [MAX_PAYLOAD_SIZE];
-        for (int i=0; i < rcvMsg.dataLen; i++)
-          tmp_msg[i+2] = toupper(rcvMsg.payload[i]); 
-        tmp_msg[0] = rcvMsg.subCmd;
-        tmp_msg[1]  = rcvMsg.len;
-        //logger.printf(" ---- rcvMsg.len %d\n", rcvMsg.len);
-        //for(int i =0; i< MAX_MSG_LENGHT; i++)
-        //    logger.printf ("%2d ", tmp_msg[i]);                // there is one byte cmd|dst
-        //logger.printf("\n");
-          if(ERR_OK != SendMessage(SlaveMsgChannel, SlaveUART, (FREE_CMD | REPLY_OFFSET), MASTER_ADDRESS, tmp_msg, rcvMsg.len))
-            ErrWrite(ERR_TRM_MSG, "Slave: Error in sendMessage\n");
-          break;
-        default:
-          ErrWrite (ERR_WARNING, "Slave: invalid command received %x\n", rcvMsg.cmd);
-    }   // switch
-
-*/

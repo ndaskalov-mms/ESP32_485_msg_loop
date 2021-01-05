@@ -48,6 +48,7 @@
 #define FREE_CMD             0x4                        // send free text (can be binary too)
 #define FREE_CMD_PAYLD_LEN   (MAX_PAYLOAD_SIZE)       // FREE_CMD payload is up to MAX_PAYLOAD_SIZE
 #define FREE_CMD_DATA_LEN   (MAX_PAYLOAD_SIZE-2)       // FREE_CMD payload is up to MAX_PAYLOAD_SIZE - subCmd - payload size
+#define FREE_CMD_HDR_LEN    2                         // one byte subcmd + one byte data len
 #define FREE_CMD_RES         (FREE_CMD  | REPLY_OFFSET)
 #define FREE_CMD_RES_PAYLD_LEN MAX_PAYLOAD_SIZE         // FREE_CMD_RES payload is up to MAX_PAYLOAD_SIZE
 // free cmd sub-commands
@@ -69,7 +70,7 @@ struct COMMAND {
 // commands database to look-up command params and store temporary data (like last transmition time)
 // 
 struct COMMAND cmdDB[] = {{PING, PING_PAYLD_LEN,  0}, {POLL_ZONES, POLL_PAYLD_LEN, 0}, {SET_OUTS, SET_OUTS_PAYLD_LEN, 0}, \
-                          {FREE_CMD, FREE_CMD_PAYLD_LEN,  0}} ;
+                          {FREE_CMD, 0,  0}} ;  // len 0 means the len of the payload will determine the message len
 
 struct MSG {
   byte cmd;

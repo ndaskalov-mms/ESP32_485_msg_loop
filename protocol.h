@@ -58,9 +58,9 @@ int SendMessage(RS485& trmChannel, HardwareSerial& uart, byte cmd, byte dst, byt
     }
     if((cmd & ~(0xF0 | REPLY_OFFSET )) == FREE_CMD) 
 	    LogMsg("SendMsg: sending message LEN = %d, CMD|DST = %x, subCMD = %x, payload len = %d, PAYLOAD: ",\
-										                     tmpLen, tmpBuf[0],   tmpBuf[1],      tmpBuf[2],    &tmpBuf[3]);	
+										                     tmpLen, tmpBuf[CMD_OFFSET], tmpBuf[PAYLOAD_OFFSET+FREE_CMD_SUB_CMD_OFFSET], tmpBuf[PAYLOAD_OFFSET+FREE_CMD_DATA_LEN_OFFSET], &tmpBuf[PAYLOAD_OFFSET+FREE_CMD_DATA_OFFSET]);	
     else
-      LogMsg("SendMsg: sending message LEN = %d, CMD|DST = %x, PAYLOAD: ", tmpLen, tmpBuf[0], &tmpBuf[1]);
+      LogMsg("SendMsg: sending message LEN = %d, CMD|DST = %x, PAYLOAD: ", tmpLen, tmpBuf[CMD_OFFSET], &tmpBuf[PAYLOAD_OFFSET]);
 	
     uartTrmMode(uart);                  	// switch line dir to transmit_mode;
     if(!trmChannel.sendMsg (tmpBuf, tmpLen)) { // send fail. The only error which can originate for RS485 lib in sendMsg fuction isfor missing write callback
@@ -104,16 +104,17 @@ struct MSG  parse_msg(RS485& rcv_channel) {
       ErrWrite(ERR_INV_PAYLD_LEN, "Parse_msg: error payload len: %d exceeds buffer size\n",rmsg.len );                      
       return rmsg;                                        // error, no command code in message
     } 
-    memcpy (tmpBuf, rcv_channel.getData (), rmsg.len);     // copy message in temp buf
-    //LogMsg("Parse_msg: message recv: LEN = %d, CMD|DST = %x, PAYLOAD: ", rmsg.len-1, tmpBuf[0], &tmpBuf[1]);
+    memcpy (tmpBuf, rcv_channel.getData (), rmsg.len);    // copy message in temp buf
+    LogMsg("Parse_msg: message recv: TOTAL LEN = %d, CMD|DST = %x, PAYLOAD: ", rmsg.len, tmpBuf[CMD_OFFSET], &tmpBuf[PAYLOAD_OFFSET]);
     // extract command and destination
-    rmsg.cmd = ((tmpBuf[0] >> 4) & 0x0F);                  // cmd is hihg nibble
-    rmsg.dst = tmpBuf[0] & 0x0F;                           // destination is low nibble
-    //LogMsg("Parse_msg: message recv: LEN = %d, CMD = %x, DST = %x, PAYLOAD: ", rmsg.len-1, rmsg.cmd, rmsg.dst, &tmpBuf[1]);
-    switch (rmsg.cmd & ~(0xF0 | REPLY_OFFSET )) {          // check for valid commands and replies. clear reply bit to facilitate test
+    rmsg.cmd = ((tmpBuf[CMD_OFFSET] >> 4) & 0x0F);        // cmd is hihg nibble
+    rmsg.dst = tmpBuf[CMD_OFFSET] & 0x0F;                 // destination is low nibble
+    rmsg.dataLen = rmsg.len-1;                            // account for command|dst code
+    LogMsg("Parse_msg: message recv: PAYLOAD LEN = %d, CMD = %x, DST = %x, PAYLOAD: ", rmsg.dataLen, rmsg.cmd, rmsg.dst, &tmpBuf[PAYLOAD_OFFSET]);
+    switch (rmsg.cmd & ~(0xF0 | REPLY_OFFSET )) {         // check for valid commands and replies. clear reply bit to facilitate test
       case PING:
-        if (--rmsg.len == PING_PAYLD_LEN)
-          memcpy(rmsg.payload, &tmpBuf[1], rmsg.len);
+        if (rmsg.dataLen == PING_PAYLD_LEN)
+          memcpy(rmsg.payload, &tmpBuf[PAYLOAD_OFFSET], rmsg.len);
         else {
           rmsg.parse_err = ERR_INV_PAYLD_LEN;
           ErrWrite(rmsg.parse_err, "Parse message: invalid payload len for PING msg received\n");
@@ -121,8 +122,8 @@ struct MSG  parse_msg(RS485& rcv_channel) {
         }
         break;
       case POLL_ZONES:
-        if (--rmsg.len == POLL_PAYLD_LEN)
-          memcpy(rmsg.payload, &tmpBuf[1], rmsg.len);
+        if (rmsg.dataLen == POLL_PAYLD_LEN)
+          memcpy(rmsg.payload, &tmpBuf[PAYLOAD_OFFSET], rmsg.len);
         else { 
           rmsg.parse_err = ERR_INV_PAYLD_LEN;
           ErrWrite(rmsg.parse_err, "Parse message: invalid payload len for POLL_ZONES msg received\n");
@@ -130,8 +131,8 @@ struct MSG  parse_msg(RS485& rcv_channel) {
         }
         break;
       case SET_OUTS:
-        if (--rmsg.len == SET_OUTS_PAYLD_LEN)
-          memcpy(rmsg.payload, &tmpBuf[1], rmsg.len);
+        if (rmsg.dataLen == SET_OUTS_PAYLD_LEN)
+          memcpy(rmsg.payload, &tmpBuf[PAYLOAD_OFFSET], rmsg.len);
         else { 
           rmsg.parse_err = ERR_INV_PAYLD_LEN;
           ErrWrite(rmsg.parse_err, "Parse message: invalid payload len for SET_OUTS msg received\n");
@@ -139,13 +140,11 @@ struct MSG  parse_msg(RS485& rcv_channel) {
         }
         break;
       case FREE_CMD:
-        rmsg.dataLen = tmpBuf[2];                                     // actual free cmd payload size
-        rmsg.subCmd = tmpBuf[1]; 
-        logger.printf("Data len:%d\n",rmsg.dataLen);
-        logger.printf("Msg len:%d\n",rmsg.len);
-        if ((--rmsg.len == rmsg.dataLen+FREE_CMD_HDR_LEN)) {         // (rmsg.dataLen < FREE_CMD_DATA_LEN)&&
-           memcpy(rmsg.payload, &tmpBuf[FREE_CMD_HDR_LEN+1], rmsg.len);               // two bytes for subCmd and payload len
-          //LogMsg("Parse_msg: FREE CMD recv: DATA LEN = %d, subCMD = %x, DST = %x, DATA: ", rmsg.len, rmsg.subCmd, rmsg.dst, rmsg.payload);
+        rmsg.dataLen = tmpBuf[PAYLOAD_OFFSET+FREE_CMD_DATA_LEN_OFFSET];                 // actual free cmd payload size
+        rmsg.subCmd = tmpBuf[PAYLOAD_OFFSET+FREE_CMD_SUB_CMD_OFFSET]; 
+        if ((rmsg.len == rmsg.dataLen+FREE_CMD_HDR_LEN+1)) {                            // accound for cmd|dst byte  TODO check for overflow (rmsg.dataLen < FREE_CMD_DATA_LEN)&&
+           memcpy(rmsg.payload, &tmpBuf[PAYLOAD_OFFSET+FREE_CMD_HDR_LEN], rmsg.dataLen);// two bytes for subCmd and payload len
+          LogMsg("Parse_msg: FREE CMD recv: Total LEN: %d, CMD: %2x, DST = %x, subCMD = %2x, DATA LEN %d, DATA: ", rmsg.len, rmsg.cmd, rmsg.dst, rmsg.subCmd,  rmsg.dataLen, rmsg.payload);
           }      
         else  {
           rmsg.parse_err = ERR_INV_PAYLD_LEN;
@@ -156,7 +155,7 @@ struct MSG  parse_msg(RS485& rcv_channel) {
       default:
         rmsg.parse_err = ERR_BAD_CMD;
         ErrWrite(ERR_BAD_CMD, "parse_msg error bad command %x received\n",rmsg.cmd ); 
-        return rmsg;        // error, no command code in message;   
+        return rmsg;                                                                    // error, no command code in message;   
     }  // switch
     return rmsg;
 }
@@ -194,10 +193,10 @@ int check4msg(RS485& Channel, unsigned long timeout) {
 	}
 	// check if the destination 
 	if(rcvMsg.dst != boardID)           		        // check if the destination is another board
-		return ERR_OK;                                // yes, do nothing
+		return ERR_OK;                                // not for us, yes, do nothing
 	// we got message for us
-	LogMsg ("Received MSG: LEN = %d, CMD = %x, DST = %x, PAYLOAD: ",rcvMsg.len,rcvMsg.cmd,rcvMsg.dst, rcvMsg.payload);
-	return MSG_READY;								                // have message
+	else
+		return MSG_READY;								                // have message
 } // check4msg
 
 

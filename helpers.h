@@ -26,6 +26,8 @@
 // Master ID is always 0x0, while 0xF is reserved for broadcast message (not used so far)
 // RESULT CODES - the result code is simply the command code with MS bit set:  REPLY_OFFSET = 0x80
 // ----------------- PING -----------------------------------
+#define PAYLOAD_OFFSET		  1
+#define CMD_OFFSET			  0
 #define PING                  0x1                  // ping 
 #define PING_PAYLD_LEN        0                    // ping message has no payload
 #define PING_RES              (PING|REPLY_OFFSET)  // ping reply code 
@@ -49,6 +51,9 @@
 #define FREE_CMD_PAYLD_LEN   (MAX_PAYLOAD_SIZE)       // FREE_CMD payload is up to MAX_PAYLOAD_SIZE
 #define FREE_CMD_DATA_LEN   (MAX_PAYLOAD_SIZE-2)       // FREE_CMD payload is up to MAX_PAYLOAD_SIZE - subCmd - payload size
 #define FREE_CMD_HDR_LEN    2                         // one byte subcmd + one byte data len
+#define FREE_CMD_SUB_CMD_OFFSET		0
+#define FREE_CMD_DATA_LEN_OFFSET	1
+#define  FREE_CMD_DATA_OFFSET		2
 #define FREE_CMD_RES         (FREE_CMD  | REPLY_OFFSET)
 #define FREE_CMD_RES_PAYLD_LEN MAX_PAYLOAD_SIZE         // FREE_CMD_RES payload is up to MAX_PAYLOAD_SIZE
 // free cmd sub-commands
@@ -87,8 +92,8 @@ void LogMsg(char *formatStr, int len, byte cmd_dst, byte *payload) {
 	if(!DEBUG)
 		return;
   logger.printf(formatStr, len, cmd_dst);
-  for(int i =0; i< len; i++)
-    logger.printf ("%2x ", payload[i]);                // there is one byte cmd|dst
+  for(int i =0; i< len-1; i++)
+    logger.printf ("%d ", payload[i]);                // there is one byte cmd|dst
   logger.println();
 }
 

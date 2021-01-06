@@ -24,7 +24,7 @@ int sendCmd(byte cmd, byte dst, byte * payload) {
     cmdDB[cmd_index].last_transmitted = millis();        // register the send time
 	  len = cmdDB[cmd_index].len;                          // get payload len from cmd db 
 	  if(!len) 											                       // if len == 0, the len is at index 1 of the payload (FREE CMD)
-		  len = payload[1]+FREE_CMD_HDR_LEN;								                   // sendMessage will validate it
+		  len = payload[FREE_CMD_DATA_LEN_OFFSET]+FREE_CMD_HDR_LEN;								                   // sendMessage will validate it
     if (ERR_OK != (ret_code = SendMessage(MasterMsgChannel, MasterUART, cmd, dst, payload, len))) {
       ErrWrite(ERR_TRM_MSG, "\n\nMaster: Err in sendMessage sending %d cmd\n\n", cmd);
       return ERR_TRM_MSG;
@@ -52,8 +52,8 @@ byte tmpBuf[256];
 		ErrWrite (ERR_INV_PAYLD_LEN, "SendFreeCmd: error sending message -  too long???\n");   // must be already reported by compose_msg
 		return ERR_INV_PAYLD_LEN;
 		}
-	tmpBuf[0] = subCmd;										      // prepare the message payload, first byte is the subCmd,
-	tmpBuf[1] = payloadLen;									    //  followed by actual payload len
+	tmpBuf[FREE_CMD_SUB_CMD_OFFSET] = subCmd;										      // prepare the message payload, first byte is the subCmd,
+	tmpBuf[FREE_CMD_DATA_LEN_OFFSET] = payloadLen;									    //  followed by actual payload len
 	for (int i =0; i<payloadLen; i++) 					// and payload
 		tmpBuf[i+FREE_CMD_HDR_LEN] = payload[i];
 	return sendCmd(FREE_CMD, dst, tmpBuf);
@@ -130,9 +130,11 @@ void masterProcessMsg(struct MSG msg) {
 
 int slaveProcessCmd(struct MSG msg) {
 //
-  for(int i =0; i< MAX_MSG_LENGHT; i++)
+int i;
+  for(i =0; i< MAX_MSG_LENGHT; i++)
     tmpMsg[i] = 0;
-  LogMsg("slaveProcessCmd: message recv: LEN = %d, CMD = %x, DST = %x, PAYLOAD: ", msg.len-1, msg.cmd, msg.dst, msg.payload);
+  LogMsg("slaveProcessCmd: message recv: DATA LEN = %d, CMD = %x, DST = %x, PAYLOAD: ", msg.dataLen, msg.cmd, msg.dst, msg.payload);
+  LogMsg("Parse_msg: FREE CMD recv: Total LEN: %d, CMD: %2x, DST = %x, subCMD = %2x, DATA LEN %d, DATA: ", rmsg.len, rmsg.cmd, rmsg.dst, rmsg.subCmd,  rmsg.dataLen, rmsg.payload);
   switch (msg.cmd) {
     case PING:
     ErrWrite(ERR_INFO, "Master: Unsupported command received PING_RES\n");
@@ -158,14 +160,15 @@ int slaveProcessCmd(struct MSG msg) {
           break;
         case SET_ZONE_SUB_CMD:
           ErrWrite(ERR_DEBUG, "Slave: received SET_ZONE_SUB_CMD\n");
-		  setAlarmZones(msg.payload);
-          tmpMsg[0] = rcvMsg.subCmd;                           // prepare reply payload, first byte  is the subcommand we are replying to 
-          tmpMsg[1]  = 1;                                      // second бъте is the payload len,  which is 1 byte
-          tmpMsg[2]  = ERR_OK;           					   // third is the aktual payload which in this cas is no error (ERR_OK)	 
+		      setAlarmZones(msg.payload);
+          i = 0;
+          tmpMsg[i++] = rcvMsg.subCmd;                           // prepare reply payload, first byte  is the subcommand we are replying to 
+          tmpMsg[i++]  = 1;                                      // second бъте is the payload len,  which is 1 byte
+          tmpMsg[i++]  = ERR_OK;           					   // third is the aktual payload which in this cas is no error (ERR_OK)	 
           //for(int i =0; i< MAX_MSG_LENGHT; i++)
               //logger.printf ("%2d ", tmpMsg[i]);             // there is one byte cmd|dst
           //logger.printf("\n");
-          if(ERR_OK != SendMessage(SlaveMsgChannel, SlaveUART, (FREE_CMD | REPLY_OFFSET), MASTER_ADDRESS, tmpMsg, FREE_CMD_PAYLD_LEN))
+          if(ERR_OK != SendMessage(SlaveMsgChannel, SlaveUART, (FREE_CMD | REPLY_OFFSET), MASTER_ADDRESS, tmpMsg, i))
             ErrWrite(ERR_TRM_MSG, "Slave: Error in sendMessage\n");
           break;
         default:

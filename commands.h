@@ -80,13 +80,13 @@ byte cmdCode=0;
 }	
 //
 // extracts and sets to remote slave board zones params - GPIO, mux, zone number (zoneID)
-// params: zone[] - array of ALARM_ZONE structs, containing zones info (including boardID)
-//                  note: boardID of zone[0] will be used for all zones setting, as it is supposed that all zones belong to the same board
-//                  command payload is set of SLAVE_ZONES_CNT triplets, each one containing (Zone GPIO, MUX, ZoneID)
+// params: zone[] - array of ALARM_ZONE structs, containing zones info 
+//		   dst	-   slave board ID
+// command payload is set of SLAVE_ZONES_CNT triplets, each one containing (Zone GPIO, MUX, ZoneID)
 // returns: see sendFreeCmd() for return codes
 // 
 //
-int setSlaveZones(struct ALARM_ZONE zone[]) {
+int setSlaveZones(struct ALARM_ZONE zone[], int dst) {
 int j = 0; int i = 0;
 //
 	for(i=0; (i<SLAVE_ZONES_CNT) && (j<FREE_CMD_DATA_LEN); i++) {   // extract current zone info from zone array
@@ -101,7 +101,32 @@ int j = 0; int i = 0;
 			logger.printf("\n");
 			logger.printf("setSlaveZones data len: %d\n", j);
 			}
-	return sendFreeCmd(SET_ZONE_SUB_CMD, zone[0].boardID, j, tmpMsg);
+	return sendFreeCmd(SET_ZONE_SUB_CMD, dst, j, tmpMsg);
+}	
+//
+// extracts and sets to remote slave board zones params - GPIO, mux, zone number (zoneID)
+// params: pgm[] - array of PGM structs, containing PGMs info 
+//		   dst	-   slave board ID
+// command payload is set of SLAVE_ZONES_CNT triplets, each one containing (Zone GPIO, MUX, ZoneID)
+// returns: see sendFreeCmd() for return codes
+// 
+//
+int setSlavePGMs(struct PGM pgm[], int dst) {
+int j = 0; int i = 0;
+//
+	for(i=0; (i<SLAVE_PGM_CNT) && (j<FREE_CMD_DATA_LEN); i++) {   // extract current PGM info from all pgms array
+		tmpMsg[j++] = pgm[i].gpio;                                   // and put in payload
+		tmpMsg[j++] = pgm[i].rNum;
+		tmpMsg[j++] = pgm[i].iValue;
+		}
+	if(DEBUG) {                                                     // debug print
+			logger.printf ("PGM set data: GPIO:\tID:\tinit value:\n");
+		    for (i = 0; i <  j; i+=3)                                 // iterate
+				  logger.printf ("%d %d %d   ", tmpMsg[i], tmpMsg[i+1], tmpMsg[i+2]);
+			logger.printf("\n");
+			logger.printf("setSlavePGMs data len: %d\n", j);
+			}
+	return sendFreeCmd(SET_PGM_SUB_CMD, dst, j, tmpMsg);
 }	
 //
 // master process messages root function. It is called when message (should be reply)  is received at master
@@ -130,10 +155,10 @@ void masterProcessMsg(struct MSG msg) {
                 logger.printf("%s\n", msg.payload);
   				break;
    			case SET_ZONE_SUB_CMD:
-  				ErrWrite(ERR_DEBUG, "Master: reply received for SET_ZONE_SUB_CMD: %1x\n", msg.payload[0] );
+  				ErrWrite(ERR_DEBUG, "Master: reply received for SET_ZONE_SUB_CMD: \n");
   				break;
 			case GET_ZONE_SUB_CMD:
-  				ErrWrite(ERR_DEBUG, "Master: reply received for GET_ZONE_SUB_CMD: %1x\n", msg.payload[0] );
+  				ErrWrite(ERR_DEBUG, "Master: reply received for GET_ZONE_SUB_CMD: \n");
   				break;
   			default:
   				ErrWrite(ERR_WARNING, "Master: invalid sub-command received %x\n", msg.subCmd);
@@ -169,7 +194,7 @@ int j = FREE_CMD_DATA_OFFSET; int i = 0;						// index where to put the payload,
 		for (i = FREE_CMD_DATA_OFFSET; i <  j; i+=3)                                 // iterate
 			logger.printf ("%d %d %d   ", tmpMsg[i], tmpMsg[i+1], tmpMsg[i+2]);
 		logger.printf("\n");
-		logger.printf("setSlaveZones data len: %d\n", j);
+		logger.printf("returnSlaveZones data len: %d\n", j);
 		}
 		return SendMessage(SlaveMsgChannel, SlaveUART, (FREE_CMD | REPLY_OFFSET), MASTER_ADDRESS, tmpMsg, j); // one byte payload only
 }	
@@ -195,6 +220,7 @@ void setAlarmZones(byte pldBuf[]) {
 // params: int err - error code to be returned
 // returns: see sendFreeCmd() for return codes
 // uses global tmpMsg[]
+// not used so far. Currently as reply all zones data are send - see returnSlaveZones
 //
 int replySetAlarmZones(int err) {
 	tmpMsg[FREE_CMD_SUB_CMD_OFFSET] = SET_ZONE_SUB_CMD;       // prepare reply payload, first byte  is the subcommand we are replying to 
@@ -218,6 +244,48 @@ int ret;
        if(zoneInfoValid == ZONE_A_VALID | ZONE_B_VALID) 				// check if all zones are read already, if not does not reply
           return SendMessage(SlaveMsgChannel, SlaveUART, (POLL_ZONES | REPLY_OFFSET), MASTER_ADDRESS, zoneResultArr, len);
 }
+//
+// extract and stores the pgm params from received command in local pgm DB
+// params: byte pldBuf[] - the payload of received SET_PGM_SUB_CMD 
+//         payload is set of SLAVE_PGM_CNT triplets, each one containing (PGM GPIO, ID (rNum), iValue) 
+// returns: none
+// TODO: - add check for GPIO
+//
+void setAlarmPgms(byte pldBuf[]) {
+  for(int i=0, j=0;j<SLAVE_PGM_CNT;j++)  {         // TODO - add check for GPIO
+    memset((void*)&SpgmDB[j], 0, sizeof(struct PGM));
+    SpgmDB[j].gpio = pldBuf[i++];
+    SpgmDB[j].rNum  = pldBuf[i++];
+    SpgmDB[j].iValue = pldBuf[i++];
+    }
+  if(DEBUG) 
+	  printPGMs(SpgmDB, SLAVE_PGM_CNT);
+}
+//
+// sends to master slave board pgm params - GPIO, rNum (ID), initial value (iValue)
+// params: pgm[] - array of PGM structs, containing PGMs info 
+//                  reply payload is set of SLAVE_PGM_CNT triplets, each one containing (PGM GPIO, rNum, iValue)
+// returns: see sendFreeCmd() for return codes
+// 
+int returnSlavePGMs(struct PGM pgm[]) {
+int j = FREE_CMD_DATA_OFFSET; int i = 0;						// index where to put the payload, spare some room for header
+//															  	// use global tmpMsg
+	tmpMsg[FREE_CMD_SUB_CMD_OFFSET] = GET_PGM_SUB_CMD;       	// prepare reply payload, first byte  is the subcommand we are replying to 
+	for(i=0; (i<SLAVE_PGM_CNT) && (j<FREE_CMD_DATA_LEN); i++) { // extract current zone info from zone array
+		tmpMsg[j++] = pgm[i].gpio;                             // and put in payload
+		tmpMsg[j++] = pgm[i].rNum;
+		tmpMsg[j++] = pgm[i].iValue;
+		}
+	tmpMsg[FREE_CMD_DATA_LEN_OFFSET]  = j-FREE_CMD_DATA_OFFSET;   // recalc actual paylaod len
+	if(DEBUG) {                                                     // debug print
+		logger.printf ("PGM get data:  GPIO:\trNum:\tiValue:\n");
+		for (i = FREE_CMD_DATA_OFFSET; i <  j; i+=3)                                 // iterate
+			logger.printf ("%d %d %d   ", tmpMsg[i], tmpMsg[i+1], tmpMsg[i+2]);
+		logger.printf("\n");
+		logger.printf("returnSlavePGMs data len: %d\n", j);
+		}
+		return SendMessage(SlaveMsgChannel, SlaveUART, (FREE_CMD | REPLY_OFFSET), MASTER_ADDRESS, tmpMsg, j); // one byte payload only
+}	
 //
 // slave process messages root function. It is called when message is received at slave
 // patrams: struct MSG msg - contains received message attributes

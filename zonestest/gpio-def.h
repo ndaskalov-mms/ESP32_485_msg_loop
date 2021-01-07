@@ -78,7 +78,7 @@ struct ZONE {
   byte  zoneID;                 // the number of zone by which the master will identify it. Zero based. Each ADC gpio produces one zone, but with two results
   byte  zoneABstat;             // encodded status of the A and B parts of the zone
 };                              
-
+#ifdef SLAVE
 //                                     
 // some important voltages - gpio, mux,  accValue,  mvValue, zoneID, zoneABstat
 struct ZONE VzoneRef   = {VzoneRef_, 1, 0, 0, 0, 0};
@@ -105,6 +105,8 @@ struct ZONE SzoneDB[] =    {{Zone1_, Azones, 0, 0, 0, 0}, {Zone2_, Azones, 0, 0,
 struct PGM SpgmDB[] =          {{PGM1_, 1, HIGH, 0}, {PGM2_, 2, HIGH, 0}};
 //
 #define SLAVE_PGM_CNT (sizeof(SpgmDB)/sizeof(struct PGM))
+#endif
+#ifdef MASTER
 //
 // Master zones and PGMs definitions
 // Zones 1A, 2A, 3A are read with Mux = Azones (0, default); Zones 1B, 2B, 3B  are read with Mux = Bzones (1) AND if selected by jumpers
@@ -128,7 +130,7 @@ struct PGM MpgmDB[] =         {{PGM1_, 1, HIGH, 0}, {PGM2_, 2, HIGH, 0},\
 //
 //
 //
-#ifdef MASTER
+
 //
 // alarm zones records structure to hold all alarm zones related info
 //
@@ -147,7 +149,9 @@ struct ALARM_ZONE {
 // TODO - use prep to get largest zone count
 //
 #define RECORD_ZONES_CNT (SLAVE_ZONES_CNT) // master has less zones than slave, so use SLAVE_ZONES_CNT to calc the storage for all boards incl. master
+#define RECORD_PGM_CNT (MASTER_PGM_CNT)    // slave has less pgms but to keep staff uniform use MASTER_PGM_CNT
 //
 // organized as 2D array. Contains data for all boards and zones in each board, incl. master
 struct ALARM_ZONE zonesDB[MAX_SLAVES+1][RECORD_ZONES_CNT];		// typically master has fewer zones than slave, so we use the largest denominator
+struct PGM pgmDB[MAX_SLAVES+1][RECORD_PGM_CNT];		// typically master has fewer zones than slave, so we use the largest denominator
 #endif

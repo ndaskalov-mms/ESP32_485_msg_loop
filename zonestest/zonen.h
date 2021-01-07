@@ -131,12 +131,22 @@ float convert2mV (unsigned long adcVal) {
 }
 //
 //  print single zone data
-//  parms: struct ZONE DB[]  - (pointer ???) to array of ZONE  containing the zones to be read and converted
+//  parms: struct ZONE DB[]  - (pointer ???) to array of ZONE  containing the zones to be printed
 //
 void printZones(struct ZONE DB[], int zones_cnt) { 
     int i; 
     for (i = 0; i <  zones_cnt; i++) {                        // iterate
        logger.printf ("Zone data: Zone ID: %d: GPIO: %2d: \tAvg ADC Value: %lu\tAvg mV val: %4.3f mV;\tZoneABstat: %x\n", DB[i].zoneID, DB[i].gpio, DB[i].accValue, DB[i].mvValue, DB[i].zoneABstat );
+    }
+}
+//
+//  print single PGM data
+//  parms: struct PGM DB[]  - (pointer ???) to array of PGM  containing the pgm to be printed
+//
+void printPGMs(struct PGM DB[], int pgm_cnt) { 
+    int i; 
+    for (i = 0; i <  pgm_cnt; i++) {                        // iterate
+       logger.printf ("PGM data: PGM ID: %d: GPIO: %2d: \tAvg init val: %d\tcur val: %d;x\n", DB[i].rNum, DB[i].gpio, DB[i].iValue, DB[i].cValue);
     }
 }
 //

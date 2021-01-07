@@ -52,27 +52,42 @@ byte tmpBuf[256];
 		ErrWrite (ERR_INV_PAYLD_LEN, "SendFreeCmd: error sending message -  too long???\n");   // must be already reported by compose_msg
 		return ERR_INV_PAYLD_LEN;
 		}
-	tmpBuf[FREE_CMD_SUB_CMD_OFFSET] = subCmd;										      // prepare the message payload, first byte is the subCmd,
-	tmpBuf[FREE_CMD_DATA_LEN_OFFSET] = payloadLen;									    //  followed by actual payload len
-	for (int i =0; i<payloadLen; i++) 					// and payload
+	tmpBuf[FREE_CMD_SUB_CMD_OFFSET] = subCmd;										  // prepare the message payload, first byte is the subCmd,
+	tmpBuf[FREE_CMD_DATA_LEN_OFFSET] = payloadLen;								//  followed by actual payload len
+	for (int i =0; i<payloadLen; i++) 					                  // and payload
 		tmpBuf[i+FREE_CMD_HDR_LEN] = payload[i];
 	return sendCmd(FREE_CMD, dst, tmpBuf);
 }
 //
+// sends FREE TEXT cmd
+// params: dst - destintion
+//         dataLen - payload len to be send
+//         payload - pointer to payload buffer
+// returns: see sendFreeCmd() for return codes
+// 
+int sendFreeText(byte dst, int dataLen,  byte payload[]) {
+    return sendFreeCmd(FREE_TEXT_SUB_CMD, dst, dataLen, payload); // sendCmd handle and reports errors internally 
+}
 //
+// extracts and sets to remote slave board zones params - GPIO, mux, zone number (zoneID)
+// params: zone[] - array of ALARM_ZONE structs, containing zones info (including boardID)
+//                  note: boardID of zone[0] will be used for all zones setting, as it is supposed that all zones belong to the same board
+//                  command payload is set of SLAVE_ZONES_CNT triplets, each one containing (Zone GPIO, MUX, ZoneID)
+// returns: see sendFreeCmd() for return codes
+// 
 //
 int setSlaveZones(struct ALARM_ZONE zone[]) {
 byte tmpBuf[FREE_CMD_DATA_LEN];
 int j = 0; int i = 0;
 //
-	for(i=0; (i<SLAVE_ZONES_CNT) && (j<FREE_CMD_DATA_LEN); i++) {
-		tmpBuf[j++] = zone[i].gpio;
+	for(i=0; (i<SLAVE_ZONES_CNT) && (j<FREE_CMD_DATA_LEN); i++) {   // extract current zone info from zone array
+		tmpBuf[j++] = zone[i].gpio;                                   // and put in payload
 		tmpBuf[j++] = zone[i].mux;
 		tmpBuf[j++] = zone[i].zoneID;
 		}
-	if(DEBUG) {
+	if(DEBUG) {                                                     // debug print
 			logger.printf ("Zone set data: Zone GPIO:\tMUX:\tZoneID:\n");
-		    for (i = 0; i <  j; i+=3)                         // iterate
+		    for (i = 0; i <  j; i+=3)                                 // iterate
 				  logger.printf ("%d %d %d   ", tmpBuf[i], tmpBuf[i+1], tmpBuf[i+2]);
 			logger.printf("\n");
 			}
@@ -80,6 +95,11 @@ int j = 0; int i = 0;
 	return sendFreeCmd(SET_ZONE_SUB_CMD, zone[0].boardID, j, tmpBuf);
 }	
 //
+// extract and stores the zone params from received command in local zones DB
+// params: byte pldBuf[] - the payload of received SET_ZONE_SUB_CMD 
+//         payload is set of SLAVE_ZONES_CNT triplets, each one containing (Zone GPIO, MUX, ZoneID) 
+// returns: none
+// TODO: - add check for GPIO
 //
 void setAlarmZones(byte pldBuf[]) {
   for(int i=0, j=0;j<SLAVE_ZONES_CNT;j++)  {         // TODO - add check for GPIO
@@ -93,6 +113,8 @@ void setAlarmZones(byte pldBuf[]) {
 }
 //
 // master process messages root function. It is called when message (should be reply)  is received at master
+// patrams: struct MSG ms - contains received message attributes
+// returns: none
 //
 void masterProcessMsg(struct MSG msg) {
 //
@@ -127,7 +149,11 @@ void masterProcessMsg(struct MSG msg) {
       ErrWrite(ERR_WARNING, "Master: invalid command received %x\n", msg.cmd);
     }  // switch
 } 
-
+//
+// slave process messages root function. It is called when message is received at slave
+// patrams: struct MSG msg - contains received message attributes
+// returns: none
+//
 int slaveProcessCmd(struct MSG msg) {
 //
 int i;

@@ -134,7 +134,6 @@ int i;
   for(i =0; i< MAX_MSG_LENGHT; i++)
     tmpMsg[i] = 0;
   LogMsg("slaveProcessCmd: message recv: DATA LEN = %d, CMD = %x, DST = %x, PAYLOAD: ", msg.dataLen, msg.cmd, msg.dst, msg.payload);
-  LogMsg("Parse_msg: FREE CMD recv: Total LEN: %d, CMD: %2x, DST = %x, subCMD = %2x, DATA LEN %d, DATA: ", rmsg.len, rmsg.cmd, rmsg.dst, rmsg.subCmd,  rmsg.dataLen, rmsg.payload);
   switch (msg.cmd) {
     case PING:
     ErrWrite(ERR_INFO, "Master: Unsupported command received PING_RES\n");
@@ -161,14 +160,14 @@ int i;
         case SET_ZONE_SUB_CMD:
           ErrWrite(ERR_DEBUG, "Slave: received SET_ZONE_SUB_CMD\n");
 		      setAlarmZones(msg.payload);
-          i = 0;
-          tmpMsg[i++] = rcvMsg.subCmd;                           // prepare reply payload, first byte  is the subcommand we are replying to 
-          tmpMsg[i++]  = 1;                                      // second бъте is the payload len,  which is 1 byte
-          tmpMsg[i++]  = ERR_OK;           					   // third is the aktual payload which in this cas is no error (ERR_OK)	 
+          //i = 0;
+          tmpMsg[FREE_CMD_SUB_CMD_OFFSET] = rcvMsg.subCmd;                  // prepare reply payload, first byte  is the subcommand we are replying to 
+          tmpMsg[FREE_CMD_DATA_LEN_OFFSET]  = 1;                            // second бъте is the payload len,  which is 1 byte
+          tmpMsg[FREE_CMD_DATA_OFFSET]  = ERR_OK;           					   // third is the aktual payload which in this cas is no error (ERR_OK)	 
           //for(int i =0; i< MAX_MSG_LENGHT; i++)
               //logger.printf ("%2d ", tmpMsg[i]);             // there is one byte cmd|dst
           //logger.printf("\n");
-          if(ERR_OK != SendMessage(SlaveMsgChannel, SlaveUART, (FREE_CMD | REPLY_OFFSET), MASTER_ADDRESS, tmpMsg, i))
+          if(ERR_OK != SendMessage(SlaveMsgChannel, SlaveUART, (FREE_CMD | REPLY_OFFSET), MASTER_ADDRESS, tmpMsg, FREE_CMD_HDR_LEN+1)) // one byte payload only
             ErrWrite(ERR_TRM_MSG, "Slave: Error in sendMessage\n");
           break;
         default:

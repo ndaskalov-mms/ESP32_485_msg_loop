@@ -22,6 +22,8 @@
       //ErrWrite( ERR_INFO, ("Master MSG transmitted, receive timeout started\n"));
 	  if(ERR_OK == setSlaveZones(zonesDB[SLAVE_ADDRESS1])); // sendCmd handle and reports errors internally 
       ErrWrite( ERR_INFO, ("Master MSG transmitted, receive timeout started\n"));
+    //if(ERR_OK == getSlaveZones(SLAVE_ADDRESS1));   // sendCmd handle and reports errors internally 
+      //ErrWrite( ERR_INFO, ("Master MSG transmitted, receive timeout started\n"));
   }
   //
   // no message available for processing and it is not time to send a new one

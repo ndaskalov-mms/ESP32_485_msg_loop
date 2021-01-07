@@ -241,17 +241,9 @@ void convertZones(struct ZONE DB[], int zoneCnt, byte zoneResult[]) {
     //logger.printf("%ld: Mux A timeout started\n", millis());
     selectZones(muxState = Azones);   
     }
-  // done reading
-  // convert all zones ADC values to encodded binary value here
-/*  for (i = 0; i < zoneCnt; i++) {                          // for all zones in the array
-    for (thrIndex = 0; DB[i].mvValue > thresholds[thrIndex].tMin; thrIndex++) // look-up the input voltage  in the input voltage ranges
-      ;                                                    // keep searching while the input voltage is lower than min input voltage for the range
-    thrIndex--;                                            // correct the index to point to the exact range
-    DB[i].zoneABstat = thresholds[thrIndex].zoneABstat;    // get zones A&B status  code   
-    } */                                                   // loop over zones
   zoneVal2Code(DB, zoneCnt);                               // convert analog values to digital status
   //printZones(DB, zoneCnt);
-  // time to copy results to results array
+  //copy results to results array
   for (i=0; i < zoneCnt; i++) {                            // combine two zones in one byte, 12, 34, 56, ....
     if(!(i%2))
       zoneResult[i/2] = 0;                                 // clear results array

@@ -1,4 +1,3 @@
-
 //
 // initializes master's zoneDB with data from master's MzoneDB and SzonesDB as defined in compile time
 // zoneDB contains MAX_SLAVE+1 arrays of struct ZONE. Each array corresponds to one slave, and one is for master.

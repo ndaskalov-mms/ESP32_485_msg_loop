@@ -1,7 +1,7 @@
 //
 // command.h - implementation for commands/replies between devices
 //
-
+#ifdef MASTER
 //
 // send command and register the transmission time
 // in case of error, ErrWrite will register the err in the database and to do some global staff (like sending error over MQTT, SMTP, etc)
@@ -68,8 +68,6 @@ int sendFreeText(byte dst, int dataLen,  byte payload[]) {
     return sendFreeCmd(FREE_TEXT_SUB_CMD, dst, dataLen, payload); // sendCmd handle and reports errors internally 
 }
 //
-#ifdef MASTER
-//
 // request from remote slave board zones params - GPIO, mux, zone number (zoneID)
 // params: int dst - destination board ID 
 // returns: see sendFreeCmd() for return codes
@@ -89,7 +87,7 @@ byte cmdCode=0;
 int setSlaveZones(struct ALARM_ZONE zone[], int dst) {
 int j = 0; int i = 0;
 //
-	for(i=0; (i<MAX_ZONES_CNT) && (j<FREE_CMD_DATA_LEN); i++) {   // extract current zone info from zone array
+	for(i=0; (i<SLAVE_ZONES_CNT) && (j<FREE_CMD_DATA_LEN); i++) {   // extract current zone info from zone array
 		tmpMsg[j++] = zone[i].gpio;                                   // and put in payload
 		tmpMsg[j++] = zone[i].mux;
 		tmpMsg[j++] = zone[i].zoneID;

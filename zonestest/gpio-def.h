@@ -55,9 +55,10 @@
 #define SLAVE_PWR_CTL      GPIO23
 #define SLAVE_PWR_ON       LOW
 #define SLAVE_PWR_OFF      HIGH
+#endif
+//
 #define Azones              HIGH
 #define Bzones              LOW
-#endif
 //
 // PGM database record to store PGM outputs (relay's) parameters and status
 //
@@ -143,15 +144,12 @@ struct ALARM_ZONE {
 // zoneDB - database with all zones (master&slaves) info. Info from slaves are fetched via pul command over RS485
 // TODO - use prep to get largest zone count
 //
-#endif
-
-
-#ifdef MASTER
-#define RECORD_ZONES_CNT (MAX_ZONES_CNT) // master has less zones than slave, so use SLAVE_ZONES_CNT to calc the storage for all boards incl. master
-#define RECORD_PGM_CNT (MAX_PGM_CNT) // master has more pgms than slave, so use SLAVE_ZONES_CNT to calc the storage for all boards incl. master
 //
-// MASTER zones organized as 2D array. Contains data for all boards and zones in each board, incl. master
+// All alarm zones zones organized as 2D array - [board][zones]. Contains data for all boards and zones in each board, incl. master
+//
 struct ALARM_ZONE zonesDB[MAX_SLAVES+1][MAX_ZONES_CNT];		// typically master has fewer zones than slave, so we use the largest denominator
-// MASTER PGMs organized as 2D array.
-struct PGM pgmDB[MAX_SLAVES+1][MAX_PGM_CNT];		// typically master has more pgms than slave, so we use the largest denominator
+//
+// MASTER PGMs organized as 2D array. All pgms zones organized as 2D array - [board][pgms].
+//
+struct PGM pgmDB[MAX_SLAVES+1][MAX_PGM_CNT];		        // typically master has more pgms than slave, so we use the largest denominator
 #endif

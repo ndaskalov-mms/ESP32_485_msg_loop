@@ -1,16 +1,17 @@
-// define maximal configuration per board
-#define MAX_ZONES_CNT	18		// HW limitation, 18 on SLAVE, less on MASTER
-#define SLAVE_ZONES_CNT	18		
-#define MASTER_ZONES_CNT	12		
-#define MAX_PGM_CNT		8		// 8 on MASTER, 2 on SLAVE
-#define MASTER_PGM_CNT	8		
-#define SLAVE_PGM_CNT   2
+// define maximal configuration per board. IF MODIFIED, COMPILE AND CHANGE SIMULTANEOUSLY BOTH MASTER AND SLAVES!!!!
+#define MAX_ZONES_CNT	    18		// Limited by ADC channels, 18 on SLAVE, less on MASTER. System voltages are read via mux and includded
+#define SLAVE_ZONES_CNT	  18		
+#define MASTER_ZONES_CNT  12		
+#define MAX_PGM_CNT		    8		  // 8 on MASTER, 2 on SLAVE
+#define MASTER_PGM_CNT	  8		
+#define SLAVE_PGM_CNT     2
 //
 // define roles
 #define MASTER
-//#define SLAVE
+#define SLAVE
 #define LOOPBACK
 #define MAX_SLAVES 1
+//
 // board IDs
 enum ADDR {                                         // board adresses, MASTER is ALLWAYS 0
 	MASTER_ADDRESS =  0,
@@ -69,7 +70,9 @@ int waiting_for_reply = 0;            // tracks current state of the protocol
 #include "RS485_cbacks.h"             // callbacks required by RS485 lib and UART related staff (ESP32 specific)
 #include "helpers.h"                  // include helper functions. INCLUDE ONLY AFTER SERIAL PORT DEFINITIONS!!!!
 #include "Alarm_RS485-cpp.h"          // RS485 transport implementation (library)
+#ifdef MASTER
 #include "alarm_logic.h"
+#endif
 //
 //
 // ------------------------- global variables definition -----------------------------
@@ -95,8 +98,6 @@ byte tmpMsg [MAX_PAYLOAD_SIZE];
 void setup() {
   logger.begin(LOG_BITRATE,SERIAL_8N1);
   logger.printf("\n\nStaring setup\n\n");
-  logger.printf("Max board pgm cnt = %d\n", MAX_PGM_CNT);
-  logger.printf("Max board zones cnt = %d\n", MAX_ZONES_CNT);
 #ifdef MASTER
    MasterUART.begin(BITRATE,SERIAL_8N1);  
    MasterMsgChannel.begin ();                 // allocate data buffers and init message encoding/decoding engines (485_non_blocking library)

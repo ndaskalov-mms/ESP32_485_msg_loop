@@ -78,12 +78,16 @@ struct ZONE {
   byte  zoneID;                 // the number of zone by which the master will identify it. Zero based. Each ADC gpio produces one zone, but with two results
   byte  zoneABstat;             // encodded status of the A and B parts of the zone
 };                              
+//
+//
+//
+//
 #ifdef SLAVE
 //                                     
 // some important voltages - gpio, mux,  accValue,  mvValue, zoneID, zoneABstat
 struct ZONE VzoneRef   = {VzoneRef_, 1, 0, 0, 0, 0};
-struct ZONE ADC_AUX   = {ADC_AUX_,  1, 0, 0, 0, 0};
-struct ZONE ADC_BAT   = {ADC_BAT_,  1, 0, 0, 0, 0};
+struct ZONE ADC_AUX    = {ADC_AUX_,  1, 0, 0, 0, 0};
+struct ZONE ADC_BAT    = {ADC_BAT_,  1, 0, 0, 0, 0};
 //
 //
 // Zones  and pgms database to store data
@@ -93,11 +97,11 @@ struct ZONE ADC_BAT   = {ADC_BAT_,  1, 0, 0, 0, 0};
 // othervise SYSTEM VOLTAGES VzoneRef, ADC_AUX, ADC_BAT are read with  Mux = Bzones (1)
 // that means that when Bzones selected by GPIO, Zone<X>B zones will read either VzoneRef, ADC_AUX, ADC_BAT or Zone<X>B depends on jumper settings
 // ZONES                     gpio,   mux, accValue,  mvValue, zoneID, zoneABstat
-struct ZONE SzoneDB[] =    {{Zone1_, Azones, 0, 0, 0, 0}, {Zone2_, Azones, 0, 0, 1, 0}, {Zone3_, Azones, 0, 0, 2, 0}, {Zone4_, Azones, 0, 0, 3, 0},\
-                            {Zone5_, Azones, 0, 0, 4, 0}, {Zone6_, Azones, 0, 0, 5, 0}, {Zone7_, Azones, 0, 0, 6, 0}, {Zone8_, Azones, 0, 0, 7, 0},\
-                            {Zone9_, Azones, 0, 0, 8, 0}, {Zone10_,Azones, 0, 0, 9, 0}, {Zone11_,Azones, 0, 0,10, 0}, {Zone12_,Azones, 0, 0,11, 0},\
-                            {Zone1A_,Azones, 0, 0,12, 0}, {Zone2A_,Azones, 0, 0,13, 0}, {Zone3A_,Azones, 0, 0,14, 0},\            
-                            {Zone1B_,Bzones, 0, 0,15, 0}, {Zone2B_,Bzones, 0, 0,16, 0}, {Zone3B_,Bzones, 0, 0,17, 0}}; 
+struct ZONE SzoneDB[MAX_ZONES_CNT] =  {{Zone1_, Azones, 0, 0, 0, 0}, {Zone2_, Azones, 0, 0, 1, 0}, {Zone3_, Azones, 0, 0, 2, 0}, {Zone4_, Azones, 0, 0, 3, 0},\
+										{Zone5_, Azones, 0, 0, 4, 0}, {Zone6_, Azones, 0, 0, 5, 0}, {Zone7_, Azones, 0, 0, 6, 0}, {Zone8_, Azones, 0, 0, 7, 0},\
+										{Zone9_, Azones, 0, 0, 8, 0}, {Zone10_,Azones, 0, 0, 9, 0}, {Zone11_,Azones, 0, 0,10, 0}, {Zone12_,Azones, 0, 0,11, 0},\
+										{Zone1A_,Azones, 0, 0,12, 0}, {Zone2A_,Azones, 0, 0,13, 0}, {Zone3A_,Azones, 0, 0,14, 0},\            
+										{Zone1B_,Bzones, 0, 0,15, 0}, {Zone2B_,Bzones, 0, 0,16, 0}, {Zone3B_,Bzones, 0, 0,17, 0}}; 
 //
 #define SLAVE_ZONES_CNT  (sizeof(SzoneDB)/sizeof(struct ZONE))
 //
@@ -106,6 +110,7 @@ struct PGM SpgmDB[] =          {{PGM1_, 1, HIGH, 0}, {PGM2_, 2, HIGH, 0}};
 //
 #define SLAVE_PGM_CNT (sizeof(SpgmDB)/sizeof(struct PGM))
 #endif
+//
 #ifdef MASTER
 //
 // Master zones and PGMs definitions
@@ -121,16 +126,12 @@ struct ZONE MzoneDB[] =        {{Zone1_ , Azones,   0, 0, 0, 0}, {Zone2_ , Azone
 #define MASTER_ZONES_CNT       (sizeof(MzoneDB)/sizeof(struct ZONE))
 //
 // PGMs                        gpio, rNum,  iValue, cValue
-struct PGM MpgmDB[] =         {{PGM1_, 1, HIGH, 0}, {PGM2_, 2, HIGH, 0},\
-                               {PGM3_, 3, HIGH, 0}, {PGM4_, 4, HIGH, 0},\
-                               {PGM5_, 5, HIGH, 0}, {PGM6_, 6, HIGH, 0},\
-                               {PGM7_, 7, HIGH, 0}, {PGM8_, 8, HIGH, 0}};
+struct PGM MpgmDB[MAX_PGM_CNT] =  {{PGM1_, 1, HIGH, 0}, {PGM2_, 2, HIGH, 0},\
+											{PGM3_, 3, HIGH, 0}, {PGM4_, 4, HIGH, 0},\
+											{PGM5_, 5, HIGH, 0}, {PGM6_, 6, HIGH, 0},\
+											{PGM7_, 7, HIGH, 0}, {PGM8_, 8, HIGH, 0}};
 //
 #define MASTER_PGM_CNT        (sizeof(MpgmDB)/sizeof(struct PGM))
-//
-//
-//
-
 //
 // alarm zones records structure to hold all alarm zones related info
 //
@@ -145,13 +146,18 @@ struct ALARM_ZONE {
   byte  useZone;				// shall be used or not
 };                              
 //
-// zoneBD - database with all zones (master&slaves) info. Info from slaves are fetched via pul command over RS485
+// zoneDB - database with all zones (master&slaves) info. Info from slaves are fetched via pul command over RS485
 // TODO - use prep to get largest zone count
 //
-#define RECORD_ZONES_CNT (SLAVE_ZONES_CNT) // master has less zones than slave, so use SLAVE_ZONES_CNT to calc the storage for all boards incl. master
-#define RECORD_PGM_CNT (MASTER_PGM_CNT)    // slave has less pgms but to keep staff uniform use MASTER_PGM_CNT
+#endif
+
+
+#ifdef MASTER
+#define RECORD_ZONES_CNT (MAX_ZONES_CNT) // master has less zones than slave, so use SLAVE_ZONES_CNT to calc the storage for all boards incl. master
+#define RECORD_PGM_CNT (MAX_PGM_CNT) // master has more pgms than slave, so use SLAVE_ZONES_CNT to calc the storage for all boards incl. master
 //
-// organized as 2D array. Contains data for all boards and zones in each board, incl. master
-struct ALARM_ZONE zonesDB[MAX_SLAVES+1][RECORD_ZONES_CNT];		// typically master has fewer zones than slave, so we use the largest denominator
-struct PGM pgmDB[MAX_SLAVES+1][RECORD_PGM_CNT];		// typically master has fewer zones than slave, so we use the largest denominator
+// MASTER zones organized as 2D array. Contains data for all boards and zones in each board, incl. master
+struct ALARM_ZONE zonesDB[MAX_SLAVES+1][MAX_ZONES_CNT];		// typically master has fewer zones than slave, so we use the largest denominator
+// MASTER PGMs organized as 2D array.
+struct PGM pgmDB[MAX_SLAVES+1][MAX_PGM_CNT];		// typically master has more pgms than slave, so we use the largest denominator
 #endif

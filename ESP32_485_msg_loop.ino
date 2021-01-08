@@ -1,10 +1,13 @@
-
+// define maximal configuration per board
+#define MAX_ZONES_CNT	18		// HW limitation, 18 on SLAVE, less on MASTER
+#define MAX_PGM_CNT		8		// 8 on MASTER, 2 on SLAVE
+//
 // define roles
 #define MASTER
-#define SLAVE
+//#define SLAVE
 #define LOOPBACK
 #define MAX_SLAVES 1
-// boaerd IDs
+// board IDs
 enum ADDR {                                         // board adresses, MASTER is ALLWAYS 0
 	MASTER_ADDRESS =  0,
 	SLAVE_ADDRESS1,
@@ -67,17 +70,17 @@ int waiting_for_reply = 0;            // tracks current state of the protocol
 //
 // ------------------------- global variables definition -----------------------------
 #ifdef MASTER
-byte MzoneResult[MASTER_ZONES_CNT/2 + MASTER_ZONES_CNT%2];       //each zone will be in 4bits
+byte MzoneResult[MASTER_ZONES_CNT/2 + MASTER_ZONES_CNT%2];                                  //each zone will be in 4bits
+//these are channels to send/receive packets over serial if. The comm to serial is via fRead, fWrite,...
+RS485 MasterMsgChannel (MasterRead, MasterAvailable, MasterWrite, ErrWrite, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
 #endif
 #ifdef SLAVE
 byte SzoneResult[SLAVE_ZONES_CNT/2 + SLAVE_ZONES_CNT%2];          //each zone will be in 4bits
+RS485 SlaveMsgChannel  (SlaveRead, SlaveAvailable, SlaveWrite, ErrWrite, RxBUF_SIZE);      //RS485 myChannel (read_func, available_func, write_func, msg_len);
 #endif
 int err, retCode;                         // holds error returns from some functions                         
 struct MSG rcvMsg;                        // temp structs for message tr/rcv
 byte tmpMsg [MAX_PAYLOAD_SIZE];
-//these are channels to send/receive packets over serial if. The comm to serial is via fRead, fWrite,...
-RS485 MasterMsgChannel (MasterRead, MasterAvailable, MasterWrite, ErrWrite, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
-RS485 SlaveMsgChannel  (SlaveRead, SlaveAvailable, SlaveWrite, ErrWrite, RxBUF_SIZE);      //RS485 myChannel (read_func, available_func, write_func, msg_len);
 //
 #include "protocol.h"                     // send/receive and compse messgaes staff
 #include "commands.h"                     // master/slave commands implementation
@@ -88,28 +91,24 @@ RS485 SlaveMsgChannel  (SlaveRead, SlaveAvailable, SlaveWrite, ErrWrite, RxBUF_S
 void setup() {
   logger.begin(LOG_BITRATE,SERIAL_8N1);
   logger.printf("\n\nStaring setup\n\n");
-  // set UARTs
+  logger.printf("Max board pgm cnt = %d\n", MAX_PGM_CNT);
+  logger.printf("Max board zones cnt = %d\n", MAX_ZONES_CNT);
 #ifdef MASTER
    MasterUART.begin(BITRATE,SERIAL_8N1);  
-   pgmSetup(MpgmDB, MASTER_PGM_CNT);             // init PGMs (output and default value)
-   logger.printf("Master pgm cnt = %d\n", MASTER_PGM_CNT);
-   logger.printf("Master zones cnt = %d\n", MASTER_ZONES_CNT);
+   MasterMsgChannel.begin ();                 // allocate data buffers and init message encoding/decoding engines (485_non_blocking library)
+   pgmSetup(MpgmDB, MAX_PGM_CNT);             // init PGMs (output and default value)
    initAlarmZones();
    printAlarmZones();
 #endif
 #ifdef SLAVE
-   pgmSetup(SpgmDB, SLAVE_PGM_CNT);                  // init PGMs (output and default value)
-   logger.printf("Slave pgm cnt = %d\n", SLAVE_PGM_CNT);
-   logger.printf("Slave zones cnt = %d\n", SLAVE_ZONES_CNT);
+   SlaveMsgChannel.begin ();                     // allocate data buffers and init message encoding/decoding engines (485_non_blocking library)
+   pgmSetup(SpgmDB, MAX_PGM_CNT);              // init PGMs (output and default value)
 #ifdef LOOPBACK
   SlaveUART.begin(BITRATE,SERIAL_8N1, 21, 22);    // re-routing RxD to  GPIO21 and TxD to GPIO22
 #else
   SlaveUART.begin(BITRATE,SERIAL_8N1,)
 #endif
 #endif
-  // allocate data buffers and init message encoding/decoding engines (485_non_blocking library)
-  MasterMsgChannel.begin ();      
-  SlaveMsgChannel.begin ();  
   logger.printf("Loopback example for Esp32+485\n");
   logger.printf("MAX_MSG_LENGHT = %d\n", MAX_MSG_LENGHT  );
   logger.printf("MAX_PAYLOAD_SIZE = %d\n", MAX_PAYLOAD_SIZE );
@@ -121,9 +120,9 @@ void setup() {
 void loop ()
 {
 #ifdef MASTER
-  #include "master.h"
+#include "master.h"
 #endif
 #ifdef SLAVE
-  #include "slave.h"
+#include "slave.h"
 #endif
 }  // end of loop

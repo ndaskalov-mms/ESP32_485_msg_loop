@@ -89,7 +89,7 @@ byte cmdCode=0;
 int setSlaveZones(struct ALARM_ZONE zone[], int dst) {
 int j = 0; int i = 0;
 //
-	for(i=0; (i<SLAVE_ZONES_CNT) && (j<FREE_CMD_DATA_LEN); i++) {   // extract current zone info from zone array
+	for(i=0; (i<MAX_ZONES_CNT) && (j<FREE_CMD_DATA_LEN); i++) {   // extract current zone info from zone array
 		tmpMsg[j++] = zone[i].gpio;                                   // and put in payload
 		tmpMsg[j++] = zone[i].mux;
 		tmpMsg[j++] = zone[i].zoneID;

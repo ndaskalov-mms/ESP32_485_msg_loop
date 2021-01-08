@@ -14,11 +14,11 @@ void initAlarmZones() {
 		}
 	// than for all slave boards
 	for(int i=1;i<=MAX_SLAVES;i++) {
-		for(int j=0;j<SLAVE_ZONES_CNT;j++)	{
+		for(int j=0;j<MAX_ZONES_CNT;j++)	{
 			zonesDB[i][j].useZone = true;
-			zonesDB[i][j].gpio 	  = SzoneDB[j].gpio; 	  
-			zonesDB[i][j].mux     = SzoneDB[j].mux;     
-			zonesDB[i][j].zoneID  = SzoneDB[j].zoneID;  
+			zonesDB[i][j].gpio 	  = 0; //SzoneDB[j].gpio; 	  
+			zonesDB[i][j].mux     = 0; //SzoneDB[j].mux;     
+			zonesDB[i][j].zoneID  = j; //SzoneDB[j].zoneID;  
 			zonesDB[i][j].boardID = i;
 			}
 		}	
@@ -28,7 +28,7 @@ void initAlarmZones() {
 void printAlarmZones() {
 	logger.printf("BoardID\tZoneID\tGPIO\tMUX\tUSE ZONE\n");
 	for(int i=0;i<=MAX_SLAVES;i++) {
-		for(int j=0;j<RECORD_ZONES_CNT;j++)	{
+		for(int j=0;j<MAX_ZONES_CNT;j++)	{
 			logger.printf("%d %d %d %d %d  ",zonesDB[i][j].boardID, zonesDB[i][j].zoneID, zonesDB[i][j].gpio, zonesDB[i][j].mux,  zonesDB[i][j].useZone);
 			}
 		logger.printf("\n");

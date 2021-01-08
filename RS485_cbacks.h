@@ -7,21 +7,25 @@
 
 */
 // callbacks for RS485 library interface to onboard UARTS
-
+#ifdef MASTER
 size_t MasterWrite (const byte what)   // callback to write byte to UART
 {return MasterUART.write (what);}
 int MasterAvailable ()                 // callback to check if something received
 {return MasterUART.available();}
 int MasterRead ()                      // callback to read received bytes
 {return MasterUART.read();}
+#endif
+#ifdef SLAVE
 size_t SlaveWrite (const byte what)    // callback to write byte to UART
 {return SlaveUART.write (what);}
 int SlaveAvailable ()                  // callback to check if something received
 {return SlaveUART.available();}
 int SlaveRead ()                       // callback to read received bytes
 {return SlaveUART.read();}              
-
+#endif
+//
 // flush transmitter only 
+//
 void uartTxFlush(HardwareSerial& uart){
   while(uart.availableForWrite()!=127) ;  // availableForWrite returns 0x7f - uart->dev->status.txfifo_cnt;
   delay(5);

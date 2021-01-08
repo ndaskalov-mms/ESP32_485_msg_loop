@@ -1,6 +1,10 @@
 // define maximal configuration per board
 #define MAX_ZONES_CNT	18		// HW limitation, 18 on SLAVE, less on MASTER
+#define SLAVE_ZONES_CNT	18		
+#define MASTER_ZONES_CNT	12		
 #define MAX_PGM_CNT		8		// 8 on MASTER, 2 on SLAVE
+#define MASTER_PGM_CNT	8		
+#define SLAVE_PGM_CNT   2
 //
 // define roles
 #define MASTER

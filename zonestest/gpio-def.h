@@ -97,18 +97,14 @@ struct ZONE ADC_BAT    = {ADC_BAT_,  1, 0, 0, 0, 0};
 // othervise SYSTEM VOLTAGES VzoneRef, ADC_AUX, ADC_BAT are read with  Mux = Bzones (1)
 // that means that when Bzones selected by GPIO, Zone<X>B zones will read either VzoneRef, ADC_AUX, ADC_BAT or Zone<X>B depends on jumper settings
 // ZONES                     gpio,   mux, accValue,  mvValue, zoneID, zoneABstat
-struct ZONE SzoneDB[MAX_ZONES_CNT] =  {{Zone1_, Azones, 0, 0, 0, 0}, {Zone2_, Azones, 0, 0, 1, 0}, {Zone3_, Azones, 0, 0, 2, 0}, {Zone4_, Azones, 0, 0, 3, 0},\
-										{Zone5_, Azones, 0, 0, 4, 0}, {Zone6_, Azones, 0, 0, 5, 0}, {Zone7_, Azones, 0, 0, 6, 0}, {Zone8_, Azones, 0, 0, 7, 0},\
-										{Zone9_, Azones, 0, 0, 8, 0}, {Zone10_,Azones, 0, 0, 9, 0}, {Zone11_,Azones, 0, 0,10, 0}, {Zone12_,Azones, 0, 0,11, 0},\
-										{Zone1A_,Azones, 0, 0,12, 0}, {Zone2A_,Azones, 0, 0,13, 0}, {Zone3A_,Azones, 0, 0,14, 0},\            
-										{Zone1B_,Bzones, 0, 0,15, 0}, {Zone2B_,Bzones, 0, 0,16, 0}, {Zone3B_,Bzones, 0, 0,17, 0}}; 
-//
-#define SLAVE_ZONES_CNT  (sizeof(SzoneDB)/sizeof(struct ZONE))
+struct ZONE SzoneDB[] =  {{Zone1_, Azones, 0, 0, 0, 0}, {Zone2_, Azones, 0, 0, 1, 0}, {Zone3_, Azones, 0, 0, 2, 0}, {Zone4_, Azones, 0, 0, 3, 0},\
+                          {Zone5_, Azones, 0, 0, 4, 0}, {Zone6_, Azones, 0, 0, 5, 0}, {Zone7_, Azones, 0, 0, 6, 0}, {Zone8_, Azones, 0, 0, 7, 0},\
+						  {Zone9_, Azones, 0, 0, 8, 0}, {Zone10_,Azones, 0, 0, 9, 0}, {Zone11_,Azones, 0, 0,10, 0}, {Zone12_,Azones, 0, 0,11, 0},\
+						  {Zone1A_,Azones, 0, 0,12, 0}, {Zone2A_,Azones, 0, 0,13, 0}, {Zone3A_,Azones, 0, 0,14, 0},\            
+						  {Zone1B_,Bzones, 0, 0,15, 0}, {Zone2B_,Bzones, 0, 0,16, 0}, {Zone3B_,Bzones, 0, 0,17, 0}}; 
 //
 // PGMs                         gpio, rNum,  iValue, cValue
-struct PGM SpgmDB[] =          {{PGM1_, 1, HIGH, 0}, {PGM2_, 2, HIGH, 0}};
-//
-#define SLAVE_PGM_CNT (sizeof(SpgmDB)/sizeof(struct PGM))
+struct PGM SpgmDB[SLAVE_PGM_CNT] = {{PGM1_, 1, HIGH, 0}, {PGM2_, 2, HIGH, 0}};
 #endif
 //
 #ifdef MASTER
@@ -118,20 +114,18 @@ struct PGM SpgmDB[] =          {{PGM1_, 1, HIGH, 0}, {PGM2_, 2, HIGH, 0}};
 // othervise SYSTEM VOLTAGES VzoneRef, ADC_AUX, ADC_BAT are read with  Mux = Bzones (1)
 //
 //  ZONES                         gpio, mux,  accValue,  mvValue, zoneID, zoneABstat
-struct ZONE MzoneDB[] =        {{Zone1_ , Azones,   0, 0, 0, 0}, {Zone2_ , Azones, 0, 0, 1, 0}, {Zone3_ , Azones, 0, 0, 2, 0},\
-                                {Zone8_ , Azones,   0, 0, 3, 0}, {Zone10_, Azones, 0, 0, 4, 0}, {Zone11_, Azones, 0, 0, 5, 0},\
-                                {Zone1A_, Azones,   0, 0, 6, 0}, {Zone2A_, Azones, 0, 0, 7, 0}, {Zone3A_, Azones, 0, 0, 8, 0},\           
-                                {Zone1B_, Bzones,   0, 0, 9, 0}, {Zone2B_, Bzones, 0, 0,10, 0}, {Zone3B_, Bzones, 0, 0, 11, 0}};//accessible with altZoneSelect
+struct ZONE MzoneDB[MASTER_ZONES_CNT] = {{Zone1_ , Azones,   0, 0, 0, 0}, {Zone2_ , Azones, 0, 0, 1, 0}, {Zone3_ , Azones, 0, 0, 2, 0},\
+                                         {Zone8_ , Azones,   0, 0, 3, 0}, {Zone10_, Azones, 0, 0, 4, 0}, {Zone11_, Azones, 0, 0, 5, 0},\
+                                         {Zone1A_, Azones,   0, 0, 6, 0}, {Zone2A_, Azones, 0, 0, 7, 0}, {Zone3A_, Azones, 0, 0, 8, 0},\           
+                                         {Zone1B_, Bzones,   0, 0, 9, 0}, {Zone2B_, Bzones, 0, 0,10, 0}, {Zone3B_, Bzones, 0, 0,11, 0}};//accessible with altZoneSelect
 //
-#define MASTER_ZONES_CNT       (sizeof(MzoneDB)/sizeof(struct ZONE))
+//#define MCNT (sizeof(MzoneDB)/sizeof(struct ZONE))
 //
 // PGMs                        gpio, rNum,  iValue, cValue
-struct PGM MpgmDB[MAX_PGM_CNT] =  {{PGM1_, 1, HIGH, 0}, {PGM2_, 2, HIGH, 0},\
-											{PGM3_, 3, HIGH, 0}, {PGM4_, 4, HIGH, 0},\
-											{PGM5_, 5, HIGH, 0}, {PGM6_, 6, HIGH, 0},\
-											{PGM7_, 7, HIGH, 0}, {PGM8_, 8, HIGH, 0}};
-//
-#define MASTER_PGM_CNT        (sizeof(MpgmDB)/sizeof(struct PGM))
+struct PGM MpgmDB[MASTER_PGM_CNT] =     {{PGM1_, 1, HIGH, 0}, {PGM2_, 2, HIGH, 0},\
+										 {PGM3_, 3, HIGH, 0}, {PGM4_, 4, HIGH, 0},\
+										 {PGM5_, 5, HIGH, 0}, {PGM6_, 6, HIGH, 0},\
+										 {PGM7_, 7, HIGH, 0}, {PGM8_, 8, HIGH, 0}};
 //
 // alarm zones records structure to hold all alarm zones related info
 //

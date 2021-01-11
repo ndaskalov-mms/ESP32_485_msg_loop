@@ -2,6 +2,82 @@
  * protocol.h
  */
 //
+struct MSG  parse_msg(RS485& rcv_channel);
+void masterProcessMsg(struct MSG msg);
+//
+// 
+// check and if any parce received message  
+// in case of message available, parce message gunction retrieves it and stores all message components in returned stuct MSG
+// assigned to global rcvMSG variable.
+// parameters: none
+// return:   ERR_OK (0) in case of no message or message which is not for us
+//          ERR_RCV_MSG (negative) in case of parsing error
+//          MSG_READY (1) if message present          
+int check4msg(RS485& Channel, unsigned long timeout) {
+  if (!(err = Channel.update ())) {                 // 0 - nothing received yet, != something is waiting                                                      
+     if(timeout && ((unsigned long)(millis() - Channel.getLastTransmitTime ()) > timeout)) // check for message reply timeout            
+          return ErrWrite(ERR_TIMEOUT, "Check4msg Reply timeout\n"); // timeout expired              // 0 means no timeout, wait forever
+     else                                       
+          return ERR_OK;                            // timeout did not expired, continue waiting              
+  }
+  // got message, check for receive error first
+  if (err < 0) {                                  // error receiving message
+    ErrWrite (ERR_RCV_MSG, "Err while rcv msg, ignorring\n"); 
+    return ERR_RCV_MSG; 
+  }
+  // parse received message
+  rcvMsg = parse_msg(Channel);      
+  if (rcvMsg.parse_err) {                   
+    ErrWrite (ERR_RCV_MSG,"Parse message error\n"); // parsing error
+    return ERR_RCV_MSG; 
+    } 
+  // check for broadcast message
+  if (rcvMsg.dst == BROADCAST_ID)  {    
+    ErrWrite (ERR_INFO,"Broadcast command received, skipping\n");  // do nothing
+    return ERR_OK;  
+  }
+  // check if the destination 
+  if(rcvMsg.dst != boardID)                       // check if the destination is another board
+    return ERR_OK;                                // not for us, yes, do nothing
+  // we got message for us
+  else
+    return MSG_READY;                               // have message
+} // check4msg
+
+//
+// waits for message reply up to timeout milliseconds of REPLY_TIMEOUT, whichever comes first
+// params: unsigned long timeout - specifies how long to block waiting for reply. Used delay(),
+//                                 this way we can return in loop() and give chance something else to happen. As loop() is called periodicallly
+//                                  after a while wait4reply can or will be called again
+// returns: int ERR_OK -            if message processed 
+//              error code -       otherwise
+//
+int wait4reply(unsigned long timeout) {
+  int retCode;
+  // are we waiting for reply? MSG_READY means good msg,ERR_OK(0) means no msg,<0 means UART error or parse err
+  if (!waiting_for_reply)                        // check for message available
+    return ERR_OK;                               // not waiting for message
+//    
+  while (ERR_OK == (retCode = check4msg(MasterMsgChannel, REPLY_TIMEOUT))) {  // ERR_OK means nothing received so far, otherwise will be error or MSG_READY
+    delay(1);                                   // no message yet, yield all other processes
+    if(timeout)                                 // check if we have limit how long to wait                              
+        timeout--;                              // yes, decrease it and keep waiting
+    else                                        // no message yet, but timeout expired 
+        return ERR_TIMEOUT;                     // no message during the specified interval
+    }
+  if(retCode != MSG_READY)  {                   // we got something, either message or error             
+    ErrWrite(ERR_WARNING, "Master rcv reply error or timeout\n");    // error   
+    waiting_for_reply = 0;                      // stop waiting in case of error
+    return retCode;
+    }
+  else {
+    masterProcessMsg(rcvMsg);                   // message, process it. 
+    waiting_for_reply = 0;                      // stop waiting after processing message
+    return ERR_OK;                              // propagate upstream what masterProcessMsg received  TODO add support for err return code in masterProcessMsg
+    }                                           // else
+}
+//
+//
 // check for timeout waiting for receive message
 // the transmission time is captured in RS485 class sending function and is retrieved by getLastTransmitTime
 // returns 1 if timeout, 0 if not
@@ -105,12 +181,12 @@ struct MSG  parse_msg(RS485& rcv_channel) {
       return rmsg;                                        // error, no command code in message
     } 
     memcpy (tmpBuf, rcv_channel.getData (), rmsg.len);    // copy message in temp buf
-    LogMsg("Parse_msg: message recv: TOTAL LEN = %d, CMD|DST = %x, PAYLOAD: ", rmsg.len, tmpBuf[CMD_OFFSET], &tmpBuf[PAYLOAD_OFFSET]);
+    //LogMsg("Parse_msg: message recv: TOTAL LEN = %d, CMD|DST = %x, PAYLOAD: ", rmsg.len, tmpBuf[CMD_OFFSET], &tmpBuf[PAYLOAD_OFFSET]);
     // extract command and destination
     rmsg.cmd = ((tmpBuf[CMD_OFFSET] >> 4) & 0x0F);        // cmd is hihg nibble
     rmsg.dst = tmpBuf[CMD_OFFSET] & 0x0F;                 // destination is low nibble
     rmsg.dataLen = rmsg.len-1;                            // account for command|dst code
-    LogMsg("Parse_msg: message recv: PAYLOAD LEN = %d, CMD = %x, DST = %x, PAYLOAD: ", rmsg.dataLen, rmsg.cmd, rmsg.dst, &tmpBuf[PAYLOAD_OFFSET]);
+    //LogMsg("Parse_msg: message recv: PAYLOAD LEN = %d, CMD = %x, DST = %x, PAYLOAD: ", rmsg.dataLen, rmsg.cmd, rmsg.dst, &tmpBuf[PAYLOAD_OFFSET]);
     switch (rmsg.cmd & ~(0xF0 | REPLY_OFFSET )) {         // check for valid commands and replies. clear reply bit to facilitate test
       case PING:
         if (rmsg.dataLen == PING_PAYLD_LEN)
@@ -144,7 +220,7 @@ struct MSG  parse_msg(RS485& rcv_channel) {
         rmsg.subCmd = tmpBuf[PAYLOAD_OFFSET+FREE_CMD_SUB_CMD_OFFSET]; 
         if ((rmsg.len == rmsg.dataLen+FREE_CMD_HDR_LEN+1)) {                            // accound for cmd|dst byte  TODO check for overflow (rmsg.dataLen < FREE_CMD_DATA_LEN)&&
            memcpy(rmsg.payload, &tmpBuf[PAYLOAD_OFFSET+FREE_CMD_HDR_LEN], rmsg.dataLen);// two bytes for subCmd and payload len
-          LogMsg("Parse_msg: FREE CMD recv: Total LEN: %d, CMD: %2x, DST = %x, subCMD = %2x, DATA LEN %d, DATA: ", rmsg.len, rmsg.cmd, rmsg.dst, rmsg.subCmd,  rmsg.dataLen, rmsg.payload);
+          //LogMsg("Parse_msg: FREE CMD recv: Total LEN: %d, CMD: %2x, DST = %x, subCMD = %2x, DATA LEN %d, DATA: ", rmsg.len, rmsg.cmd, rmsg.dst, rmsg.subCmd,  rmsg.dataLen, rmsg.payload);
           }      
         else  {
           rmsg.parse_err = ERR_INV_PAYLD_LEN;
@@ -159,46 +235,6 @@ struct MSG  parse_msg(RS485& rcv_channel) {
     }  // switch
     return rmsg;
 }
-
-// 
-// check and if any parce received message  
-// in case of message available, parce message gunction retrieves it and stores all message components in returned stuct MSG
-// assigned to global rcvMSG variable.
-// parameters: none
-// return: 	ERR_OK (0) in case of no message or message which is not for us
-//			    ERR_RCV_MSG (negative) in case of parsing error
-//          MSG_READY (1) if message present          
-int check4msg(RS485& Channel, unsigned long timeout) {
-	if (!(err = Channel.update ())) {                 // 0 - nothing received yet, != something is waiting                                                      
-     if(timeout && ((unsigned long)(millis() - Channel.getLastTransmitTime ()) > timeout)) // check for message reply timeout            
-          return ErrWrite(ERR_TIMEOUT, "Check4msg Reply timeout\n"); // timeout expired              // 0 means no timeout, wait forever
-     else                                       
-          return ERR_OK;                            // timeout did not expired, continue waiting              
-	}
-  // got message, check for receive error first
-  if (err < 0) {                                  // error receiving message
-		ErrWrite (ERR_RCV_MSG, "Err while rcv msg, ignorring\n"); 
-		return ERR_RCV_MSG; 
-  }
-	// parse received message
-	rcvMsg = parse_msg(Channel);      
-	if (rcvMsg.parse_err) {                   
-		ErrWrite (ERR_RCV_MSG,"Parse message error\n"); // parsing error
-		return ERR_RCV_MSG; 
-		} 
-	// check for broadcast message
-	if (rcvMsg.dst == BROADCAST_ID)  {    
-		ErrWrite (ERR_INFO,"Broadcast command received, skipping\n");  // do nothing
-		return ERR_OK;	
-	}
-	// check if the destination 
-	if(rcvMsg.dst != boardID)           		        // check if the destination is another board
-		return ERR_OK;                                // not for us, yes, do nothing
-	// we got message for us
-	else
-		return MSG_READY;								                // have message
-} // check4msg
-
 
 //
 // check if it is time to send reccuring command (like POLL)

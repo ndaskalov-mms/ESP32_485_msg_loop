@@ -129,7 +129,7 @@ int j = 0; int i = 0;
 //
 // master process messages root function. It is called when message (should be reply)  is received at master
 // patrams: struct MSG ms - contains received message attributes
-// returns: none
+// returns: none            TODO - add return code error or ERR_OK
 //
 void masterProcessMsg(struct MSG msg) {
 //
@@ -153,11 +153,13 @@ void masterProcessMsg(struct MSG msg) {
                 logger.printf("%s\n", msg.payload);
   				break;
    			case SET_ZONE_SUB_CMD:
-  				ErrWrite(ERR_DEBUG, "Master: reply received for SET_ZONE_SUB_CMD: \n");
+        case GET_ZONE_SUB_CMD:
+  				ErrWrite(ERR_DEBUG, "Master: reply received for SET_ZONE_SUB_CMD or case GET_ZONE_SUB_CMD: \n");
   				break;
-			case GET_ZONE_SUB_CMD:
-  				ErrWrite(ERR_DEBUG, "Master: reply received for GET_ZONE_SUB_CMD: \n");
-  				break;
+        case SET_PGM_SUB_CMD:
+        case GET_PGM_SUB_CMD:
+          ErrWrite(ERR_DEBUG, "Master: reply received for SET_PGM_SUB_CMD or case GET_PGM_SUB_CMD: \n");
+          break;
   			default:
   				ErrWrite(ERR_WARNING, "Master: invalid sub-command received %x\n", msg.subCmd);
   				break;
@@ -319,13 +321,19 @@ int i;
         case SET_ZONE_SUB_CMD:
           ErrWrite(ERR_DEBUG, "Slave: received SET_ZONE_SUB_CMD\n");
 		      setAlarmZones(msg.payload);
-          if(ERR_OK != returnSlaveZones(SzoneDB)) 							// reply with OK
+          if(ERR_OK != returnSlaveZones(SzoneDB)) 							// reply with all zones info after set
             ErrWrite(ERR_TRM_MSG, "Slave: Error replying to SET_ZONE_SUB_CMD");
           break;
         case GET_ZONE_SUB_CMD:
           ErrWrite(ERR_DEBUG, "Slave: received GET_ZONE_SUB_CMD\n");
           if(ERR_OK != returnSlaveZones(SzoneDB))              // reply with requested zones info
             ErrWrite(ERR_TRM_MSG, "Slave: Error replying to GET_ZONE_SUB_CMD");
+          break;
+        case SET_PGM_SUB_CMD:
+          ErrWrite(ERR_DEBUG, "Slave: received SET_PGM_SUB_CMD\n");
+          setAlarmPgms(msg.payload);
+          if(ERR_OK != returnSlavePGMs(SpgmDB))               // reply with all zones info after set
+            ErrWrite(ERR_TRM_MSG, "Slave: Error replying to SET_ZONE_SUB_CMD");
           break;
         default:
           ErrWrite(ERR_WARNING, "Slave: invalid sub-command received %x\n", msg.subCmd);

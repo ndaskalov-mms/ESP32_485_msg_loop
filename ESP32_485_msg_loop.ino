@@ -122,6 +122,9 @@ void setup() {
   //printErrorsDB();
 }
 
+//
+
+//
 void loop ()
 {
 #ifdef MASTER

@@ -1,27 +1,17 @@
   boardID = MASTER_ADDRESS;                     // TODO - only for loopback testing
   static int i=0;
   memcpy(errorsDB_backup, errorsDB, sizeof(errorsDB_backup)); // backup error DB
-  
-  // are we waiting for reply? MSG_READY means good msg,ERR_OK(0) means no msg,<0 means UART error or parse err
-  if (waiting_for_reply)   {                    // check for message available
-    if(ERR_OK != (retCode = check4msg(MasterMsgChannel, REPLY_TIMEOUT))) {    // see what we got so far at receiver
-      if(retCode != MSG_READY)	{				// we got something, either message or error						 
-		    ErrWrite(ERR_WARNING, "Master rcv reply error or timeout\n"); 	 // error	  
-  			waiting_for_reply = 0;                  // stop waiting in case of error
-      }
-      else {
-		    masterProcessMsg(rcvMsg);               // message, process it. 
-			  waiting_for_reply = 0;                  // stop waiting after processing message
-	    }                                         // else
-    }                                           // if ERR_OK
-  }                                             // if (waiting)
+//
+  wait4reply(2);                                   // checks waiting_for_reply flag and if set, receives and process message or exits with timeout
   // not waiting for reply, check if it is time to send new command
-  else if (isTimeFor(FREE_CMD, POLL_INTERVAL))  {// calculate the time elapsed sinse the particular command was send, yes if > interval
+  if (isTimeFor(FREE_CMD, POLL_INTERVAL))  {// calculate the time elapsed sinse the particular command was send, yes if > interval
     ErrWrite(ERR_INFO, "\nMaster: time to transmit \n");
     //if(ERR_OK == sendFreeText(SLAVE_ADDRESS1, FREE_CMD_DATA_LEN, test_msg[(++i)%3])) // sendCmd handle and reports errors internally 
       //ErrWrite( ERR_INFO, ("Master MSG transmitted, receive timeout started\n"));
-	  if(ERR_OK == setSlaveZones(zonesDB[SLAVE_ADDRESS1], SLAVE_ADDRESS1)); // sendCmd handle and reports errors internally 
+	  if(ERR_OK == setSlavePGMs(pgmDB[SLAVE_ADDRESS1], SLAVE_ADDRESS1)); // sendCmd handle and reports errors internally 
       ErrWrite( ERR_INFO, ("Master MSG transmitted, receive timeout started\n"));
+    //if(ERR_OK == setSlaveZones(zonesDB[SLAVE_ADDRESS1], SLAVE_ADDRESS1)); // sendCmd handle and reports errors internally 
+      //ErrWrite( ERR_INFO, ("Master MSG transmitted, receive timeout started\n"));
     //if(ERR_OK == getSlaveZones(SLAVE_ADDRESS1));   // sendCmd handle and reports errors internally 
       //ErrWrite( ERR_INFO, ("Master MSG transmitted, receive timeout started\n"));
   }

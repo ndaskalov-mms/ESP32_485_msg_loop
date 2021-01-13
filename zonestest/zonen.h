@@ -1,5 +1,6 @@
 #define TEST 1
 #include "gpio-def.h"       // include gpio and zones definitions and persistant storage
+#include zonedef.h
 //
 //#define AltZoneSelect	      0x1			  // selects aternative zones via 4053 mux
 #define muxCtlPin           GPIO0     // 4053 mux control GPIO
@@ -26,8 +27,6 @@ enum TIMERS {
   MUX_SET_TIMER = 3,
 };
 
-byte zoneInfoValid = 0;                   // track if zonesResult array contain valid info as the host can request info before they are read
-
 
 // command records structure for cmdDB
 struct TIMER {
@@ -36,7 +35,7 @@ struct TIMER {
   unsigned long setAt;
 };
 //
-// commands database to look-up command params and store temporary data (like last transmition time)
+// timerss database to look-up timer params 
 // 
 struct TIMER timerDB[] = {{ZONES_A_READ_TIMER, ZONES_A_READ_INTERVAL,  0}, {ZONES_B_READ_TIMER, ZONES_B_READ_INTERVAL, 0}, {MUX_SET_TIMER, MUX_SET_INTERVAL, 0}} ;
 //
@@ -88,7 +87,7 @@ struct THRESHOLD thresholds[] = {{0,    450,    ZONE_ERROR_SHORT},              
 
 unsigned long zoneTest[64];
 //
-void selectZones(int which) {
+void selectZones(int which) {         // TODO To avoid issue with the button, make pin input when selectin A zones and rely on pull-up. 
   digitalWrite(muxCtlPin, which);
   //logger.printf("%ld: Switching mux to %s channel\n", millis(), (which?"Azones":"Bzones"));
 }
@@ -96,7 +95,7 @@ void selectZones(int which) {
 //  fill zone data for test 
 //  parms: struct ZONE DB[]  - (pointer ???) to array of ZONE  containing the zones to be read and converted
 //
-void fillZones(unsigned long zoneTest[], int zones_cnt) { 
+void fillZonesTestData(unsigned long zoneTest[], int zones_cnt) { 
     int i; 
     int increment;
     increment = 4096/zones_cnt;
@@ -109,18 +108,32 @@ void fillZones(unsigned long zoneTest[], int zones_cnt) {
     //zoneTest[0] = 4000;
 }
 //
+int loadZonesStorage(zonesDB) {
+    return 0;
+}
+//
+void setZonesDefault(zonesDB) {
+    
+
+//
 // add to arduino setup func
 //
 void zoneSetup() {
 	pinMode (muxCtlPin, OUTPUT);			// set mux ctl as output
 	selectZones	(Azones);					// select A zones
-	//set adc channels???
-   if(TEST)                                                  // prepare test data
 #ifdef MASTER
-    fillZones(zoneTest, MASTER_ZONES_CNT);
+    if(!loadZonesStorage(zonesDB)) {       // try to load zones from disk
+        setZonesDefault(zonesDB);          // failure, init empty database and instruct the main loop to wait for setup message
+        zonesDefsValid = 0;
+    }
+#endif
+	//set adc channels???
+   if(TEST)                                 // prepare test data
+#ifdef MASTER
+    fillZonesTestData(zoneTest, MASTER_ZONES_CNT);
 #endif
 #ifdef SLAVE
-    fillZones(zoneTest, SLAVE_ZONES_CNT);
+    fillZonesTestData(zoneTest, SLAVE_ZONES_CNT);
 #endif
 }
 //

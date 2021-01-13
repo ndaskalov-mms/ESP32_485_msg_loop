@@ -131,14 +131,18 @@ struct PGM MpgmDB[MASTER_PGM_CNT] =     {{PGM1_, 1, HIGH, 0}, {PGM2_, 2, HIGH, 0
 // alarm zones records structure to hold all alarm zones related info
 //
 struct ALARM_ZONE {
-  byte gpio;					// first members  are the same as struct ZONE
-  byte mux;                     // 1 - activate mux to read, 0 - read direct
+  byte	boardID;				// the board which zones belong to. Master ID is 0	
+  byte  zoneID;                 // the number of zone by which the master will identify it. Zero based. Each ADC gpio produces one zone, but with two results  
+  byte  gpio;					// first members  are the same as struct ZONE
+  byte  mux;                    // 1 - activate mux to read, 0 - read direct
   unsigned long accValue;       // oversampled value
   float mvValue;                // converted value in mV
-  byte  zoneID;                 // the number of zone by which the master will identify it. Zero based. Each ADC gpio produces one zone, but with two results
   byte  zoneABstat;             // encodded status of the A and B parts of the zone
-  byte	boardID;				// the board which zones belong to. Master ID is 0			
-  byte  useZone;				// shall be used or not
+  byte  zoneDefs;				// zone type - enable, entry delay, follow, instant, stay, etc
+  byte  zonePartition;          // assigned to partition X
+  byte  zoneOptions;            // auto shutdown, nypass, stay, force, alarm type, intellyzone, dealyed transission
+  byte  zoneExtOpt;             // zone tamper, tamper supervision, antimask, antimask supervision
+  char  zonaName[16];           // user friendly name
 };                              
 //
 // zoneDB - database with all zones (master&slaves) info. Info from slaves are fetched via pul command over RS485

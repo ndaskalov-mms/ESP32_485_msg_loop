@@ -77,7 +77,7 @@ int waiting_for_reply = 0;            // tracks current state of the protocol
 //
 // ------------------------- global variables definition -----------------------------
 #ifdef MASTER
-byte noZonesDefsYet = 0;                  // no zones definitios yet - maybe it is first run or storage is garbage
+byte zonesDefsValid = 0;                  // no zones definitios yet - maybe it is first run or storage is garbage
 byte zoneInfoValid = 0;                   // track if zonesResult array contain valid info as the host can request info before they are read
 byte MzoneResult[MASTER_ZONES_CNT/2 + MASTER_ZONES_CNT%2];                                  //each zone will be in 4bits
 //these are channels to send/receive packets over serial if. The comm to serial is via fRead, fWrite,...

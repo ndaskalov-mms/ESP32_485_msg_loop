@@ -112,9 +112,26 @@ int loadZonesStorage(zonesDB) {
     return 0;
 }
 //
-void setZonesDefault(zonesDB) {
-    
-
+// Initialize zones, pgm, parttitons, etc data storage in case there is no saved copy on storage
+// uses globals zonesDB, pgmDB, etc
+//
+void setAlarmDefault() {
+//    
+    memset((void*)&zonesDB[j], 0, sizeof(zonesDB);       // clear all data
+    for(i=SLAVE_ADDRESS1; i=<MAX_SLAVES); i++) {         // for each board incl master (+1 to account master as well)
+        zonesDB[i][j].boardID = i;       
+        for(j=0; j<MAX_ZONES_CNT; j++) {     // for each zone
+            if(j==MASTER_ZONES_CNT)          // skip unused zones at master (??)
+                break;
+            sprintf(zonesDB[i][j].zoneName, "Zone_%d", j);
+            zonesDB[i][j].zoneID = j;
+            zonesDB[i][j].zoneDefs = 0;
+            zonesDB[i][j].zonePartition = NO_PARTITION; 
+            zonesDB[i][j].zoneOptions = BYPASS_EN  | FORCE_EN;   
+            zonesDB[i][j].zoneExtOpt = 0;    
+        }
+    }
+}    
 //
 // add to arduino setup func
 //
@@ -122,8 +139,8 @@ void zoneSetup() {
 	pinMode (muxCtlPin, OUTPUT);			// set mux ctl as output
 	selectZones	(Azones);					// select A zones
 #ifdef MASTER
-    if(!loadZonesStorage(zonesDB)) {       // try to load zones from disk
-        setZonesDefault(zonesDB);          // failure, init empty database and instruct the main loop to wait for setup message
+    if(!loadAlarmStorage()) {       // try to load zones from disk
+        setAlarmDefault();          // failure, init empty database and instruct the main loop to wait for setup message
         zonesDefsValid = 0;
     }
 #endif
@@ -143,8 +160,8 @@ float convert2mV (unsigned long adcVal) {
     return float (((adcVal*3200)/4096)/OVERSAMPLE_CNT);
 }
 //
-//  print single zone data
-//  parms: struct ZONE DB[]  - (pointer ???) to array of ZONE  containing the zones to be printed
+//  print input zones data
+//  parms: struct ZONE DB[]  - (pointer) to array of ZONE  containing the zones to be printed
 //
 void printZones(struct ZONE DB[], int zones_cnt) { 
     int i; 
@@ -153,7 +170,7 @@ void printZones(struct ZONE DB[], int zones_cnt) {
     }
 }
 //
-//  print single PGM data
+//  print PGM data
 //  parms: struct PGM DB[]  - (pointer ???) to array of PGM  containing the pgm to be printed
 //
 void printPGMs(struct PGM DB[], int pgm_cnt) { 

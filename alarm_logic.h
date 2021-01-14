@@ -23,7 +23,7 @@ void initAlarmZones() {
 //		}	
     for(int i = MASTER_ADDRESS; i <= MAX_SLAVES; i++) {         // for each board incl master (+1 to account master as well)
         for(int j=0; j<MAX_ZONES_CNT; j++) {     // for each zone
-            if(j==MASTER_ZONES_CNT)          // skip unused zones at master (??)
+            if((i==MASTER_ADDRESS) && (j==MASTER_ZONES_CNT))          // skip unused zones at master (??)
                 break;
             sprintf(zonesDB[i][j].zoneName, "Zone_%d", j);
             zonesDB[i][j].boardID = i;     
@@ -52,11 +52,12 @@ void setAlarmDefault() {
 //
 void printAlarmZones(int startBoard, int endBoard) { 
     for (int j = startBoard; j <= endBoard; j++) {
-        logger.printf("\t\tboardID\tzoneID\tgpio\tmux\tzoneStat\tzoneDefs\zonePart\tzoneOpt\zoneExtOpt\tzoneName\n");
+        logger.printf("       boardID zoneID    gpio   mux zoneStat zoneDefs zonePart zoneOpt zoneExtOpt zoneName\n");
         for (int i = 0; i < MAX_ZONES_CNT; i++) {                        // iterate
            logger.printf ("Zone data: %2d\t%2d\t%2d\t%2d\t%2d\t%2d\t%2d\t%2d\t%2d%16s\n",zonesDB[j][i].boardID, zonesDB[j][i].zoneID, zonesDB[j][i].gpio,\
-                                                                                        zonesDB[j][i].mux, zonesDB[j][i].zoneABstat, zonesDB[j][i].zoneDefs,\
-                                                                                        zonesDB[j][i].zoneOptions, zonesDB[j][i].zoneExtOpt, zonesDB[j][i].zoneName);
+                                                                                         zonesDB[j][i].mux, zonesDB[j][i].zoneABstat, zonesDB[j][i].zoneDefs,\
+                                                                                         zonesDB[j][i].zonePartition, zonesDB[j][i].zoneOptions, zonesDB[j][i].zoneExtOpt,\
+                                                                                         zonesDB[j][i].zoneName);
         }
     }
 }
@@ -73,5 +74,6 @@ int loadAlarmDataStorage(struct ALARM_ZONE zonesDB[][MAX_ZONES_CNT]) {
 int initAlarm() {
     if (loadAlarmDataStorage(zonesDB))           // Check 
         return true;
+    initAlarmZones();
     return false;
 }

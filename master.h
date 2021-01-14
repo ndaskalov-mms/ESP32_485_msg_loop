@@ -1,4 +1,6 @@
   boardID = MASTER_ADDRESS;                     // TODO - only for loopback testing
+  if(!alarmDataValid)
+    ;                                           // loop here waiting for initialization data
   static int i=0;
   memcpy(errorsDB_backup, errorsDB, sizeof(errorsDB_backup)); // backup error DB
 //

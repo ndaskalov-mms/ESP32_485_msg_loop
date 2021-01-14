@@ -135,14 +135,12 @@ struct ALARM_ZONE {
   byte  zoneID;                 // the number of zone by which the master will identify it. Zero based. Each ADC gpio produces one zone, but with two results  
   byte  gpio;					// first members  are the same as struct ZONE
   byte  mux;                    // 1 - activate mux to read, 0 - read direct
-  unsigned long accValue;       // oversampled value
-  float mvValue;                // converted value in mV
   byte  zoneABstat;             // encodded status of the A and B parts of the zone
   byte  zoneDefs;				// zone type - enable, entry delay, follow, instant, stay, etc
   byte  zonePartition;          // assigned to partition X
   byte  zoneOptions;            // auto shutdown, nypass, stay, force, alarm type, intellyzone, dealyed transission
   byte  zoneExtOpt;             // zone tamper, tamper supervision, antimask, antimask supervision
-  char  zonaName[16];           // user friendly name
+  char  zoneName[16];           // user friendly name
 };                              
 //
 // zoneDB - database with all zones (master&slaves) info. Info from slaves are fetched via pul command over RS485

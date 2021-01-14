@@ -1,6 +1,6 @@
 #define TEST 1
 #include "gpio-def.h"       // include gpio and zones definitions and persistant storage
-#include zonedef.h
+#include "zonedef.h"
 //
 //#define AltZoneSelect	      0x1			  // selects aternative zones via 4053 mux
 #define muxCtlPin           GPIO0     // 4053 mux control GPIO
@@ -108,42 +108,11 @@ void fillZonesTestData(unsigned long zoneTest[], int zones_cnt) {
     //zoneTest[0] = 4000;
 }
 //
-int loadZonesStorage(zonesDB) {
-    return 0;
-}
-//
-// Initialize zones, pgm, parttitons, etc data storage in case there is no saved copy on storage
-// uses globals zonesDB, pgmDB, etc
-//
-void setAlarmDefault() {
-//    
-    memset((void*)&zonesDB[j], 0, sizeof(zonesDB);       // clear all data
-    for(i=SLAVE_ADDRESS1; i=<MAX_SLAVES); i++) {         // for each board incl master (+1 to account master as well)
-        zonesDB[i][j].boardID = i;       
-        for(j=0; j<MAX_ZONES_CNT; j++) {     // for each zone
-            if(j==MASTER_ZONES_CNT)          // skip unused zones at master (??)
-                break;
-            sprintf(zonesDB[i][j].zoneName, "Zone_%d", j);
-            zonesDB[i][j].zoneID = j;
-            zonesDB[i][j].zoneDefs = 0;
-            zonesDB[i][j].zonePartition = NO_PARTITION; 
-            zonesDB[i][j].zoneOptions = BYPASS_EN  | FORCE_EN;   
-            zonesDB[i][j].zoneExtOpt = 0;    
-        }
-    }
-}    
-//
 // add to arduino setup func
 //
 void zoneSetup() {
 	pinMode (muxCtlPin, OUTPUT);			// set mux ctl as output
 	selectZones	(Azones);					// select A zones
-#ifdef MASTER
-    if(!loadAlarmStorage()) {       // try to load zones from disk
-        setAlarmDefault();          // failure, init empty database and instruct the main loop to wait for setup message
-        zonesDefsValid = 0;
-    }
-#endif
 	//set adc channels???
    if(TEST)                                 // prepare test data
 #ifdef MASTER

@@ -60,7 +60,9 @@ HardwareSerial& SlaveUART(Serial2);
 #endif
 //
 byte boardID;                         // board ID: master is 0, expanders and others up to 0xE; OxF means bradcast
-int waiting_for_reply = 0;            // tracks current state of the protocol
+int  waiting_for_reply = 0;            // tracks current state of the protool
+byte zoneInfoValid = 0;                   // track if zonesResult array contain valid info as the host can request info before they are read
+
 //
 // include all code as it is not possible to compile project from several user .cpp files:-(
 //
@@ -77,8 +79,7 @@ int waiting_for_reply = 0;            // tracks current state of the protocol
 //
 // ------------------------- global variables definition -----------------------------
 #ifdef MASTER
-byte zonesDefsValid = 0;                  // no zones definitios yet - maybe it is first run or storage is garbage
-byte zoneInfoValid = 0;                   // track if zonesResult array contain valid info as the host can request info before they are read
+byte alarmDataValid = 0;                  // no zones definitios yet - maybe it is first run or storage is garbage
 byte MzoneResult[MASTER_ZONES_CNT/2 + MASTER_ZONES_CNT%2];                                  //each zone will be in 4bits
 //these are channels to send/receive packets over serial if. The comm to serial is via fRead, fWrite,...
 RS485 MasterMsgChannel (MasterRead, MasterAvailable, MasterWrite, ErrWrite, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
@@ -87,6 +88,7 @@ RS485 MasterMsgChannel (MasterRead, MasterAvailable, MasterWrite, ErrWrite, RxBU
 byte SzoneResult[SLAVE_ZONES_CNT/2 + SLAVE_ZONES_CNT%2];          //each zone will be in 4bits
 RS485 SlaveMsgChannel  (SlaveRead, SlaveAvailable, SlaveWrite, ErrWrite, RxBUF_SIZE);      //RS485 myChannel (read_func, available_func, write_func, msg_len);
 #endif
+//
 int err, retCode;                         // holds error returns from some functions                         
 struct MSG rcvMsg;                        // temp structs for message tr/rcv
 byte tmpMsg [MAX_PAYLOAD_SIZE];
@@ -104,8 +106,8 @@ void setup() {
    MasterUART.begin(BITRATE,SERIAL_8N1);  
    MasterMsgChannel.begin ();                 // allocate data buffers and init message encoding/decoding engines (485_non_blocking library)
    pgmSetup(MpgmDB, MAX_PGM_CNT);             // init PGMs (output and default value)
-   initAlarmZones();
-   printAlarmZones();
+   alarmDataValid = initAlarm();         // set flag for loop() to know if the initialization was successful
+   printAlarmZones(MASTER_ADDRESS, MAX_SLAVES);
 #endif
 #ifdef SLAVE
    SlaveMsgChannel.begin ();                     // allocate data buffers and init message encoding/decoding engines (485_non_blocking library)

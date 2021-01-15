@@ -102,14 +102,14 @@ int ErrWrite (int err_code, char * what)           // callback to dump info to s
       if(SERIAL_LOG)
 		  logger.printf (what);
 	  if(MQTT_LOG)
-		  ReportUpstream(LOG_TOPIC, what);
+		   ReportMQTT(LOG_TOPIC, what);
       break;    
   case ERR_DEBUG:    
       if(DEBUG) {
 		  if(SERIAL_LOG)
 			logger.printf (what);
 		  if(MQTT_LOG)
-			ReportUpstream(DEBUG_TOPIC, what);
+			 ReportMQTT(DEBUG_TOPIC, what);
 	      }
       break;
   case ERR_INFO:    
@@ -117,7 +117,7 @@ int ErrWrite (int err_code, char * what)           // callback to dump info to s
 		  if(SERIAL_LOG)
 			logger.printf (what);
 		  if(MQTT_LOG)
-			ReportUpstream(INFO_TOPIC, what);
+			 ReportMQTT(INFO_TOPIC, what);
 		  }
       break;
   case ERR_WARNING:    
@@ -125,7 +125,7 @@ int ErrWrite (int err_code, char * what)           // callback to dump info to s
 		  if(SERIAL_LOG)
 			logger.printf (what);
 		  if(MQTT_LOG)
-			ReportUpstream(WARNING_TOPIC, what);
+			 ReportMQTT(WARNING_TOPIC, what);
 	      }
       break; 
 	case ERR_INV_PAYLD_LEN:
@@ -146,7 +146,7 @@ int ErrWrite (int err_code, char * what)           // callback to dump info to s
 		  if(SERIAL_LOG)
 			  logger.printf (what);
 		  if(MQTT_LOG)
-			  ReportUpstream(ERROR_TOPIC, what);
+			   ReportMQTT(ERROR_TOPIC, what);
       }
     break;
    default:
@@ -158,9 +158,9 @@ int ErrWrite (int err_code, char * what)           // callback to dump info to s
       if(MQTT_LOG) {
         char tmpBuf[256];                         
         sprintf(tmpBuf,"Invalid err code %d for CMD %d rcvd in err handling callback\n", err_code, waiting_for_reply);                           
-        ReportUpstream(ERROR_TOPIC,tmpBuf);
+         ReportMQTT(ERROR_TOPIC,tmpBuf);
         if(what)
-          ReportUpstream(ERROR_TOPIC, what);
+           ReportMQTT(ERROR_TOPIC, what);
 	      }
 	  break;
   }

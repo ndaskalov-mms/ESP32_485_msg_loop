@@ -101,10 +101,16 @@ byte tmpMsg [MAX_PAYLOAD_SIZE];
 //
 void setup() {
   logger.begin(LOG_BITRATE,SERIAL_8N1);
-  logger.printf("\n\nStaring setup\n\n");
+  logger.printf("\n\nStarting setup\n\n");
 #ifdef MASTER
    MasterUART.begin(BITRATE,SERIAL_8N1);  
    MasterMsgChannel.begin ();                 // allocate data buffers and init message encoding/decoding engines (485_non_blocking library)
+   if(!storageSetup()) {
+      while(true) {                           // loop forever
+        ReportMQTT(ERROR_TOPIC, "Error initializing storage");
+        delay(60000);                         // wait a minute befoe send again
+      }
+   }
    pgmSetup(MpgmDB, MAX_PGM_CNT);             // init PGMs (output and default value)
    alarmDataValid = initAlarm();         // set flag for loop() to know if the initialization was successful
    printAlarmZones(MASTER_ADDRESS, MAX_SLAVES);

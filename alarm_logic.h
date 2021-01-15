@@ -1,26 +1,11 @@
+#include "storage.h"
 //
 // initializes master's zoneDB with data from master's MzoneDB and SzonesDB as defined in compile time
 // zoneDB contains MAX_SLAVE+1 arrays of struct ZONE. Each array corresponds to one slave, and one is for master.
 // 
 void initAlarmZones() {
-//	// init master zones storage first
-//	for(int j=0;j<MASTER_ZONES_CNT;j++)	{
-//		zonesDB[MASTER_ADDRESS][j].useZone = true;
-//		zonesDB[MASTER_ADDRESS][j].gpio = 	 MzoneDB[j].gpio;
-//		zonesDB[MASTER_ADDRESS][j].mux = 	   MzoneDB[j].mux;
-//		zonesDB[MASTER_ADDRESS][j].zoneID =  MzoneDB[j].zoneID;
-//		zonesDB[MASTER_ADDRESS][j].boardID = MASTER_ADDRESS;
-//		}
-//	// than for all slave boards
-//	for(int i=1;i<=MAX_SLAVES;i++) {
-//		for(int j=0;j<MAX_ZONES_CNT;j++)	{
-//			zonesDB[i][j].useZone = true;
-//			zonesDB[i][j].gpio 	  = 0; //SzoneDB[j].gpio; 	  
-//			zonesDB[i][j].mux     = 0; //SzoneDB[j].mux;     
-//			zonesDB[i][j].zoneID  = j; //SzoneDB[j].zoneID;  
-//			zonesDB[i][j].boardID = i;
-//			}
-//		}	
+//
+    memset((void*)&zonesDB, 0, sizeof(zonesDB));       // clear all data
     for(int i = MASTER_ADDRESS; i <= MAX_SLAVES; i++) {         // for each board incl master (+1 to account master as well)
         for(int j=0; j<MAX_ZONES_CNT; j++) {     // for each zone
             if((i==MASTER_ADDRESS) && (j==MASTER_ZONES_CNT))          // skip unused zones at master (??)
@@ -37,13 +22,18 @@ void initAlarmZones() {
 }
 //
 //
+//
+void initAlarmPgms() {
+}
+//
+//
 // Initialize zones, pgm, parttitons, etc data storage in case there is no saved copy on storage
 // uses globals zonesDB, pgmDB, etc
 //
-void setAlarmDefault() {
+void setAlarmDefaults() {
 //    
-    memset((void*)&zonesDB, 0, sizeof(zonesDB));       // clear all data
-
+   initAlarmZones();
+   initAlarmPgms();
 }    
 
 //
@@ -74,6 +64,7 @@ int loadAlarmDataStorage(struct ALARM_ZONE zonesDB[][MAX_ZONES_CNT]) {
 int initAlarm() {
     if (loadAlarmDataStorage(zonesDB))           // Check 
         return true;
-    initAlarmZones();
+    setAlarmDefaults();
+
     return false;
 }

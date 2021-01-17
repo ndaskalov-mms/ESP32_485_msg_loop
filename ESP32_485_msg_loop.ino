@@ -5,6 +5,8 @@
 #define MAX_PGM_CNT		    8		  // 8 on MASTER, 2 on SLAVE
 #define MASTER_PGM_CNT	  8		
 #define SLAVE_PGM_CNT     2
+
+#define ENABLE_CONFIG_CREATE true
 //
 // define roles
 #define MASTER
@@ -46,10 +48,9 @@ constexpr int BITRATE = 115200;
 constexpr int LOG_BITRATE = 115200;
 HardwareSerial& logger(Serial);
 //
-                                        // all zones and pgms related staff
-//
 #ifdef MASTER
 HardwareSerial& MasterUART(Serial2);
+const char configFileName[] = "/alarmConfig.cfg";
 #endif
 #ifdef SLAVE
 #ifdef LOOPBACK
@@ -59,10 +60,9 @@ HardwareSerial& SlaveUART(Serial2);
 #endif
 #endif
 //
-byte boardID;                         // board ID: master is 0, expanders and others up to 0xE; OxF means bradcast
-int  waiting_for_reply = 0;            // tracks current state of the protool
-byte zoneInfoValid = 0;                   // track if zonesResult array contain valid info as the host can request info before they are read
-
+byte boardID;                           // board ID: master is 0, expanders and others up to 0xE; OxF means bradcast
+int  waiting_for_reply = 0;             // tracks current state of the protool
+byte zoneInfoValid = 0;                 // track if zonesResult array contain valid info as the host can request info before they are read
 //
 // include all code as it is not possible to compile project from several user .cpp files:-(
 //
@@ -105,19 +105,21 @@ void setup() {
 #ifdef MASTER
    MasterUART.begin(BITRATE,SERIAL_8N1);  
    MasterMsgChannel.begin ();                 // allocate data buffers and init message encoding/decoding engines (485_non_blocking library)
-   if(!storageSetup()) {
+   if(!storageSetup()) {                      // initializes file system
       while(true) {                           // loop forever
         ReportMQTT(ERROR_TOPIC, "Error initializing storage");
-        delay(60000);                         // wait a minute befoe send again
+        delay(60000);                         // wait a minute before send again
       }
    }
-   pgmSetup(MpgmDB, MAX_PGM_CNT);             // init PGMs (output and default value)
-   alarmDataValid = initAlarm();         // set flag for loop() to know if the initialization was successful
+  // read config file from storage and init all alarm internals and databases for zones, pgms, partitions, keswitches, etc
+   alarmDataValid = initAlarm();              // set flag for loop() to know if the initialization was successful
+   pgmSetup(MpgmDB, MASTER_PGM_CNT);             // init PGMs (output and default value)
    printAlarmZones(MASTER_ADDRESS, MAX_SLAVES);
 #endif
+//
 #ifdef SLAVE
    SlaveMsgChannel.begin ();                     // allocate data buffers and init message encoding/decoding engines (485_non_blocking library)
-   pgmSetup(SpgmDB, MAX_PGM_CNT);              // init PGMs (output and default value)
+   pgmSetup(SpgmDB, SLAVE_PGM_CNT);              // init PGMs (output and default value)
 #ifdef LOOPBACK
   SlaveUART.begin(BITRATE,SERIAL_8N1, 21, 22);    // re-routing RxD to  GPIO21 and TxD to GPIO22
 #else

@@ -36,12 +36,13 @@ enum errorID {
   ERR_RS485_TIMEOUT = -13,                  // RS485 timeout waiting for ETX when STX is received
   ERR_RS485_FORCE_SCREW = -14 ,             // RS485 intentionally generated for testing purposes
   ERR_RS485_NO_CALLBACK = -15,              // RS485 has no read/write/available callback 
+  ERR_CRITICAL = -16,                       // critical error occured, 
   };
 
 // Errors friendly names for UI
-char  t_ERR_OK[] 					      = "";	      // print w/o title, just the string supplied by caller
-char  t_ERR_DEBUG[] 				    = "";	      // print w/o title, just the string supplied by calle
-char  t_ERR_WARNING[] 				  = "";	      // print w/o title, just the string supplied by calle
+//char  t_ERR_OK[] 					      = "";	      // print w/o title, just the string supplied by caller
+//char  t_ERR_DEBUG[] 				    = "";	      // print w/o title, just the string supplied by calle
+//char  t_ERR_WARNING[] 				  = "";	      // print w/o title, just the string supplied by calle
 char  t_ERR_INV_PAYLD_LEN[] 		= "Send/rcv  message payload issue (too long or doesn't match message code payload size)";
 char  t_ERR_TRM_MSG[]       		= "Message transmit error";
 char  t_ERR_RCV_MSG[]     			= "Message Receive error";  
@@ -55,6 +56,7 @@ char  t_ERR_RS485_BAD_CRC[] 		= "RS485 crc error";
 char  t_ERR_RS485_TIMEOUT[] 		= "RS485 timeout waiting for ETX when STX is received";
 char  t_ERR_RS485_FORCE_SCREW[] 	= "RS485 intentionally generated for testing purposes";
 char  t_ERR_RS485_NO_CALLBACK[] 	= "RS485 has no read/write/available callback";
+char  t_ERR_CRITICAL[] 	            = "CRITICAL ERROR - can't continue";
 
 //
 // errors storage for reporting purposes
@@ -127,6 +129,12 @@ int ErrWrite (int err_code, char * what)           // callback to dump info to s
 		  if(MQTT_LOG)
 			 ReportMQTT(WARNING_TOPIC, what);
 	      }
+      break; 
+  case ERR_CRITICAL:    
+      if(SERIAL_LOG)
+        logger.printf (what);
+      if(MQTT_LOG)
+         ReportMQTT(WARNING_TOPIC, what);
       break; 
 	case ERR_INV_PAYLD_LEN:
 	case ERR_BAD_CMD:

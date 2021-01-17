@@ -1,15 +1,26 @@
-#include "storage.h"
+#include "loadSafeConfTest/loadStore.h"
 //
 // initializes master's zoneDB with data from master's MzoneDB and SzonesDB as defined in compile time
 // zoneDB contains MAX_SLAVE+1 arrays of struct ZONE. Each array corresponds to one slave, and one is for master.
 // 
-void initAlarmZones() {
+void setAlarmZonesDefaults() {
 //
-    memset((void*)&zonesDB, 0, sizeof(zonesDB));       // clear all data
-    for(int i = MASTER_ADDRESS; i <= MAX_SLAVES; i++) {         // for each board incl master (+1 to account master as well)
-        for(int j=0; j<MAX_ZONES_CNT; j++) {     // for each zone
-            if((i==MASTER_ADDRESS) && (j==MASTER_ZONES_CNT))          // skip unused zones at master (??)
-                break;
+    memset((void*)&zonesDB, 0, sizeof(zonesDB));       // clear all data, just in case
+    // copy master zone defaults first
+    for(int j=0; j<MASTER_ZONES_CNT; j++) {     // for each zone
+        sprintf(zonesDB[i][j].zoneName, "Zone_%d", j);
+        zonesDB[MASTER_ADDRESS][j].boardID = MASTER_ADDRESS;     
+        zonesDB[MASTER_ADDRESS][j].zoneID = j;
+        zonesDB[MASTER_ADDRESS][j].gpio = MzoneDB[j].gpio;
+        zonesDB[MASTER_ADDRESS][j].mux = MzoneDB[j].mux;
+        zonesDB[MASTER_ADDRESS][j].zoneDefs = 0;
+        zonesDB[MASTER_ADDRESS][j].zonePartition = NO_PARTITION; 
+        zonesDB[MASTER_ADDRESS][j].zoneOptions = BYPASS_EN  | FORCE_EN;   
+        zonesDB[MASTER_ADDRESS][j].zoneExtOpt = 0;    
+    }
+    // then init defaults for all slaves
+    for(int i = SLAVE_ADDRESS1; i <= MAX_SLAVES; i++) {         // for each slave board 
+        for(int j=0; j<MSLAVE_ZONES_CNT; j++) {     // for each zone
             sprintf(zonesDB[i][j].zoneName, "Zone_%d", j);
             zonesDB[i][j].boardID = i;     
             zonesDB[i][j].zoneID = j;
@@ -23,7 +34,25 @@ void initAlarmZones() {
 //
 //
 //
-void initAlarmPgms() {
+void setAlarmPgmsDefaults() {
+//
+    memset((void*)&zonesDB, 0, sizeof(pgmDB));       // clear all data
+        // copy master zone defaults first
+    for(int j=0; j<MASTER_PGM_CNT; j++) {     // for each zone
+        sprintf(zonesDB[i][j].pgmName, "PGM_%d", j);
+        zonesDB[MASTER_ADDRESS][j].boardID = MASTER_ADDRESS;     
+        zonesDB[MASTER_ADDRESS][j].pgmID = j;
+        zonesDB[MASTER_ADDRESS][j].gpio = MpgmDB[j].gpio;
+        zonesDB[MASTER_ADDRESS][j].iValue = MpgmDB[j].iValue;
+    }
+    for(int i = SLAVE_ADDRESS; i <= MAX_SLAVES; i++) {         // for each board 
+        for(int j=0; j<MAX_PGM_CNT; j++) {     // for each zone
+            sprintf(zonesDB[i][j].zoneName, "PGM_%d", j);
+            zonesDB[i][j].boardID = i;     
+            zonesDB[i][j].pgmID = j;
+        }
+    }
+}
 }
 //
 //
@@ -32,8 +61,8 @@ void initAlarmPgms() {
 //
 void setAlarmDefaults() {
 //    
-   initAlarmZones();
-   initAlarmPgms();
+   setAlarmZonesDefaults();
+   setAlarmPgmsDefaults();
 }    
 
 //
@@ -52,19 +81,18 @@ void printAlarmZones(int startBoard, int endBoard) {
     }
 }
 //
-int loadAlarmDataStorage(struct ALARM_ZONE zonesDB[][MAX_ZONES_CNT]) {
-    return false;
-}
-//
 //  initAlarm() - tries to load complete alarm zones data from storage
 //  if successful, sets global flag alarmDataValid to true, this way enables operation.
 //  if not successful read, initialize empty zones database (zonesDB) and sets global flag alarmDataValid to false
 //  this flag will be checked in loop function and only MQTT channel will be enabled and the system will wait for alarm zones, part, etc data
 //
 int initAlarm() {
-    if (loadAlarmDataStorage(zonesDB))           // Check 
-        return true;
-    setAlarmDefaults();
-
-    return false;
+   if(!readConfig(configFileName))   {          //read config file  
+        setAlarmDefaults();
+#ifdef ENABLE_CONFIG_CREATE
+        if(!saveConfig(configFileName))          // check if we can create the file, maybe this is the first ride TODO - make it to check only once
+#endif
+            return false;
+   }
+   return true;                                 // we got the database 
 }

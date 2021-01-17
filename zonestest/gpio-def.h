@@ -141,7 +141,19 @@ struct ALARM_ZONE {
   byte  zoneOptions;            // auto shutdown, nypass, stay, force, alarm type, intellyzone, dealyed transission
   byte  zoneExtOpt;             // zone tamper, tamper supervision, antimask, antimask supervision
   char  zoneName[16];           // user friendly name
-};                              
+};        
+//
+// alarm pgms records structure to hold all alarm pgms related info
+//
+struct ALARM_PGM {
+  byte	boardID;				// the board which zones belong to. Master ID is 0	
+  byte  pgmID;                 // the number of zone by which the master will identify it. Zero based. Each ADC gpio produces one zone, but with two results  
+  byte  gpio;					// first members  are the same as struct ZONE
+  byte  iValue;             // initial value
+  byte  cValue;             // current
+  char  pgmName[16];           // user friendly name
+};   
+
 //
 // zoneDB - database with all zones (master&slaves) info. Info from slaves are fetched via pul command over RS485
 // TODO - use prep to get largest zone count
@@ -154,4 +166,14 @@ struct ALARM_ZONE zonesDB[MAX_SLAVES+1][MAX_ZONES_CNT];		// typically master has
 // MASTER PGMs organized as 2D array. All pgms zones organized as 2D array - [board][pgms].
 //
 struct PGM pgmDB[MAX_SLAVES+1][MAX_PGM_CNT];		        // typically master has more pgms than slave, so we use the largest denominator
+//
+// Struct to store the all alarm configuration
+//
+struct CONFIG_t {
+  byte  version;
+  byte  zoneConfigs[sizeof(zonesDB)];
+  byte  pgmConfigs[sizeof(pgmDB)];
+  byte  csum;
+} alarmConfig, valConfig;
+//
 #endif

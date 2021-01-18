@@ -129,6 +129,7 @@ int j = 0; int i = 0;
 //
 // master process messages root function. It is called when message (should be reply)  is received at master
 // patrams: struct MSG ms - contains received message attributes
+//          global rcvMsg variable - content of the parsed message (reply)
 // returns: none            TODO - add return code error or ERR_OK
 //
 void masterProcessMsg(struct MSG msg) {
@@ -154,11 +155,11 @@ void masterProcessMsg(struct MSG msg) {
   				break;
    			case SET_ZONE_SUB_CMD:
         case GET_ZONE_SUB_CMD:
-  				ErrWrite(ERR_DEBUG, "Master: reply received for SET_ZONE_SUB_CMD or case GET_ZONE_SUB_CMD: \n");
+  				ErrWrite(ERR_DEBUG, "Master: reply received for SET_ZONE_SUB_CMD or GET_ZONE_SUB_CMD: \n");
   				break;
         case SET_PGM_SUB_CMD:
         case GET_PGM_SUB_CMD:
-          ErrWrite(ERR_DEBUG, "Master: reply received for SET_PGM_SUB_CMD or case GET_PGM_SUB_CMD: \n");
+          ErrWrite(ERR_DEBUG, "Master: reply received for SET_PGM_SUB_CMD or GET_PGM_SUB_CMD: \n");
           break;
   			default:
   				ErrWrite(ERR_WARNING, "Master: invalid sub-command received %x\n", msg.subCmd);

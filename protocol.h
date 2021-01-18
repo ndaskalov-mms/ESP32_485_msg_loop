@@ -8,7 +8,7 @@ void masterProcessMsg(struct MSG msg);
 // 
 // check and if any parce received message  
 // in case of message available, parce message gunction retrieves it and stores all message components in returned stuct MSG
-// assigned to global rcvMSG variable.
+// assigned to global rcvMsg variable.
 // parameters: none
 // return:   ERR_OK (0) in case of no message or message which is not for us
 //          ERR_RCV_MSG (negative) in case of parsing error

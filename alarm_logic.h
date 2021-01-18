@@ -107,7 +107,22 @@ void setAlarmDefaults() {
    //printAlarmZones((byte *) &alarmConfig.zoneConfigs, MASTER_ADDRESS, MAX_SLAVES);
    memcpy((byte *) &alarmConfig.pgmConfigs, (byte *) pgmsDB, sizeof(alarmConfig.pgmConfigs)); 
    printAlarmPgms((byte*) &alarmConfig.pgmConfigs, MASTER_ADDRESS, MAX_SLAVES); 
-}    
+}
+//
+int fetchSlaveZones(byte slaveNo) {
+	ErrWrite(ERR_DEBUG, "Fetching %d slave zones\n", slaveNo);
+    if(ERR_OK == getSlaveZones(slaveNo)) {   // sendCmd handle and reports errors internally, the result is in rcvMsg
+		if(ERR_OK == wait4reply(100)) {       // timeout is just in case, we have to exit with reply timeout if no reply
+		
+		} 
+		else {								 // wait4reply returns error
+		
+		}
+	}
+	else {									 // send fetch command fail
+		
+	}
+}
 //
 //  initAlarm() - tries to load complete alarm zones data from storage
 //  if successful, sets global flag alarmDataValid to true, this way enables operation.

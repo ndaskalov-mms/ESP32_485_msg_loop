@@ -73,9 +73,7 @@ byte zoneInfoValid = 0;                 // track if zonesResult array contain va
 #include "RS485_cbacks.h"             // callbacks required by RS485 lib and UART related staff (ESP32 specific)
 #include "helpers.h"                  // include helper functions. INCLUDE ONLY AFTER SERIAL PORT DEFINITIONS!!!!
 #include "Alarm_RS485-cpp.h"          // RS485 transport implementation (library)
-#ifdef MASTER
-#include "alarm_logic.h"
-#endif
+
 //
 //
 // ------------------------- global variables definition -----------------------------
@@ -96,6 +94,9 @@ byte tmpMsg [MAX_PAYLOAD_SIZE];
 //
 #include "protocol.h"                     // send/receive and compse messgaes staff
 #include "commands.h"                     // master/slave commands implementation
+#ifdef MASTER
+#include "alarm_logic.h"
+#endif
 //
 //
 //  Arduino setup function - call all local setups her
@@ -115,6 +116,7 @@ void setup() {
    }
    // read config file from storage and init all alarm internals and databases for zones, pgms, partitions, keswitches, etc
    alarmDataValid = initAlarm();              // set flag for loop() to know if the initialization was successful
+   alarmDataValid |= fetchSlaveZones(SLAVE_ADDRESS1);
    storageClose();								// unmount FS
    zoneHWSetup();                                  // init mux for zones selection
    pgmSetup(MpgmDB, MASTER_PGM_CNT);             // init PGMs (output and default value)

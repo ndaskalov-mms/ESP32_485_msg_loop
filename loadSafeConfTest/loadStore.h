@@ -43,15 +43,23 @@ int storageSetup() {
     }
   
 }
+//
+// close storage
+// return: true on succsess WARNING - if storage is not formatted, formats it
+//         fail on failure
+//
+int storageClose() {
+	SPIFFS.end();
+    ErrWrite(ERR_OK, "Shutting down storage\n"); 
+}
 
 void formatStorage() {
     ErrWrite(ERR_WARNING, "Formatting file system\n");
-    LITTLEFS.format();
+    SPIFFS.format();
 }
 void printAlarmConfig(byte * cBuf) {
-     for(int i=0; i<sizeof(alarmConfig); i++) {
-          Serial.printf("Index %d content %d %d %d %d %d %d %d %d %d %d ", i, cBuf[i++], cBuf[i++],cBuf[i++],cBuf[i++],cBuf[i++],cBuf[i++],cBuf[i++],cBuf[i++],cBuf[i++],cBuf[i++]);
-          Serial.println("");
+     for(int i=0; i<sizeof(alarmConfig); ) {
+          Serial.printf("Index %d content %d %d %d %d %d %d %d %d %d %d \n", i, cBuf[i++], cBuf[i++],cBuf[i++],cBuf[i++],cBuf[i++],cBuf[i++],cBuf[i++],cBuf[i++],cBuf[i++],cBuf[i++]);
           }
 }    
 
@@ -91,8 +99,8 @@ int saveConfig(const char cFileName []) {
           //Serial.printf("Read CS %d differs from calculated %d", valConfig.csum, cs8);
           return false;
           }
-        logger.printf("Content of config file written\n");
-        printAlarmConfig((byte*) &valConfig);
+        //logger.printf("Content of config file written\n");
+        //printAlarmConfig((byte*) &valConfig);
         return true;
         }
      else {
@@ -124,7 +132,7 @@ int readConfig(const char cFileName []) {
         printAlarmConfig((byte*) &valConfig);
         memcpy((byte*) &alarmConfig, (byte*) &valConfig, sizeof(alarmConfig));
         logger.printf("Content of configured DB\n");
-        printAlarmConfig((byte*) &alarmConfig);
+        //printAlarmConfig((byte*) &alarmConfig);
         ErrWrite(ERR_DEBUG, "Reading config file done\n");
         return true;
         }

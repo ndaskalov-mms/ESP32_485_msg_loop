@@ -10,7 +10,7 @@
     ErrWrite(ERR_INFO, "\nMaster: time to transmit \n");
     //if(ERR_OK == sendFreeText(SLAVE_ADDRESS1, FREE_CMD_DATA_LEN, test_msg[(++i)%3])) // sendCmd handle and reports errors internally 
       //ErrWrite( ERR_INFO, ("Master MSG transmitted, receive timeout started\n"));
-	  if(ERR_OK == setSlavePGMs(pgmDB[SLAVE_ADDRESS1], SLAVE_ADDRESS1)); // sendCmd handle and reports errors internally 
+	  if(ERR_OK == setSlavePGMs(pgmsDB[SLAVE_ADDRESS1], SLAVE_ADDRESS1)); // sendCmd handle and reports errors internally 
       ErrWrite( ERR_INFO, ("Master MSG transmitted, receive timeout started\n"));
     //if(ERR_OK == setSlaveZones(zonesDB[SLAVE_ADDRESS1], SLAVE_ADDRESS1)); // sendCmd handle and reports errors internally 
       //ErrWrite( ERR_INFO, ("Master MSG transmitted, receive timeout started\n"));

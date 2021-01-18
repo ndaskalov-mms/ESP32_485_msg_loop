@@ -110,7 +110,7 @@ void fillZonesTestData(unsigned long zoneTest[], int zones_cnt) {
 //
 // add to arduino setup func
 //
-void zoneSetup() {
+void zoneHWSetup() {
 	pinMode (muxCtlPin, OUTPUT);			// set mux ctl as output
 	selectZones	(Azones);					// select A zones
 	//set adc channels???
@@ -264,30 +264,30 @@ void convertZones(struct ZONE DB[], int zoneCnt, byte zoneResult[]) {
 //
 //  PGM control code here
 //
-void pgmSetup(struct PGM pgmDB[], const int pgmCnt) {
+void pgmSetup(struct PGM pDB[], const int pgmCnt) {
   for(int i =0; i < pgmCnt; i++) {                   // for each PGM 
-    pinMode (pgmDB[i].gpio, OUTPUT);                  // set GPIO as output
-    digitalWrite(pgmDB[i].gpio, pgmDB[i].iValue);     // set initial value
-    pgmDB[i].cValue = pgmDB[i].iValue;
+    pinMode (pDB[i].gpio, OUTPUT);                  // set GPIO as output
+    digitalWrite(pDB[i].gpio, pDB[i].iValue);     // set initial value
+    pDB[i].cValue = pDB[i].iValue;
   }
 }
 //
 // set PGM
 //
-void setPgm(struct PGM pgmDB[], byte idx, bool val, const int pgmCnt) {
+void setPgm(struct PGM pDB[], byte idx, bool val, const int pgmCnt) {
   for (int i = 0; i < pgmCnt; i++) {
     //logger.printf("Looking at index  %d out of  %d:\n", idx, pgmCnt-1);
-    if(idx == pgmDB[i].rNum)  
-      digitalWrite(pgmDB[i].gpio, val);               // set output value
+    if(idx == pDB[i].rNum)  
+      digitalWrite(pDB[i].gpio, val);               // set output value
     } 
 }
 //
 // get PGM
 //
-bool getPgm(struct PGM pgmDB[], byte idx, const int pgmCnt) {
+bool getPgm(struct PGM pDB[], byte idx, const int pgmCnt) {
   for (int i = 0; i < pgmCnt; i++) {
     //logger.printf("Looking at index  %d out of  %d:\n", idx, pgmCnt-1);
-    if(idx == pgmDB[i].rNum) 
-      return pgmDB[i].cValue;               // read output value
+    if(idx == pDB[i].rNum) 
+      return pDB[i].cValue;               // read output value
     }
 }

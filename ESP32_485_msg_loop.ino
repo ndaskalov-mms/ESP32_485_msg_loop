@@ -107,33 +107,37 @@ void setup() {
 #ifdef MASTER
    MasterUART.begin(BITRATE,SERIAL_8N1);  
    MasterMsgChannel.begin ();                 // allocate data buffers and init message encoding/decoding engines (485_non_blocking library)
-   if(!storageSetup()) {                      // initializes file system
+   if(!storageSetup()) {                      // mount file system
       while(true) {                           // loop forever
         ReportMQTT(ERROR_TOPIC, "Error initializing storage");
         delay(60000);                         // wait a minute before send again
       }
    }
-  // read config file from storage and init all alarm internals and databases for zones, pgms, partitions, keswitches, etc
+   // read config file from storage and init all alarm internals and databases for zones, pgms, partitions, keswitches, etc
    alarmDataValid = initAlarm();              // set flag for loop() to know if the initialization was successful
+   storageClose();								// unmount FS
+   zoneHWSetup();                                  // init mux for zones selection
    pgmSetup(MpgmDB, MASTER_PGM_CNT);             // init PGMs (output and default value)
-   printAlarmZones((byte *) &zonesDB, MASTER_ADDRESS, MAX_SLAVES);
+   ErrWrite(ERR_DEBUG, "ALARM ZONES read from config file\n");
+   printAlarmZones((byte *) &alarmConfig.zoneConfigs, MASTER_ADDRESS, MAX_SLAVES);
+   printAlarmPgms((byte *) &alarmConfig.pgmConfigs, MASTER_ADDRESS, MAX_SLAVES);
 #endif
 //
 #ifdef SLAVE
    SlaveMsgChannel.begin ();                     // allocate data buffers and init message encoding/decoding engines (485_non_blocking library)
-   pgmSetup(SpgmDB, SLAVE_PGM_CNT);              // init PGMs (output and default value)
 #ifdef LOOPBACK
   SlaveUART.begin(BITRATE,SERIAL_8N1, 21, 22);    // re-routing RxD to  GPIO21 and TxD to GPIO22
 #else
   SlaveUART.begin(BITRATE,SERIAL_8N1,)
 #endif
 #endif
-  logger.printf("Loopback example for Esp32+485\n");
   logger.printf("MAX_MSG_LENGHT = %d\n", MAX_MSG_LENGHT  );
   logger.printf("MAX_PAYLOAD_SIZE = %d\n", MAX_PAYLOAD_SIZE );
   logger.printf("Size of test msg: %d\n", FREE_CMD_DATA_LEN);
-  zoneSetup();                                  // init mux for zones selection
+  zoneHWSetup();                                  // init mux for zones selection
+  pgmSetup(SpgmDB, SLAVE_PGM_CNT);              // init PGMs (output and default value)
   //printErrorsDB();
+  logger.printf("\n\nSetup finished\n\n");
 }
 
 //

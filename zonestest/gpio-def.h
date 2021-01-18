@@ -157,22 +157,23 @@ struct ALARM_PGM {
 //
 // zoneDB - database with all zones (master&slaves) info. Info from slaves are fetched via pul command over RS485
 // TODO - use prep to get largest zone count
-//
-//
 // All alarm zones zones organized as 2D array - [board][zones]. Contains data for all boards and zones in each board, incl. master
 //
-struct ALARM_ZONE zonesDB[MAX_SLAVES+1][MAX_ZONES_CNT];		// typically master has fewer zones than slave, so we use the largest denominator
+typedef struct ALARM_ZONE alarmZonePtr_t[MAX_SLAVES+1][MAX_ZONES_CNT];
+alarmZonePtr_t zonesDB;
+//
 //
 // MASTER PGMs organized as 2D array. All pgms zones organized as 2D array - [board][pgms].
 //
-struct ALARM_PGM pgmDB[MAX_SLAVES+1][MAX_PGM_CNT];		        // typically master has more pgms than slave, so we use the largest denominator
+typedef struct ALARM_PGM alarmPgmPtr_t[MAX_SLAVES+1][MAX_PGM_CNT];		        // typically master has more pgms than slave, so we use the largest denominator
+alarmPgmPtr_t pgmsDB;
 //
 // Struct to store the all alarm configuration
 //
 struct CONFIG_t {
   byte  version;
   byte  zoneConfigs[sizeof(zonesDB)];
-  byte  pgmConfigs[sizeof(pgmDB)];
+  byte  pgmConfigs[sizeof(pgmsDB)];
   byte  csum;
 } alarmConfig, valConfig;
 //

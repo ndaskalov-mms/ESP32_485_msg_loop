@@ -116,7 +116,7 @@ void setup() {
   // read config file from storage and init all alarm internals and databases for zones, pgms, partitions, keswitches, etc
    alarmDataValid = initAlarm();              // set flag for loop() to know if the initialization was successful
    pgmSetup(MpgmDB, MASTER_PGM_CNT);             // init PGMs (output and default value)
-   printAlarmZones(MASTER_ADDRESS, MAX_SLAVES);
+   printAlarmZones((byte *) &zonesDB, MASTER_ADDRESS, MAX_SLAVES);
 #endif
 //
 #ifdef SLAVE

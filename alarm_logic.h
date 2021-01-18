@@ -55,6 +55,29 @@ void setAlarmPgmsDefaults() {
 }
 //
 //
+typedef struct ALARM_ZONE zonePtr_t[MAX_SLAVES][MAX_ZONES_CNT];
+//typedef int Array2D[ROW][COL]
+//
+//  print alarm zones data
+//  parms: struct ZONE DB[]  - (pointer) to array of ZONE  containing the zones to be printed
+//
+//void printAlarmZones(struct ALARM_ZONE zoneArr[][MAX_ZONES_CNT], int startBoard, int endBoard) { 
+//struct ALARM_ZONE (*zoneArr)[MAX_SLAVES][MAX_ZONES_CNT] = zoneArr;
+//
+void printAlarmZones(byte* zoneArrPtr, int startBoard, int endBoard) { 
+  zonePtr_t *zoneArr = (zonePtr_t *)zoneArrPtr;
+  //(*zoneArr)[0][0].boardID =  5;
+    for (int j = startBoard; j <= endBoard; j++) {
+        logger.printf("       boardID zoneID    gpio   mux zoneStat zoneDefs zonePart zoneOpt zoneExtOpt zoneName\n");
+        for (int i = 0; i < MAX_ZONES_CNT; i++) {                        // iterate
+           logger.printf ("Zone data: %2d\t%2d\t%2d\t%2d\t%2d\t%2d\t%2d\t%2d\t%2d%16s\n",(*zoneArr)[j][i].boardID, (*zoneArr)[j][i].zoneID, (*zoneArr)[j][i].gpio,\
+                                                                                         (*zoneArr)[j][i].mux, (*zoneArr)[j][i].zoneABstat, (*zoneArr)[j][i].zoneDefs,\
+                                                                                         (*zoneArr)[j][i].zonePartition, (*zoneArr)[j][i].zoneOptions, (*zoneArr)[j][i].zoneExtOpt,\
+                                                                                         (*zoneArr)[j][i].zoneName);
+        }
+    }
+}
+//
 // Initialize zones, pgm, parttitons, etc data storage in case there is no saved copy on storage
 // uses globals zonesDB, pgmDB, etc
 //
@@ -62,23 +85,11 @@ void setAlarmDefaults() {
 //    
    setAlarmZonesDefaults();
    setAlarmPgmsDefaults();
+   memcpy((byte *) &alarmConfig.zoneConfigs, (byte *) zonesDB, sizeof(alarmConfig.zoneConfigs));
+   printAlarmZones((byte *) &alarmConfig.zoneConfigs, MASTER_ADDRESS, MAX_SLAVES);
+   memcpy((byte *) &alarmConfig.pgmConfigs, (byte *) pgmDB, sizeof(alarmConfig.pgmConfigs));
+   
 }    
-
-//
-//  print alarm zones data
-//  parms: struct ZONE DB[]  - (pointer) to array of ZONE  containing the zones to be printed
-//
-void printAlarmZones(int startBoard, int endBoard) { 
-    for (int j = startBoard; j <= endBoard; j++) {
-        logger.printf("       boardID zoneID    gpio   mux zoneStat zoneDefs zonePart zoneOpt zoneExtOpt zoneName\n");
-        for (int i = 0; i < MAX_ZONES_CNT; i++) {                        // iterate
-           logger.printf ("Zone data: %2d\t%2d\t%2d\t%2d\t%2d\t%2d\t%2d\t%2d\t%2d%16s\n",zonesDB[j][i].boardID, zonesDB[j][i].zoneID, zonesDB[j][i].gpio,\
-                                                                                         zonesDB[j][i].mux, zonesDB[j][i].zoneABstat, zonesDB[j][i].zoneDefs,\
-                                                                                         zonesDB[j][i].zonePartition, zonesDB[j][i].zoneOptions, zonesDB[j][i].zoneExtOpt,\
-                                                                                         zonesDB[j][i].zoneName);
-        }
-    }
-}
 //
 //  initAlarm() - tries to load complete alarm zones data from storage
 //  if successful, sets global flag alarmDataValid to true, this way enables operation.

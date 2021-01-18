@@ -109,12 +109,12 @@ int j = 0; int i = 0;
 // returns: see sendFreeCmd() for return codes
 // 
 //
-int setSlavePGMs(struct PGM pgm[], int dst) {
+int setSlavePGMs(struct ALARM_PGM pgm[], int dst) {
 int j = 0; int i = 0;
 //
 	for(i=0; (i<SLAVE_PGM_CNT) && (j<FREE_CMD_DATA_LEN); i++) {   // extract current PGM info from all pgms array
 		tmpMsg[j++] = pgm[i].gpio;                                   // and put in payload
-		tmpMsg[j++] = pgm[i].rNum;
+		tmpMsg[j++] = pgm[i].pgmID;
 		tmpMsg[j++] = pgm[i].iValue;
 		}
 	if(DEBUG) {                                                     // debug print

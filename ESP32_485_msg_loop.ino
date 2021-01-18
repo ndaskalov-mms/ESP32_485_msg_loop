@@ -7,6 +7,7 @@
 #define SLAVE_PGM_CNT     2
 
 #define ENABLE_CONFIG_CREATE true
+#define FORCE_FORMAT_FS      true
 //
 // define roles
 #define MASTER
@@ -50,7 +51,7 @@ HardwareSerial& logger(Serial);
 //
 #ifdef MASTER
 HardwareSerial& MasterUART(Serial2);
-const char configFileName[] = "/alarmConfig.cfg";
+const char configFileName[] = "/alarmConfig3.cfg";
 #endif
 #ifdef SLAVE
 #ifdef LOOPBACK
@@ -100,6 +101,7 @@ byte tmpMsg [MAX_PAYLOAD_SIZE];
 //  Arduino setup function - call all local setups her
 //
 void setup() {
+  delay(1000);
   logger.begin(LOG_BITRATE,SERIAL_8N1);
   logger.printf("\n\nStarting setup\n\n");
 #ifdef MASTER

@@ -5,10 +5,10 @@
 // 
 void setAlarmZonesDefaults() {
 //
-    memset((void*)&zonesDB, 0, sizeof(zonesDB));       // clear all data, just in case
+    memset((void*)&zonesDB, 0, sizeof(zonesDB));              // clear all data, just in case
     // copy master zone defaults first
     for(int j=0; j<MASTER_ZONES_CNT; j++) {     // for each zone
-        sprintf(zonesDB[i][j].zoneName, "Zone_%d", j);
+        sprintf(zonesDB[MASTER_ADDRESS][j].zoneName, "Zone_%d", j);
         zonesDB[MASTER_ADDRESS][j].boardID = MASTER_ADDRESS;     
         zonesDB[MASTER_ADDRESS][j].zoneID = j;
         zonesDB[MASTER_ADDRESS][j].gpio = MzoneDB[j].gpio;
@@ -20,7 +20,7 @@ void setAlarmZonesDefaults() {
     }
     // then init defaults for all slaves
     for(int i = SLAVE_ADDRESS1; i <= MAX_SLAVES; i++) {         // for each slave board 
-        for(int j=0; j<MSLAVE_ZONES_CNT; j++) {     // for each zone
+        for(int j=0; j<SLAVE_ZONES_CNT; j++) {     // for each zone
             sprintf(zonesDB[i][j].zoneName, "Zone_%d", j);
             zonesDB[i][j].boardID = i;     
             zonesDB[i][j].zoneID = j;
@@ -36,23 +36,22 @@ void setAlarmZonesDefaults() {
 //
 void setAlarmPgmsDefaults() {
 //
-    memset((void*)&zonesDB, 0, sizeof(pgmDB));       // clear all data
-        // copy master zone defaults first
-    for(int j=0; j<MASTER_PGM_CNT; j++) {     // for each zone
-        sprintf(zonesDB[i][j].pgmName, "PGM_%d", j);
-        zonesDB[MASTER_ADDRESS][j].boardID = MASTER_ADDRESS;     
-        zonesDB[MASTER_ADDRESS][j].pgmID = j;
-        zonesDB[MASTER_ADDRESS][j].gpio = MpgmDB[j].gpio;
-        zonesDB[MASTER_ADDRESS][j].iValue = MpgmDB[j].iValue;
+    memset((void*)&pgmDB, 0, sizeof(pgmDB));                  // clear all data
+        // copy master pgm defaults first
+    for(int j=0; j<MASTER_PGM_CNT; j++) {                       // for each pgm
+        sprintf(pgmDB[MASTER_ADDRESS][j].pgmName, "PGM_%d", j);
+        pgmDB[MASTER_ADDRESS][j].boardID = MASTER_ADDRESS;     
+        pgmDB[MASTER_ADDRESS][j].pgmID = j;
+        pgmDB[MASTER_ADDRESS][j].gpio = MpgmDB[j].gpio;
+        pgmDB[MASTER_ADDRESS][j].iValue = MpgmDB[j].iValue;
     }
-    for(int i = SLAVE_ADDRESS; i <= MAX_SLAVES; i++) {         // for each board 
-        for(int j=0; j<MAX_PGM_CNT; j++) {     // for each zone
-            sprintf(zonesDB[i][j].zoneName, "PGM_%d", j);
-            zonesDB[i][j].boardID = i;     
-            zonesDB[i][j].pgmID = j;
+    for(int i = SLAVE_ADDRESS1; i <= MAX_SLAVES; i++) {          // for each board 
+        for(int j=0; j<MAX_PGM_CNT; j++) {                      // for each pgm
+            sprintf(pgmDB[i][j].pgmName, "PGM_%d", j);
+            pgmDB[i][j].boardID = i;   
+            pgmDB[i][j].pgmID = j;
         }
     }
-}
 }
 //
 //
@@ -87,12 +86,16 @@ void printAlarmZones(int startBoard, int endBoard) {
 //  this flag will be checked in loop function and only MQTT channel will be enabled and the system will wait for alarm zones, part, etc data
 //
 int initAlarm() {
+   if(FORCE_FORMAT_FS)
+      formatStorage();
    if(!readConfig(configFileName))   {          //read config file  
-        setAlarmDefaults();
-#ifdef ENABLE_CONFIG_CREATE
-        if(!saveConfig(configFileName))          // check if we can create the file, maybe this is the first ride TODO - make it to check only once
-#endif
-            return false;
-   }
+      ErrWrite(ERR_WARNING, "Wrong or missing config file\n");
+      setAlarmDefaults();                       // wrong config file
+      if(ENABLE_CONFIG_CREATE){                 // create config file with default parms if enabled
+        ErrWrite(ERR_WARNING, "Creating config file\n");
+        saveConfig(configFileName);              // create the file, maybe this is the first ride TODO - make it to check only once
+        }
+      return false;
+      }
    return true;                                 // we got the database 
 }

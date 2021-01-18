@@ -165,7 +165,7 @@ struct ALARM_ZONE zonesDB[MAX_SLAVES+1][MAX_ZONES_CNT];		// typically master has
 //
 // MASTER PGMs organized as 2D array. All pgms zones organized as 2D array - [board][pgms].
 //
-struct PGM pgmDB[MAX_SLAVES+1][MAX_PGM_CNT];		        // typically master has more pgms than slave, so we use the largest denominator
+struct ALARM_PGM pgmDB[MAX_SLAVES+1][MAX_PGM_CNT];		        // typically master has more pgms than slave, so we use the largest denominator
 //
 // Struct to store the all alarm configuration
 //

@@ -44,6 +44,17 @@ int storageSetup() {
   
 }
 
+void formatStorage() {
+    ErrWrite(ERR_WARNING, "Formatting file system\n");
+    LITTLEFS.format();
+}
+void printAlarmConfig(byte * cBuf) {
+     for(int i=0; i<sizeof(alarmConfig); i++) {
+          Serial.printf("Index %d content %d %d %d %d %d %d %d %d %d %d ", i, cBuf[i++], cBuf[i++],cBuf[i++],cBuf[i++],cBuf[i++],cBuf[i++],cBuf[i++],cBuf[i++],cBuf[i++],cBuf[i++]);
+          Serial.println("");
+          }
+}    
+
 int saveConfig(const char cFileName []) {
 //
 // SPIFFS.remove(F("/file Name"));
@@ -80,10 +91,8 @@ int saveConfig(const char cFileName []) {
           //Serial.printf("Read CS %d differs from calculated %d", valConfig.csum, cs8);
           return false;
           }
-        //for(int i=0; i<sizeof(valConfig); i++) {
-        //  Serial.printf("Index %d content %d", i, ((byte*) &valConfig)[i]);
-        //  Serial.println("");
-        //  }
+        logger.printf("Content of config file written\n");
+        printAlarmConfig((byte*) &valConfig);
         return true;
         }
      else {
@@ -111,11 +120,11 @@ int readConfig(const char cFileName []) {
           //Serial.printf("Read CS %d differs from calculated %d", valConfig.csum, cs8);
           return false;
           }
+        logger.printf("Content of config file read\n");
+        printAlarmConfig((byte*) &valConfig);
         memcpy((byte*) &alarmConfig, (byte*) &valConfig, sizeof(alarmConfig));
-        for(int i=0; i<sizeof(alarmConfig); i++) {
-          Serial.printf("Index %d content %d", i, ((byte*) &alarmConfig)[i]);
-          Serial.println("");
-          }
+        logger.printf("Content of configured DB\n");
+        printAlarmConfig((byte*) &alarmConfig);
         ErrWrite(ERR_DEBUG, "Reading config file done\n");
         return true;
         }

@@ -147,7 +147,7 @@ struct ALARM_ZONE {
 // alarm pgms records structure to hold all alarm pgms related info
 //
 struct ALARM_PGM {
-  byte  valid 					// data valid	
+  byte  valid; 					// data valid	
   byte	boardID;				// the board which zones belong to. Master ID is 0	
   byte  pgmID;                 // the number of zone by which the master will identify it. Zero based. Each ADC gpio produces one zone, but with two results  
   byte  gpio;					// first members  are the same as struct ZONE

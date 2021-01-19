@@ -6,7 +6,7 @@
 void printAlarmZones(byte* zoneArrPtr, int startBoard, int endBoard) { 
     alarmZonePtr_t *zoneArr = (alarmZonePtr_t *)zoneArrPtr;
     for (int j = startBoard; j <= endBoard; j++) {
-        logger.printf("       boardID zoneID    gpio   mux zoneStat zoneDefs zonePart zoneOpt zoneExtOpt zoneName\n");
+        logger.printf("      valid boardID zoneID    gpio   mux zoneStat zoneDefs zonePart zoneOpt zoneExtOpt zoneName\n");
         for (int i = 0; i < MAX_ZONES_CNT; i++) {                        // iterate
            logger.printf ("Zone data: %2d\t%2d\t%2d\t%2d\t%2d\t%2d\t%2d\t%2d\t%2d\t%2d%16s\n",(*zoneArr)[j][i].valid, (*zoneArr)[j][i].boardID,(*zoneArr)[j][i].zoneID, (*zoneArr)[j][i].gpio,\
                                                                                          (*zoneArr)[j][i].mux, (*zoneArr)[j][i].zoneABstat, (*zoneArr)[j][i].zoneDefs,\
@@ -22,7 +22,7 @@ void printAlarmZones(byte* zoneArrPtr, int startBoard, int endBoard) {
 void printAlarmPgms(byte* pgmArrPtr, int startBoard, int endBoard) { 
     alarmPgmPtr_t *pgmArr = (alarmPgmPtr_t *)pgmArrPtr;
     for (int j = startBoard; j <= endBoard; j++) {
-        logger.printf("       boardID pgmID    gpio  iniVal pgmName\n");
+        logger.printf("       valid boardID pgmID    gpio  iniVal pgmName\n");
         for (int i = 0; i < MAX_PGM_CNT; i++) {                        // iterate
            logger.printf ("PGM data: %2d\t%2d\t%2d\t%2d\t%2d%16s\n",(*pgmArr)[j][i].valid,(*pgmArr)[j][i].boardID, (*pgmArr)[j][i].pgmID, (*pgmArr)[j][i].gpio,\
                                                                (*pgmArr)[j][i].iValue, (*pgmArr)[j][i].pgmName);
@@ -87,7 +87,7 @@ void setAlarmPgmsDefaults(bool validFlag) {
 		pgmsDB[MASTER_ADDRESS][j].valid = validFlag;
     }
     for(int i = SLAVE_ADDRESS1; i <= MAX_SLAVES; i++) {          // for each board 
-        for(int j=0; j<MAX_PGM_CNT; j++) {                      // for each pgm
+        for(int j=0; j<SLAVE_PGM_CNT; j++) {                      // for each pgm
             sprintf(pgmsDB[i][j].pgmName, "PGM_%d", j);
             pgmsDB[i][j].boardID = i;   
             pgmsDB[i][j].pgmID = SpgmDB[j].rNum;
@@ -112,22 +112,7 @@ void setAlarmDefaults(bool validFlag) {
    // printAlarmZones((byte *) &alarmConfig.zoneConfigs, MASTER_ADDRESS, MAX_SLAVES);
    // copy pgmsDB into alarmConfig 
    memcpy((byte *) &alarmConfig.pgmConfigs, (byte *) pgmsDB, sizeof(alarmConfig.pgmConfigs)); 
-   printAlarmPgms((byte*) &alarmConfig.pgmConfigs, MASTER_ADDRESS, MAX_SLAVES); 
-}
-//
-int fetchSlaveZones(byte slaveNo) {
-	ErrWrite(ERR_DEBUG, "Fetching %d slave zones\n", slaveNo);
-    if(ERR_OK == getSlaveZones(slaveNo)) {   // sendCmd handle and reports errors internally, the result is in rcvMsg
-		if(ERR_OK == wait4reply(100)) {       // timeout is just in case, we have to exit with reply timeout if no reply
-		
-		} 
-		else {								 // wait4reply returns error
-		
-		}
-	}
-	else {									 // send fetch command fail
-		
-	}
+   //printAlarmPgms((byte*) &alarmConfig.pgmConfigs, MASTER_ADDRESS, MAX_SLAVES); 
 }
 //
 //  initAlarm() - tries to load complete alarm zones data from storage
@@ -136,25 +121,29 @@ int fetchSlaveZones(byte slaveNo) {
 //  this flag will be checked in loop function and only MQTT channel will be enabled and the system will wait for alarm zones, part, etc data
 //
 void initAlarm() {
-   masterDataValid = false;                  	// bad or missing config file - maybe it is first run or storage is garbage
-   remoteDataValid = false;                 	// slaves data not fetched yet	
+//   masterDataValid = false;                  	// bad or missing config file - maybe it is first run or storage is garbage
+//   remoteDataValid = false;                 	// slaves data not fetched yet	
    if(FORCE_FORMAT_FS)
       formatStorage();
    memset((void*)&alarmConfig, 0, sizeof(alarmConfig));		// clear alarm config DB
-   if(!readConfig(configFileName))   {          //read config file  
-      ErrWrite(ERR_WARNING, "Wrong or missing config file\n");
-      if(ENABLE_CONFIG_CREATE) {                 // create config file with default parms if enabled
-        ErrWrite(ERR_WARNING, "Creating config file\n");
-		setAlarmDefaults(true);                  // set valid flag to all zones and pgms to true
-        saveConfig(configFileName);              // create the file, maybe this is the first ride TODO - make it to check only once
-        masterDataValid = true;                  		// master data fetched successfully from storage
-        remoteDataValid = true;                 		// slaves data fetched successfully from storage	
-	  }
-	  else {
-		setAlarmDefaults(flase);                  // set valid flag to false to all zones and pgms to true  
-	  }
-   }
-   memcpy((byte *) zonesDB, (byte *) &alarmConfig.zoneConfigs, sizeof(zonesDB));
-   memcpy((byte *) pgmsDB,  (byte *) &alarmConfig.pgmConfigs,  sizeof(zonesDB));
-   return;                                 // we got the database 
+   if(readConfig(configFileName))   {          //read config file  
+		memcpy((byte *) zonesDB, (byte *) &alarmConfig.zoneConfigs, sizeof(zonesDB)); // config OK, copy the databases
+		memcpy((byte *) pgmsDB,  (byte *) &alarmConfig.pgmConfigs,  sizeof(zonesDB)); // and return
+//		masterDataValid = true;                  		// master data fetched successfully from storage
+//		remoteDataValid = true;                 		// slaves data fetched successfully from storage	
+		return;   
+	    }
+   //   wrong or missing config file
+   ErrWrite(ERR_WARNING, "Wrong or missing config file\n");
+   if(!ENABLE_CONFIG_CREATE) { 					  // do not create config, we have to wait for data from MQTT 	
+		setAlarmDefaults(false);                  // init zones and pgms DBs with default data and set valid flag to false to all zones and pgms to true  
+		return;									  // because dataValid flags are false, main loop will wait 	
+        }
+   // create config file with parms from default zones and pgms DBs, mostly used for testing 
+   ErrWrite(ERR_WARNING, "Creating config file\n");
+   setAlarmDefaults(true);                  	// set valid flag to all zones and pgms to true
+   saveConfig(configFileName);              	// create the file, maybe this is the first ride TODO - make it to check only once
+//   masterDataValid = true;                  	// master data fetched successfully from storage
+//   remoteDataValid = true;                 		// slaves data fetched successfully from storage	
 }
+

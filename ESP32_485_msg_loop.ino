@@ -7,7 +7,7 @@
 #define SLAVE_PGM_CNT     2
 
 #define ENABLE_CONFIG_CREATE true
-#define FORCE_FORMAT_FS      true
+#define FORCE_FORMAT_FS      false
 //
 // define roles
 #define MASTER
@@ -78,7 +78,7 @@ byte zoneInfoValid = 0;                 // track if zonesResult array contain va
 //
 // ------------------------- global variables definition -----------------------------
 #ifdef MASTER
-byte masterDataValid = 0;              // bad or missing config file - maybe it is first run or storage is garbage
+//byte masterDataValid = 0;              // bad or missing config file - maybe it is first run or storage is garbage
 byte remoteDataValid = 0;              // slaves data not fetched yet
 byte MzoneResult[MASTER_ZONES_CNT/2 + MASTER_ZONES_CNT%2];                                  //each zone will be in 4bits
 //these are channels to send/receive packets over serial if. The comm to serial is via fRead, fWrite,...

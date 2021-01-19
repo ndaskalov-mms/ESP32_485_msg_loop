@@ -84,23 +84,23 @@ int saveConfig(const char cFileName []) {
     cFile = SPIFFS.open(cFileName, "r");
     if (cFile){
         ErrWrite(ERR_DEBUG, "Reading back config file\n");
-        if(int rlen = cFile.read((byte*) &valConfig, sizeof(valConfig)) != sizeof(valConfig)) {
+        if(int rlen = cFile.read((byte*) &tmpConfig, sizeof(tmpConfig)) != sizeof(tmpConfig)) {
           ErrWrite(ERR_CRITICAL, "Problem reading config file - wrong len!\n");
-          //Serial.printf("Problem on reading config file! Read %d expected %d\n",rlen, sizeof(valConfig) );
+          //Serial.printf("Problem on reading config file! Read %d expected %d\n",rlen, sizeof(tmpConfig) );
           cFile.close();  
           return false;
           }
         cFile.close();
         byte cs8;
-        cs8 = crc8((byte*) &valConfig, sizeof(valConfig)-1);
+        cs8 = crc8((byte*) &tmpConfig, sizeof(tmpConfig)-1);
         //cs8 += 1;                         // intentional error
-        if(cs8  != valConfig.csum) {
+        if(cs8  != tmpConfig.csum) {
           ErrWrite(ERR_CRITICAL, "Problem reading config file - wrong csum!\n");
-          //Serial.printf("Read CS %d differs from calculated %d", valConfig.csum, cs8);
+          //Serial.printf("Read CS %d differs from calculated %d", tmpConfig.csum, cs8);
           return false;
           }
         //logger.printf("Content of config file written\n");
-        //printAlarmConfig((byte*) &valConfig);
+        //printAlarmConfig((byte*) &tmpConfig);
         return true;
         }
      else {
@@ -112,25 +112,26 @@ int saveConfig(const char cFileName []) {
 int readConfig(const char cFileName []) {
 //
     File cFile = SPIFFS.open(cFileName, "r");
+	memset((void*)&tmpConfig, 0, sizeof(tmpConfig));		// clear tmp buffer
     if (cFile){
         ErrWrite(ERR_DEBUG, "Reading config file\n");
-        if(int rlen = cFile.read((byte*) &valConfig, sizeof(valConfig)) != sizeof(valConfig)) {
+        if(int rlen = cFile.read((byte*) &tmpConfig, sizeof(tmpConfig)) != sizeof(tmpConfig)) {
           ErrWrite(ERR_CRITICAL, "Problem reading config file - wrong len!\n");
           cFile.close();
           return false;
           }
         cFile.close();
         byte cs8;
-        cs8 = crc8((byte*) &valConfig, sizeof(valConfig)-1);
+        cs8 = crc8((byte*) &tmpConfig, sizeof(tmpConfig)-1);
         //cs8 += 1;                         // intentional error        
-        if(cs8  != valConfig.csum) {
+        if(cs8  != tmpConfig.csum) {
           ErrWrite(ERR_CRITICAL, "Problem reading config file - wrong csum!\n");
-          //Serial.printf("Read CS %d differs from calculated %d", valConfig.csum, cs8);
+          //Serial.printf("Read CS %d differs from calculated %d", tmpConfig.csum, cs8);
           return false;
           }
         logger.printf("Content of config file read\n");
-        printAlarmConfig((byte*) &valConfig);
-        memcpy((byte*) &alarmConfig, (byte*) &valConfig, sizeof(alarmConfig));
+        printAlarmConfig((byte*) &tmpConfig);
+        memcpy((byte*) &alarmConfig, (byte*) &tmpConfig, sizeof(alarmConfig));
         logger.printf("Content of configured DB\n");
         //printAlarmConfig((byte*) &alarmConfig);
         ErrWrite(ERR_DEBUG, "Reading config file done\n");

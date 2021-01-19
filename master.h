@@ -1,11 +1,12 @@
   boardID = MASTER_ADDRESS;                     // TODO - only for loopback testing
-  if(!alarmDataValid)
-    ;                                           // loop here waiting for initialization data
+
   static int i=0;
   memcpy(errorsDB_backup, errorsDB, sizeof(errorsDB_backup)); // backup error DB
 //
-  wait4reply(2);                                   // checks waiting_for_reply flag and if set, receives and process message or exits with timeout
+  wait4reply(2);                                 // checks waiting_for_reply flag and if set, receives and process message or exits with timeout
   // not waiting for reply, check if it is time to send new command
+  if(!remoteDataValid)							 // slaves 
+	fetchSlaveZones(SLAVE_ADDRESS1);
   if (isTimeFor(FREE_CMD, POLL_INTERVAL))  {// calculate the time elapsed sinse the particular command was send, yes if > interval
     ErrWrite(ERR_INFO, "\nMaster: time to transmit \n");
     //if(ERR_OK == sendFreeText(SLAVE_ADDRESS1, FREE_CMD_DATA_LEN, test_msg[(++i)%3])) // sendCmd handle and reports errors internally 
@@ -14,8 +15,8 @@
       //ErrWrite( ERR_INFO, ("Master MSG transmitted, receive timeout started\n"));
     //if(ERR_OK == setSlaveZones(zonesDB[SLAVE_ADDRESS1], SLAVE_ADDRESS1)); // sendCmd handle and reports errors internally 
       //ErrWrite( ERR_INFO, ("Master MSG transmitted, receive timeout started\n"));
-    if(ERR_OK == getSlaveZones(SLAVE_ADDRESS1));   // sendCmd handle and reports errors internally 
-      ErrWrite( ERR_INFO, ("Master MSG transmitted, receive timeout started\n"));
+    //if(ERR_OK == getSlaveZones(SLAVE_ADDRESS1));   // sendCmd handle and reports errors internally 
+      //ErrWrite( ERR_INFO, ("Master MSG transmitted, receive timeout started\n"));
   }
   //
   // no message available for processing and it is not time to send a new one

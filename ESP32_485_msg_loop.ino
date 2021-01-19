@@ -78,7 +78,8 @@ byte zoneInfoValid = 0;                 // track if zonesResult array contain va
 //
 // ------------------------- global variables definition -----------------------------
 #ifdef MASTER
-byte alarmDataValid = 0;                  // no zones definitios yet - maybe it is first run or storage is garbage
+byte masterDataValid = 0;              // bad or missing config file - maybe it is first run or storage is garbage
+byte remoteDataValid = 0;              // slaves data not fetched yet
 byte MzoneResult[MASTER_ZONES_CNT/2 + MASTER_ZONES_CNT%2];                                  //each zone will be in 4bits
 //these are channels to send/receive packets over serial if. The comm to serial is via fRead, fWrite,...
 RS485 MasterMsgChannel (MasterRead, MasterAvailable, MasterWrite, ErrWrite, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
@@ -105,25 +106,6 @@ void setup() {
   delay(1000);
   logger.begin(LOG_BITRATE,SERIAL_8N1);
   logger.printf("\n\nStarting setup\n\n");
-#ifdef MASTER
-   MasterUART.begin(BITRATE,SERIAL_8N1);  
-   MasterMsgChannel.begin ();                 // allocate data buffers and init message encoding/decoding engines (485_non_blocking library)
-   if(!storageSetup()) {                      // mount file system
-      while(true) {                           // loop forever
-        ReportMQTT(ERROR_TOPIC, "Error initializing storage");
-        delay(60000);                         // wait a minute before send again
-      }
-   }
-   // read config file from storage and init all alarm internals and databases for zones, pgms, partitions, keswitches, etc
-   alarmDataValid = initAlarm();              // set flag for loop() to know if the initialization was successful
-   alarmDataValid |= fetchSlaveZones(SLAVE_ADDRESS1);
-   storageClose();								// unmount FS
-   zoneHWSetup();                                  // init mux for zones selection
-   pgmSetup(MpgmDB, MASTER_PGM_CNT);             // init PGMs (output and default value)
-   ErrWrite(ERR_DEBUG, "ALARM ZONES read from config file\n");
-   printAlarmZones((byte *) &alarmConfig.zoneConfigs, MASTER_ADDRESS, MAX_SLAVES);
-   printAlarmPgms((byte *) &alarmConfig.pgmConfigs, MASTER_ADDRESS, MAX_SLAVES);
-#endif
 //
 #ifdef SLAVE
    SlaveMsgChannel.begin ();                     // allocate data buffers and init message encoding/decoding engines (485_non_blocking library)
@@ -140,10 +122,28 @@ void setup() {
   pgmSetup(SpgmDB, SLAVE_PGM_CNT);              // init PGMs (output and default value)
   //printErrorsDB();
   logger.printf("\n\nSetup finished\n\n");
-}
-
 //
-
+#ifdef MASTER
+   MasterUART.begin(BITRATE,SERIAL_8N1);  
+   MasterMsgChannel.begin ();                 // allocate data buffers and init message encoding/decoding engines (485_non_blocking library)
+   if(!storageSetup()) {                      // mount file system
+      while(true) {                           // loop forever
+        ReportMQTT(ERROR_TOPIC, "Error initializing storage");
+        delay(60000);                         // wait a minute before send again
+      }
+   }
+   // read config file from storage and init all alarm internals and databases for zones, pgms, partitions, keswitches, etc
+   initAlarm();              					// set flag for loop() to know if the initialization was successful
+   storageClose();								// unmount FS
+   zoneHWSetup();                                  // init mux for zones selection
+   pgmSetup(MpgmDB, MASTER_PGM_CNT);             // init PGMs (output and default value)
+   ErrWrite(ERR_DEBUG, "ALARM ZONES read from config file\n");
+   printAlarmZones((byte *) &alarmConfig.zoneConfigs, MASTER_ADDRESS, MAX_SLAVES);
+   printAlarmPgms((byte *) &alarmConfig.pgmConfigs, MASTER_ADDRESS, MAX_SLAVES);
+#endif
+}
+//
+//
 //
 void loop ()
 {

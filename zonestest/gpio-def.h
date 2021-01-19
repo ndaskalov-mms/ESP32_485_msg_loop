@@ -83,7 +83,7 @@ struct ZONE {
 //
 //
 //
-#ifdef SLAVE
+// Master need to know slave zones, pgms, etc only for default config file creation
 //                                     
 // some important voltages - gpio, mux,  accValue,  mvValue, zoneID, zoneABstat
 struct ZONE VzoneRef   = {VzoneRef_, 1, 0, 0, 0, 0};
@@ -106,7 +106,7 @@ struct ZONE SzoneDB[] =  {{Zone1_, Azones, 0, 0, 0, 0}, {Zone2_, Azones, 0, 0, 1
 //
 // PGMs                         gpio, rNum,  iValue, cValue
 struct PGM SpgmDB[SLAVE_PGM_CNT] = {{PGM1_, 1, HIGH, 0}, {PGM2_, 2, HIGH, 0}};
-#endif
+//
 //
 #ifdef MASTER
 //
@@ -131,6 +131,7 @@ struct PGM MpgmDB[MASTER_PGM_CNT] =     {{PGM1_, 1, HIGH, 0}, {PGM2_, 2, HIGH, 0
 // alarm zones records structure to hold all alarm zones related info
 //
 struct ALARM_ZONE {
+  byte  valid;					// data valid	
   byte	boardID;				// the board which zones belong to. Master ID is 0	
   byte  zoneID;                 // the number of zone by which the master will identify it. Zero based. Each ADC gpio produces one zone, but with two results  
   byte  gpio;					// first members  are the same as struct ZONE
@@ -138,7 +139,7 @@ struct ALARM_ZONE {
   byte  zoneABstat;             // encodded status of the A and B parts of the zone
   byte  zoneDefs;				// zone type - enable, entry delay, follow, instant, stay, etc
   byte  zonePartition;          // assigned to partition X
-  byte  zoneOptions;            // auto shutdown, nypass, stay, force, alarm type, intellyzone, dealyed transission
+  byte  zoneOptions;            // auto shutdown, bypass, stay, force, alarm type, intellyzone, dealyed transission
   byte  zoneExtOpt;             // zone tamper, tamper supervision, antimask, antimask supervision
   char  zoneName[16];           // user friendly name
 };        
@@ -146,6 +147,7 @@ struct ALARM_ZONE {
 // alarm pgms records structure to hold all alarm pgms related info
 //
 struct ALARM_PGM {
+  byte  valid 					// data valid	
   byte	boardID;				// the board which zones belong to. Master ID is 0	
   byte  pgmID;                 // the number of zone by which the master will identify it. Zero based. Each ADC gpio produces one zone, but with two results  
   byte  gpio;					// first members  are the same as struct ZONE
@@ -175,6 +177,6 @@ struct CONFIG_t {
   byte  zoneConfigs[sizeof(zonesDB)];
   byte  pgmConfigs[sizeof(pgmsDB)];
   byte  csum;
-} alarmConfig, valConfig;
+} alarmConfig, tmpConfig;
 //
 #endif

@@ -69,7 +69,7 @@
 //#define SCREW_STX
 //#define SCREW_ETX
 //#define SCREW_CRC
-#define SCREW_DATA
+//#define SCREW_DATA
 
 // allocate the requested buffer size
 void RS485::begin ()

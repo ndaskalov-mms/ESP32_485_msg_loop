@@ -4,7 +4,7 @@
 //  parms: (byte pointer) to array of ALARM_ZONE  containing the zones to be printed
 //
 void printAlarmZones(byte* zoneArrPtr, int startBoard, int endBoard) { 
-    alarmZonePtr_t *zoneArr = (alarmZonePtr_t *)zoneArrPtr;
+    alarmZoneArr_t *zoneArr = (alarmZoneArr_t *)zoneArrPtr;
     for (int j = startBoard; j <= endBoard; j++) {
         logger.printf("      valid boardID zoneID    gpio   mux zoneStat zoneDefs zonePart zoneOpt zoneExtOpt zoneName\n");
         for (int i = 0; i < MAX_ZONES_CNT; i++) {                        // iterate
@@ -20,7 +20,7 @@ void printAlarmZones(byte* zoneArrPtr, int startBoard, int endBoard) {
 //  parms: (byte pointer) to array of ALARM_PGM  containing the zones to be printed
 //
 void printAlarmPgms(byte* pgmArrPtr, int startBoard, int endBoard) { 
-    alarmPgmPtr_t *pgmArr = (alarmPgmPtr_t *)pgmArrPtr;
+    alarmPgmArr_t *pgmArr = (alarmPgmArr_t *)pgmArrPtr;
     for (int j = startBoard; j <= endBoard; j++) {
         logger.printf("       valid boardID pgmID    gpio  iniVal pgmName\n");
         for (int i = 0; i < MAX_PGM_CNT; i++) {                        // iterate
@@ -127,10 +127,13 @@ void initAlarm() {
       formatStorage();
    memset((void*)&alarmConfig, 0, sizeof(alarmConfig));		// clear alarm config DB
    if(readConfig(configFileName))   {          //read config file  
+		logger.printf("Copying from alarmConfig to zonesDB\n");
 		memcpy((byte *) zonesDB, (byte *) &alarmConfig.zoneConfigs, sizeof(zonesDB)); // config OK, copy the databases
-		memcpy((byte *) pgmsDB,  (byte *) &alarmConfig.pgmConfigs,  sizeof(zonesDB)); // and return
+		memcpy((byte *) pgmsDB,  (byte *) &alarmConfig.pgmConfigs,  sizeof(pgmsDB)); // and return
 //		masterDataValid = true;                  		// master data fetched successfully from storage
 //		remoteDataValid = true;                 		// slaves data fetched successfully from storage	
+		//printAlarmZones((byte *) &alarmConfig.zoneConfigs, MASTER_ADDRESS, MAX_SLAVES);
+		//printAlarmZones((byte *) zonesDB, 0, 1);
 		return;   
 	    }
    //   wrong or missing config file

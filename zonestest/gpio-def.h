@@ -161,14 +161,14 @@ struct ALARM_PGM {
 // TODO - use prep to get largest zone count
 // All alarm zones zones organized as 2D array - [board][zones]. Contains data for all boards and zones in each board, incl. master
 //
-typedef struct ALARM_ZONE alarmZonePtr_t[MAX_SLAVES+1][MAX_ZONES_CNT];
-alarmZonePtr_t zonesDB;
+typedef struct ALARM_ZONE alarmZoneArr_t[MAX_SLAVES+1][MAX_ZONES_CNT];
+alarmZoneArr_t zonesDB;
 //
 //
 // MASTER PGMs organized as 2D array. All pgms zones organized as 2D array - [board][pgms].
 //
-typedef struct ALARM_PGM alarmPgmPtr_t[MAX_SLAVES+1][MAX_PGM_CNT];		        // typically master has more pgms than slave, so we use the largest denominator
-alarmPgmPtr_t pgmsDB;
+typedef struct ALARM_PGM alarmPgmArr_t[MAX_SLAVES+1][MAX_PGM_CNT];		        // typically master has more pgms than slave, so we use the largest denominator
+alarmPgmArr_t pgmsDB;
 //
 // Struct to store the all alarm configuration
 //

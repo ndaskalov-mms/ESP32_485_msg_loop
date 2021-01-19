@@ -1,3 +1,5 @@
+#define SW_VERSION  100				// UPDATE ON EVERY CHANGE OF ZONEs, PGMs, etc
+//
 // define maximal configuration per board. IF MODIFIED, COMPILE AND CHANGE SIMULTANEOUSLY BOTH MASTER AND SLAVES!!!!
 #define MAX_ZONES_CNT	    18		// Limited by ADC channels, 18 on SLAVE, less on MASTER. System voltages are read via mux and includded
 #define SLAVE_ZONES_CNT	  18		
@@ -42,7 +44,7 @@ enum ADDR {                                         // board adresses, MASTER is
 #define SERIAL_LOG 	true
 #define MQTT_LOG	  false
 #define ZONES_A_READ_INTERVAL 100     // read A zones at 100mS
-#define ZONES_B_READ_INTERVAL 500    // read system voltages (B zones) at 100mS
+#define ZONES_B_READ_INTERVAL 500     // read system voltages (B zones) at 100mS
 #define MUX_SET_INTERVAL      10      // time to set the analog lines after mux switch
 
 constexpr int BITRATE = 115200;
@@ -50,6 +52,7 @@ constexpr int LOG_BITRATE = 115200;
 HardwareSerial& logger(Serial);
 //
 #ifdef MASTER
+byte slavesSetMap = 0xFF;			  // bitmap tracking if config data are loaded to slaves: bit 0 cooresponds to slave 1, bit 1 oslave 2,
 HardwareSerial& MasterUART(Serial2);
 const char configFileName[] = "/alarmConfig3.cfg";
 #endif
@@ -103,7 +106,7 @@ byte tmpMsg [MAX_PAYLOAD_SIZE];
 //  Arduino setup function - call all local setups her
 //
 void setup() {
-  delay(1000);
+  delay(500);
   logger.begin(LOG_BITRATE,SERIAL_8N1);
   logger.printf("\n\nStarting setup\n\n");
 //
@@ -126,6 +129,7 @@ void setup() {
 #ifdef MASTER
    MasterUART.begin(BITRATE,SERIAL_8N1);  
    MasterMsgChannel.begin ();                 // allocate data buffers and init message encoding/decoding engines (485_non_blocking library)
+   slavesSetMap = prepareSlavesSetMap(MAX_SLAVES); // init bitmap to track if config data are loaded to slaves
    if(!storageSetup()) {                      // mount file system
       while(true) {                           // loop forever
         ReportMQTT(ERROR_TOPIC, "Error initializing storage");
@@ -139,7 +143,7 @@ void setup() {
    pgmSetup(MpgmDB, MASTER_PGM_CNT);             // init PGMs (output and default value)
    ErrWrite(ERR_DEBUG, "ALARM ZONES read from config file\n");
    printAlarmZones((byte *) &alarmConfig.zoneConfigs, MASTER_ADDRESS, MAX_SLAVES);
-   printAlarmPgms((byte *) &alarmConfig.pgmConfigs, MASTER_ADDRESS, MAX_SLAVES);
+   //printAlarmPgms((byte *) &alarmConfig.pgmConfigs, MASTER_ADDRESS, MAX_SLAVES);
 #endif
 }
 //

@@ -4,6 +4,9 @@
   memcpy(errorsDB_backup, errorsDB, sizeof(errorsDB_backup)); // backup error DB
 //
   wait4reply(2);                                 // checks waiting_for_reply flag and if set, receives and process message or exits with timeout
+  logger.printf("slavesSetMap = %2x\n", slavesSetMap);
+  if(slavesSetMap) 
+	  sendSlavesConfigs();
   // not waiting for reply, check if it is time to send new command
   if (isTimeFor(FREE_CMD, POLL_INTERVAL))  {// calculate the time elapsed sinse the particular command was send, yes if > interval
     ErrWrite(ERR_INFO, "\nMaster: time to transmit \n");

@@ -68,6 +68,7 @@ int saveConfig(const char cFileName []) {
 // SPIFFS.remove(F("/file Name"));
 //
 //  calc 8 bit checksum first
+	alarmConfig.version = SW_VERSION;
     alarmConfig.csum = crc8((byte*) &alarmConfig, sizeof(alarmConfig)-1);
 //    
     File cFile = SPIFFS.open(cFileName, "w");
@@ -129,8 +130,13 @@ int readConfig(const char cFileName []) {
           //Serial.printf("Read CS %d differs from calculated %d", tmpConfig.csum, cs8);
           return false;
           }
+		if(SW_VERSION  != tmpConfig.version) {
+          ErrWrite(ERR_CRITICAL, "Problem reading config file - wrong SW version!\n");
+          //Serial.printf("Read CS %d differs from calculated %d", tmpConfig.csum, cs8);
+          return false;
+          }
         logger.printf("Content of config file read\n");
-        printAlarmConfig((byte*) &tmpConfig);
+        //printAlarmConfig((byte*) &tmpConfig);
         memcpy((byte*) &alarmConfig, (byte*) &tmpConfig, sizeof(alarmConfig));
         logger.printf("Content of configured DB\n");
         //printAlarmConfig((byte*) &alarmConfig);

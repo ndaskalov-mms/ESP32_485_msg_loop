@@ -102,7 +102,8 @@ int compose_msg(byte cmd, byte dest, byte *payload, byte *out_buf, int payload_l
   int index = 0;
   
   // first byte is COMMMAND/REPLY code (4 MS BITS) combined with the destination address (4 ls BITS)
-  out_buf[index++] = ((cmd << 4) | (dest & 0x0F));
+  out_buf[index++] = cmd;
+  out_buf[index++] = ((boardID << SRC_SHIFT) | (dest & DST_BITS));
   // next comes the payload
   if ((payload_len + index) > MAX_MSG_LENGHT) {
      return ERR_INV_PAYLD_LEN;						// all errors are negative numbers
@@ -134,12 +135,17 @@ int SendMessage(RS485& trmChannel, HardwareSerial& uart, byte cmd, byte dst, byt
       ErrWrite (ERR_INV_PAYLD_LEN, "SendMessage: error composing message -  too long???\n");   // must be already reported by compose_msg
       return ERR_INV_PAYLD_LEN;
     }
-    if((cmd & ~(0xF0 | REPLY_OFFSET )) == FREE_CMD) 
-	    LogMsg("SendMsg: sending message LEN = %d, CMD|DST = %x, subCMD = %x, payload len = %d, PAYLOAD: ",\
-										                     tmpLen, tmpBuf[CMD_OFFSET], tmpBuf[PAYLOAD_OFFSET+FREE_CMD_SUB_CMD_OFFSET], tmpBuf[PAYLOAD_OFFSET+FREE_CMD_DATA_LEN_OFFSET], &tmpBuf[PAYLOAD_OFFSET+FREE_CMD_DATA_OFFSET]);	
+    if((cmd & ~REPLY_OFFSET) == FREE_CMD) 
+	    LogMsg("SendMsg: sending message LEN = %d, CMD  = %x, DST = %x SRC = %x, subCMD = %x, payload len = %d, PAYLOAD: ",\
+										                     tmpLen, tmpBuf[CMD_OFFSET], (tmpBuf[DST_OFFSET] & DST_BITS),\
+															 ((tmpBuf[DST_OFFSET] & SRC_BITS) >> SRC_SHIFT),\
+															 tmpBuf[PAYLOAD_OFFSET+FREE_CMD_SUB_CMD_OFFSET],\
+															 tmpBuf[PAYLOAD_OFFSET+FREE_CMD_DATA_LEN_OFFSET],\
+															 &tmpBuf[PAYLOAD_OFFSET+FREE_CMD_DATA_OFFSET]);	
     else
-      LogMsg("SendMsg: sending message LEN = %d, CMD|DST = %x, PAYLOAD: ", tmpLen, tmpBuf[CMD_OFFSET], &tmpBuf[PAYLOAD_OFFSET]);
-	
+		LogMsg("SendMsg: sending message LEN = %d, CMD  = %x, DST = %x SRC = %x, PAYLOAD: ",\
+										                     tmpLen, tmpBuf[CMD_OFFSET], (tmpBuf[DST_OFFSET] & DST_BITS),\
+															 ((tmpBuf[DST_OFFSET] & SRC_BITS) >> SRC_SHIFT), &tmpBuf[PAYLOAD_OFFSET]);	
     uartTrmMode(uart);                  	// switch line dir to transmit_mode;
     if(!trmChannel.sendMsg (tmpBuf, tmpLen)) { // send fail. The only error which can originate for RS485 lib in sendMsg fuction isfor missing write callback
       err = ERR_TRM_MSG;
@@ -166,8 +172,9 @@ int SendMessage(RS485& trmChannel, HardwareSerial& uart, byte cmd, byte dst, byt
 //}
 
 // parse received message
-// byte[0] CMD | DST (4 MS bits is command and lower 4 bits is destination
-// byte [1] ......... byte[MAX_MSG_LENGHT] - payload
+// byte[0] CMD 
+// byte[1] SRC | DST (4 MS bits is source and lower 4 bits is destination
+// byte [2] ......... byte[MAX_MSG_LENGHT] - payload
 // MAX_MSG_LENGHT is calculated in a way to fit complete message in TxFIFO
 // params:    reference to instance of RS485 to be used for messgae retrieve
 // returns:   struct MSG with received message or parse ERR flag set in case of errors
@@ -183,13 +190,14 @@ struct MSG  parse_msg(RS485& rcv_channel) {
       return rmsg;                                        // error, no command code in message
     } 
     memcpy (tmpBuf, rcv_channel.getData (), rmsg.len);    // copy message in temp buf
-    //LogMsg("Parse_msg: message recv: TOTAL LEN = %d, CMD|DST = %x, PAYLOAD: ", rmsg.len, tmpBuf[CMD_OFFSET], &tmpBuf[PAYLOAD_OFFSET]);
+    LogMsg("Parse_msg: message recv: TOTAL LEN = %d, CMD = %x, SRC|DST = %x, PAYLOAD: ", rmsg.len, tmpBuf[CMD_OFFSET], tmpBuf[DST_OFFSET], &tmpBuf[PAYLOAD_OFFSET]);
     // extract command and destination
-    rmsg.cmd = ((tmpBuf[CMD_OFFSET] >> 4) & 0x0F);        // cmd is hihg nibble
-    rmsg.dst = tmpBuf[CMD_OFFSET] & 0x0F;                 // destination is low nibble
-    rmsg.dataLen = rmsg.len-1;                            // account for command|dst code
-    //LogMsg("Parse_msg: message recv: PAYLOAD LEN = %d, CMD = %x, DST = %x, PAYLOAD: ", rmsg.dataLen, rmsg.cmd, rmsg.dst, &tmpBuf[PAYLOAD_OFFSET]);
-    switch (rmsg.cmd & ~(0xF0 | REPLY_OFFSET )) {         // check for valid commands and replies. clear reply bit to facilitate test
+    rmsg.cmd = tmpBuf[CMD_OFFSET];        // cmd is hihg nibble
+    rmsg.dst = tmpBuf[DST_OFFSET] & DST_BITS;                 // destination is low nibble
+	rmsg.src = ((tmpBuf[DST_OFFSET] & SRC_BITS) >> SRC_SHIFT);     // destination is low nibble
+    rmsg.dataLen = rmsg.len-CMD_HEADER_LEN;                            // account for command + src|dst code
+    LogMsg("Parse_msg: message recv: PAYLOAD LEN = %d, CMD = %x, DST = %x, SRC = %x, PAYLOAD: ", rmsg.dataLen, rmsg.cmd, rmsg.dst, rmsg.src, &tmpBuf[PAYLOAD_OFFSET]);
+    switch (rmsg.cmd & ~REPLY_OFFSET) {         // check for valid commands and replies. clear reply bit to facilitate test
       case PING:
         if (rmsg.dataLen == PING_PAYLD_LEN)
           memcpy(rmsg.payload, &tmpBuf[PAYLOAD_OFFSET], rmsg.len);
@@ -220,9 +228,9 @@ struct MSG  parse_msg(RS485& rcv_channel) {
       case FREE_CMD:
         rmsg.dataLen = tmpBuf[PAYLOAD_OFFSET+FREE_CMD_DATA_LEN_OFFSET];                 // actual free cmd payload size
         rmsg.subCmd = tmpBuf[PAYLOAD_OFFSET+FREE_CMD_SUB_CMD_OFFSET]; 
-        if ((rmsg.len == rmsg.dataLen+FREE_CMD_HDR_LEN+1)) {                            // accound for cmd|dst byte  TODO check for overflow (rmsg.dataLen < FREE_CMD_DATA_LEN)&&
+        if ((rmsg.len == rmsg.dataLen+FREE_CMD_HDR_LEN+CMD_HEADER_LEN)) {                            // accound for cmd and src|dst bytes  TODO check for overflow (rmsg.dataLen < FREE_CMD_DATA_LEN)&&
            memcpy(rmsg.payload, &tmpBuf[PAYLOAD_OFFSET+FREE_CMD_HDR_LEN], rmsg.dataLen);// two bytes for subCmd and payload len
-          //LogMsg("Parse_msg: FREE CMD recv: Total LEN: %d, CMD: %2x, DST = %x, subCMD = %2x, DATA LEN %d, DATA: ", rmsg.len, rmsg.cmd, rmsg.dst, rmsg.subCmd,  rmsg.dataLen, rmsg.payload);
+           LogMsg("Parse_msg: FREE CMD recv: Total LEN: %d, CMD: %2x, SRC = %x, DST = %x, subCMD = %2x, DATA LEN %d, DATA: ", rmsg.len, rmsg.cmd, rmsg.src, rmsg.dst, rmsg.subCmd,  rmsg.dataLen, rmsg.payload);
           }      
         else  {
           rmsg.parse_err = ERR_INV_PAYLD_LEN;

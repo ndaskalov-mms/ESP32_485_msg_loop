@@ -11,14 +11,20 @@
 #define HEADER_SIZE 1   //STX, 1 byte, no encoding
 #define FOOTER_SIZE 1   //ETX, 1 byte  no encoding
 #define CRC_SIZE    2   //CRC, 1 byte but due to encoding is send as 2 bytes
-#define CMD_SIZE    2   //COMMAND/REPLY + DESTINATION, 1 byte but due to encoding is send as 2 bytes
+#define CMD_SIZE    4   //COMMAND/REPLY + SRC|DESTINATION, 2 bytes but due to encoding is send as 4 bytes
 #define PAYLOAD_OFFSET  (CMD_SIZE/2) // payload offset in the received buffer 
 #define TxFIFO_SIZE 128 //ESP32 TxFIFO, we expect that whole message get's in FIFO in order not to block loop()
 #define MAX_MSG_LENGHT  ((TxFIFO_SIZE - (HEADER_SIZE + FOOTER_SIZE + CRC_SIZE))/2)  //message encodding doubles every nibble except STX and ETX
-#define MAX_PAYLOAD_SIZE  (MAX_MSG_LENGHT - CMD_SIZE/2)   // shall be max 61 = ((128-(1+1+1))/2) - 1
+#define MAX_PAYLOAD_SIZE  (MAX_MSG_LENGHT - CMD_SIZE/2)   // shall be max 60 = ((128-(1+1+1))/2) - 2
 #define RxBUF_SIZE 128  //no material limit
-#define BROADCAST_ID    0xF
+#define BROADCAST_ID    0x0F
 #define REPLY_OFFSET    0x8
+#define DST_BITS		0x0F
+#define SRC_BITS		0xF0
+#define SRC_SHIFT		4
+#define CMD_OFFSET 		0
+#define DST_OFFSET		1
+#define CMD_HEADER_LEN 	2 			// CMD + SRC|DST
 
 // COMMAND CODES
 // commands definition
@@ -26,7 +32,7 @@
 // Master ID is always 0x0, while 0xF is reserved for broadcast message (not used so far)
 // RESULT CODES - the result code is simply the command code with MS bit set:  REPLY_OFFSET = 0x80
 // ----------------- PING -----------------------------------
-#define PAYLOAD_OFFSET		  1
+//#define PAYLOAD_OFFSET		  2
 #define CMD_OFFSET			  0
 #define PING                  0x1                  // ping 
 #define PING_PAYLD_LEN        0                    // ping message has no payload
@@ -35,7 +41,7 @@
 
 // ----------------- POLL -----------------------------------
 #define POLL_ZONES            0x2 // poll the extenders for zones status
-#define POLL_PAYLD_LEN        0   // poll pmessage has no payload
+#define POLL_PAYLD_LEN        0   // poll message has no payload
 #define POLL_ZONES_RES        (POLL_ZONES|REPLY_OFFSET) // poll the extenders for zones status
 #define POLL_RES_PAYLD_LEN    6                         // poll payload is 6 bytes, 4 bytes zones (32 zones, 1 bit per zone, LSB is zone 1,
                                                         // 1 byte for outputs (8 outputs, LSB is OUT1) and 1 byte status
@@ -82,6 +88,7 @@ struct COMMAND cmdDB[] = {{PING, PING_PAYLD_LEN,  0}, {POLL_ZONES, POLL_PAYLD_LE
 
 struct MSG {
   byte cmd;
+  byte src;
   byte dst;
   int  len;
   byte payload[MAX_PAYLOAD_SIZE];
@@ -91,37 +98,37 @@ struct MSG {
 } ;
 
 
-void LogMsg(char *formatStr, int len, byte cmd_dst, byte *payload) {
+void LogMsg(char *formatStr, int len, byte cmd, byte src_dst, byte *payload) {
 	if(!DEBUG)
 		return;
-  logger.printf(formatStr, len, cmd_dst);
-  for(int i =0; i< len-1; i++)
+  logger.printf(formatStr, len, cmd, src_dst);
+  for(int i =0; i< len-CMD_HEADER_LEN; i++)
     logger.printf ("%d ", payload[i]);                // there is one byte cmd|dst
   logger.println();
 }
 
-void LogMsg(char *formatStr, int len, byte cmd, byte dst, byte *payload) {
+void LogMsg(char *formatStr, int len, byte cmd, byte dst, byte src, byte *payload) {
   if(!DEBUG)
 		return;
-	logger.printf(formatStr, len, cmd, dst);
+	logger.printf(formatStr, len, cmd, dst, src);
   for(int i =0; i< len; i++)
     logger.printf ("%d ", payload[i]);                // there is one byte cmd|dst
    logger.println();
 }
 
-void LogMsg(char *formatStr, int len, byte cmd_dst, byte subCmd, int pldLen,  byte *payload) {
+void LogMsg(char *formatStr, int len, byte cmd, byte src_dst, byte subCmd, int pldLen,  byte *payload) {
   if(!DEBUG)
 		return;
-	logger.printf(formatStr, len, cmd_dst, subCmd, pldLen);
+	logger.printf(formatStr, len, cmd, src_dst, subCmd, pldLen);
   for(int i =0; i< pldLen; i++)
     logger.printf ("%d ", payload[i]);                // there is one byte cmd|dst
    logger.println();
 }
 
-void LogMsg(char *formatStr, int len, byte cmd, byte dst, byte subCmd, int pldLen,  byte *payload) {
+void LogMsg(char *formatStr, int len, byte cmd, byte dst, byte src, byte subCmd, int pldLen,  byte *payload) {
   if(!DEBUG)
     return;
-  logger.printf(formatStr, len, cmd, dst, subCmd, pldLen);
+  logger.printf(formatStr, len, cmd, dst, src, subCmd, pldLen);
   for(int i =0; i< pldLen; i++)
     logger.printf ("%d ", payload[i]);                // there is one byte cmd|dst
    logger.println();

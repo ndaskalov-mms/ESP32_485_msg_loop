@@ -158,10 +158,10 @@ void masterProcessMsg(struct MSG msg) {
   				break;
    			case SET_ZONE_SUB_CMD:
 			  	ErrWrite(ERR_DEBUG, "Master: reply received for SET_ZONE_SUB_CMD\n");
-				slavesSetMap = markSlaveAsSet(SLAVE_ADDRESS1, slavesSetMap);  // mark we got reply from this slave, so we continue with others
+				slavesSetMap = markSlaveAsSet(msg.src, slavesSetMap);  // mark we got reply from this slave, so we continue with others
 			case GET_ZONE_SUB_CMD:
   				ErrWrite(ERR_DEBUG, "Master: reply received for GET_ZONE_SUB_CMD\n");
-				slavesSetMap = markSlaveAsSet(SLAVE_ADDRESS1, slavesSetMap);  // mark we got reply from this slave, so we continue with others
+				slavesSetMap = markSlaveAsSet(msg.src, slavesSetMap);  // mark we got reply from this slave, so we continue with others
   				break;
 			case SET_PGM_SUB_CMD:
 			case GET_PGM_SUB_CMD:
@@ -320,7 +320,7 @@ int slaveProcessCmd(struct MSG msg) {
 int i;
   for(i =0; i< MAX_MSG_LENGHT; i++)
     tmpMsg[i] = 0;
-  LogMsg("slaveProcessCmd: message recv: DATA LEN = %d, CMD = %x, DST = %x, PAYLOAD: ", msg.dataLen, msg.cmd, msg.dst, msg.payload);
+  LogMsg("slaveProcessCmd: message recv: DATA LEN = %d, CMD = %x, DST = %x, SRC = %x, PAYLOAD: ", msg.dataLen, msg.cmd, msg.dst, msg.src, msg.payload);
   switch (msg.cmd) {
     case PING:
     ErrWrite(ERR_INFO, "Master: Unsupported command received PING_RES\n");

@@ -62,9 +62,11 @@ int wait4reply(unsigned long timeout) {
     delay(1);                                   // no message yet, yield all other processes
     if(timeout)                                 // check if we have limit how long to wait                              
         timeout--;                              // yes, decrease it and keep waiting
-    else                                        // no message yet, but timeout expired 
+    else {                                      // no message yet, but timeout expired 
+		waiting_for_reply = 0;                      // stop waiting after processing message
         return ERR_TIMEOUT;                     // no message during the specified interval
-    }
+		}
+    }											// end while
   if(retCode != MSG_READY)  {                   // we got something, either message or error             
     ErrWrite(ERR_WARNING, "Master rcv reply error or timeout\n");    // error   
     waiting_for_reply = 0;                      // stop waiting in case of error

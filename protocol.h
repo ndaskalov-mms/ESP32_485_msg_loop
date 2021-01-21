@@ -43,7 +43,6 @@ int check4msg(RS485& Channel, byte ownAdr, unsigned long timeout) {
   else
     return MSG_READY;                               // have message
 } // check4msg
-
 //
 // waits for message reply up to timeout milliseconds of REPLY_TIMEOUT, whichever comes first
 // params: unsigned long timeout - specifies how long to block waiting for reply. Used delay(),
@@ -77,6 +76,35 @@ int wait4reply(unsigned long timeout) {
     waiting_for_reply = 0;                      // stop waiting after processing message
     return ERR_OK;                              // propagate upstream what masterProcessMsg received  TODO add support for err return code in masterProcessMsg
     }                                           // else
+}
+
+//
+// waits for message reply up to timeout milliseconds of REPLY_TIMEOUT, whichever comes first
+// returns: int ERR_OK -            if message processed 
+//              error code -       otherwise
+//
+void waitReply() {
+  int retCode;
+  // are we waiting for reply? MSG_READY means good msg,ERR_OK(0) means no msg,<0 means UART error or parse err
+  if (!waiting_for_reply)                        // check for message available
+    t1.yield(&master);                              // not waiting for message
+//    
+  logger.printf("before delay\n");
+  t1.delay(500);
+    logger.printf("after delay\n");
+  while (ERR_OK == (retCode = check4msg(MasterMsgChannel, MASTER_ADDRESS, REPLY_TIMEOUT))) {  // ERR_OK means nothing received so far, otherwise will be error or MSG_READY
+    t1.delay();                                   // no message yet, yield all other processes
+	logger.printf("waitReply() delay\n");
+    }											// end while
+  if(retCode != MSG_READY)  {                   // we got something, either message or error             
+    ErrWrite(ERR_WARNING, "Master rcv reply error or timeout\n");    // error   
+    }
+  else {
+    masterProcessMsg(rcvMsg);                   // message, process it. 
+    }     
+  waiting_for_reply = 0;                      // stop waiting in case of error
+  logger.printf("Yielding to master loop\n");
+  t1.yield(&master);     												
 }
 //
 //
@@ -183,7 +211,7 @@ struct MSG  parse_msg(RS485& rcv_channel) {
     rmsg.dst = tmpBuf[DST_OFFSET] & DST_BITS;                 // destination is low nibble
 	rmsg.src = ((tmpBuf[DST_OFFSET] & SRC_BITS) >> SRC_SHIFT);     // destination is low nibble
     rmsg.dataLen = rmsg.len-CMD_HEADER_LEN;                            // account for command + src|dst code
-    LogMsg("Parse_msg: message recv: PAYLOAD LEN = %d, CMD = %x, DST = %x, SRC = %x, PAYLOAD: ", rmsg.dataLen, rmsg.cmd, rmsg.dst, rmsg.src, &tmpBuf[PAYLOAD_OFFSET]);
+    //LogMsg("Parse_msg: message recv: PAYLOAD LEN = %d, CMD = %x, DST = %x, SRC = %x, PAYLOAD: ", rmsg.dataLen, rmsg.cmd, rmsg.dst, rmsg.src, &tmpBuf[PAYLOAD_OFFSET]);
     switch (rmsg.cmd & ~REPLY_OFFSET) {         // check for valid commands and replies. clear reply bit to facilitate test
       case PING:
         if (rmsg.dataLen == PING_PAYLD_LEN)
@@ -246,6 +274,6 @@ int isTimeFor(byte cmd, unsigned long timeout) {
       ErrWrite(ERR_DB_INDEX_NOT_FND, "IsTimeFor: CMD %d not found\n", cmd);
 	  return false;                                      // this is a bit ugly, but will notify the world  
     }                                                    // that we cannot send this command 
-	logger.printf("IsTimeFor: CMD = %d, sent =  %ul, now =  %ul tout = %ul\n", cmd, cmdDB[cmd_index].last_transmitted, millis(), timeout);
+	//logger.printf("IsTimeFor: CMD = %d, sent =  %ul, now =  %ul tout = %ul\n", cmd, cmdDB[cmd_index].last_transmitted, millis(), timeout);
     return ((unsigned long)(millis() - (unsigned long)(cmdDB[cmd_index].last_transmitted)) > (unsigned long)timeout);
 }

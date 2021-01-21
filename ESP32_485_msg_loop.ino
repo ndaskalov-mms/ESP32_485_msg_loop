@@ -96,12 +96,6 @@ int err, retCode;                         // holds error returns from some funct
 struct MSG rcvMsg;                        // temp structs for message tr/rcv
 byte tmpMsg [MAX_PAYLOAD_SIZE];
 //
-#include "protocol.h"                     // send/receive and compse messgaes staff
-#include "commands.h"                     // master/slave commands implementation
-#ifdef MASTER
-#include "alarm_logic.h"
-#endif
-//
 // cooperative multitasking staff
 //
 #define _TASK_SLEEP_ON_IDLE_RUN
@@ -113,6 +107,13 @@ void slave();
 
 Task t1(3, TASK_FOREVER, &master, &taskScheduler, true);
 Task t2(3, TASK_FOREVER, &slave, &taskScheduler, true);
+
+//
+#include "protocol.h"                     // send/receive and compse messgaes staff
+#include "commands.h"                     // master/slave commands implementation
+#ifdef MASTER
+#include "alarm_logic.h"
+#endif
 
 //
 //  Arduino setup function - call all local setups her

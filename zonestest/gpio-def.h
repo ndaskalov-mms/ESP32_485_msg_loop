@@ -180,3 +180,8 @@ struct CONFIG_t {
 } alarmConfig, tmpConfig;
 //
 #endif
+//
+// read board address//
+byte readOwnAdr() {												// TODO read the address from dDIO switch
+return SLAVE_ADDRESS1;	
+}

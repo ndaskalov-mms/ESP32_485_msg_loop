@@ -4,10 +4,9 @@
 // ----------- slave simulation -------------------------------------------
 //
 //
-  logger.printf("Slave loop\n");
-	boardID = SLAVE_ADDRESS1;        // Slave destination ---------   TODO - only for loopback testing
+    logger.printf("Slave loop\n");
 	memcpy(errorsDB_backup, errorsDB, sizeof(errorsDB_backup));   // backup error DB
-	retCode = check4msg(SlaveMsgChannel, NO_TIMEOUT);             // message if available will stored in global rcvMSG variable
+	retCode = check4msg(SlaveMsgChannel, slaveAdr, NO_TIMEOUT);             // message if available will stored in global rcvMSG variable
 	if(retCode == MSG_READY) {				                            // ERR_OK (0)- no message, ERR_RCV_MSG (<0) -parsing error, MSG_READY (1)- message present          
      slaveProcessCmd(rcvMsg);
 	}		// if retCode

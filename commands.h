@@ -25,7 +25,7 @@ int sendCmd(byte cmd, byte dst, byte * payload) {
 	  len = cmdDB[cmd_index].len;                          // get payload len from cmd db 
 	  if(!len) 											                       // if len == 0, the len is at index 1 of the payload (FREE CMD)
 		  len = payload[FREE_CMD_DATA_LEN_OFFSET]+FREE_CMD_HDR_LEN;								                   // sendMessage will validate it
-    if (ERR_OK != (ret_code = SendMessage(MasterMsgChannel, MasterUART, cmd, dst, payload, len))) {
+    if (ERR_OK != (ret_code = SendMessage(MasterMsgChannel, MasterUART, cmd, dst, MASTER_ADDRESS,  payload, len))) {
       ErrWrite(ERR_TRM_MSG, "\n\nMaster: Err in sendMessage sending %d cmd\n\n", cmd);
       return ERR_TRM_MSG;
     }
@@ -192,7 +192,7 @@ static byte curSlave = SLAVE_ADDRESS1;
 	ErrWrite(ERR_DEBUG, "Sending config data to slave %d\n", curSlave);
 	setSlaveZones(zonesDB[curSlave], curSlave); // sendCmd handle and reports errors internally 
       ErrWrite( ERR_INFO, ("Config sent, receive timeout started\n"));
-	wait4reply(100);
+	//wait4reply(100);
 }	
 //
 #endif
@@ -221,7 +221,7 @@ int j = FREE_CMD_DATA_OFFSET; int i = 0;						// index where to put the payload,
 		logger.printf("\n");
 		logger.printf("returnSlaveZones data len: %d\n", j);
 		}
-		return SendMessage(SlaveMsgChannel, SlaveUART, (FREE_CMD | REPLY_OFFSET), MASTER_ADDRESS, tmpMsg, j); // one byte payload only
+		return SendMessage(SlaveMsgChannel, SlaveUART, (FREE_CMD | REPLY_OFFSET), MASTER_ADDRESS, slaveAdr, tmpMsg, j); // one byte payload only
 }	
 //
 // extract and stores the zone params from received command in local zones DB
@@ -254,7 +254,7 @@ int replySetAlarmZones(int err) {
 	//for(int i =0; i< MAX_MSG_LENGHT; i++)
 	  //logger.printf ("%2d ", tmpMsg[i]);             				// there is one byte cmd|dst
 	//logger.printf("\n");
-	return SendMessage(SlaveMsgChannel, SlaveUART, (FREE_CMD | REPLY_OFFSET), MASTER_ADDRESS, tmpMsg, FREE_CMD_HDR_LEN+1); // one byte payload only
+	return SendMessage(SlaveMsgChannel, SlaveUART, (FREE_CMD | REPLY_OFFSET), MASTER_ADDRESS, slaveAdr, tmpMsg, FREE_CMD_HDR_LEN+1); // one byte payload only
 }
 //
 // replies to master on received poll zones cmd
@@ -267,7 +267,7 @@ int replySetAlarmZones(int err) {
 int replyPollZones(byte zoneResultArr[], int len) {
 int ret;
        if(zoneInfoValid == ZONE_A_VALID | ZONE_B_VALID) 				// check if all zones are read already, if not does not reply
-          return SendMessage(SlaveMsgChannel, SlaveUART, (POLL_ZONES | REPLY_OFFSET), MASTER_ADDRESS, zoneResultArr, len);
+          return SendMessage(SlaveMsgChannel, SlaveUART, (POLL_ZONES | REPLY_OFFSET), MASTER_ADDRESS, slaveAdr, zoneResultArr, len);
 }
 //
 // extract and stores the pgm params from received command in local pgm DB
@@ -309,7 +309,7 @@ int j = FREE_CMD_DATA_OFFSET; int i = 0;						// index where to put the payload,
 		logger.printf("\n");
 		logger.printf("returnSlavePGMs data len: %d\n", j);
 		}
-		return SendMessage(SlaveMsgChannel, SlaveUART, (FREE_CMD | REPLY_OFFSET), MASTER_ADDRESS, tmpMsg, j); // one byte payload only
+		return SendMessage(SlaveMsgChannel, SlaveUART, (FREE_CMD | REPLY_OFFSET), MASTER_ADDRESS, slaveAdr,  tmpMsg, j); // one byte payload only
 }	
 //
 // slave process messages root function. It is called when message is received at slave

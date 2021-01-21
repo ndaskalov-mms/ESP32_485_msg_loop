@@ -13,7 +13,7 @@ void masterProcessMsg(struct MSG msg);
 // return:   ERR_OK (0) in case of no message or message which is not for us
 //          ERR_RCV_MSG (negative) in case of parsing error
 //          MSG_READY (1) if message present          
-int check4msg(RS485& Channel, unsigned long timeout) {
+int check4msg(RS485& Channel, byte ownAdr, unsigned long timeout) {
   if (!(err = Channel.update ())) {                 // 0 - nothing received yet, != something is waiting                                                      
      if(timeout && ((unsigned long)(millis() - Channel.getLastTransmitTime ()) > timeout)) // check for message reply timeout            
           return ErrWrite(ERR_TIMEOUT, "Check4msg Reply timeout\n"); // timeout expired              // 0 means no timeout, wait forever
@@ -37,7 +37,7 @@ int check4msg(RS485& Channel, unsigned long timeout) {
     return ERR_OK;  
   }
   // check if the destination 
-  if(rcvMsg.dst != boardID)                       // check if the destination is another board
+  if(rcvMsg.dst != ownAdr)                       // check if the destination is another board
     return ERR_OK;                                // not for us, yes, do nothing
   // we got message for us
   else
@@ -58,7 +58,7 @@ int wait4reply(unsigned long timeout) {
   if (!waiting_for_reply)                        // check for message available
     return ERR_OK;                               // not waiting for message
 //    
-  while (ERR_OK == (retCode = check4msg(MasterMsgChannel, REPLY_TIMEOUT))) {  // ERR_OK means nothing received so far, otherwise will be error or MSG_READY
+  while (ERR_OK == (retCode = check4msg(MasterMsgChannel, MASTER_ADDRESS, REPLY_TIMEOUT))) {  // ERR_OK means nothing received so far, otherwise will be error or MSG_READY
     delay(1);                                   // no message yet, yield all other processes
     if(timeout)                                 // check if we have limit how long to wait                              
         timeout--;                              // yes, decrease it and keep waiting
@@ -98,12 +98,12 @@ int checkTimeout(RS485& Channel, unsigned long timeout) {
 //      payload_len - len of the payload to be send
 // return: lenght of the composed message or 0 if error
 //
-int compose_msg(byte cmd, byte dest, byte *payload, byte *out_buf, int payload_len) {
+int composeMsg(byte cmd, byte dest, byte src, byte *payload, byte *out_buf, int payload_len) {
   int index = 0;
   
   // first byte is COMMMAND/REPLY code (4 MS BITS) combined with the destination address (4 ls BITS)
   out_buf[index++] = cmd;
-  out_buf[index++] = ((boardID << SRC_SHIFT) | (dest & DST_BITS));
+  out_buf[index++] = ((src << SRC_SHIFT) | (dest & DST_BITS));
   // next comes the payload
   if ((payload_len + index) > MAX_MSG_LENGHT) {
      return ERR_INV_PAYLD_LEN;						// all errors are negative numbers
@@ -127,11 +127,11 @@ int compose_msg(byte cmd, byte dest, byte *payload, byte *out_buf, int payload_l
 //            ERR_OK            - Alles in ordung   
 // other:     reflects error occured in global errors struct as well         
  
-int SendMessage(RS485& trmChannel, HardwareSerial& uart, byte cmd, byte dst, byte *payload, int len ) {
+int SendMessage(RS485& trmChannel, HardwareSerial& uart, byte cmd, byte dst, byte src, byte *payload, int len ) {
     byte tmpBuf[MAX_MSG_LENGHT];
     int tmpLen;              // lenght of data to transmit, shall be less than MAX_MSG_LENGHT
     byte err = ERR_OK;
-    if(!(tmpLen = compose_msg(cmd, dst, payload, tmpBuf, len))) {
+    if(!(tmpLen = composeMsg(cmd, dst, src, payload, tmpBuf, len))) {
       ErrWrite (ERR_INV_PAYLD_LEN, "SendMessage: error composing message -  too long???\n");   // must be already reported by compose_msg
       return ERR_INV_PAYLD_LEN;
     }
@@ -157,20 +157,7 @@ int SendMessage(RS485& trmChannel, HardwareSerial& uart, byte cmd, byte dst, byt
     ErrWrite (ERR_INFO, "Transmitted, going back to listening mode\n");
     return err;
 }
-
-// send message using 485 interface. Mesagge parameters are transferred as members of struct type MSG
-// params:
-//      RS485& trmChannel     - reference to instanse of RS485 class, defined in RS485 lib to handle frame (STX, ETX, CRC) level send/receive staff
-//      HardwareSerial& uart  - reference to instance of HardwareSerial class defined in Arduino core to handle UART level stall
-//      struct MSG msg2trm    - struct with message details like CDM, DST, PAYLOAD, LEN
-// returns:   ERR_INV_PAYLD_LEN - payload larger than buffer
-//            ERR_RS485         - error in RS485 lib (sendMsg, no write callback)
-//            ERR_OK            - Alles in ordung   
-// other:     reflects error occured in global errors struct as well         
-//byte SendMessage(RS485& trmChannel, HardwareSerial& uart, struct MSG msg2trm ) {
-//    return (SendMessage(trmChannel, uart, msg2trm.cmd, msg2trm.dst, msg2trm.payload, msg2trm.len ));
-//}
-
+//
 // parse received message
 // byte[0] CMD 
 // byte[1] SRC | DST (4 MS bits is source and lower 4 bits is destination

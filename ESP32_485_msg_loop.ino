@@ -64,7 +64,6 @@ HardwareSerial& SlaveUART(Serial2);
 #endif
 #endif
 //
-byte boardID;                           // board ID: master is 0, expanders and others up to 0xE; OxF means bradcast
 int  waiting_for_reply = 0;             // tracks current state of the protool
 byte zoneInfoValid = 0;                 // track if zonesResult array contain valid info as the host can request info before they are read
 //
@@ -88,6 +87,7 @@ byte MzoneResult[MASTER_ZONES_CNT/2 + MASTER_ZONES_CNT%2];                      
 RS485 MasterMsgChannel (MasterRead, MasterAvailable, MasterWrite, ErrWrite, RxBUF_SIZE);   //RS485 myChannel (read_func, available_func, write_func, msg_len);
 #endif
 #ifdef SLAVE
+byte slaveAdr;                          // board ID: master is 0, expanders and others up to 0xE; OxF means bradcast
 byte SzoneResult[SLAVE_ZONES_CNT/2 + SLAVE_ZONES_CNT%2];          //each zone will be in 4bits
 RS485 SlaveMsgChannel  (SlaveRead, SlaveAvailable, SlaveWrite, ErrWrite, RxBUF_SIZE);      //RS485 myChannel (read_func, available_func, write_func, msg_len);
 #endif
@@ -102,6 +102,14 @@ byte tmpMsg [MAX_PAYLOAD_SIZE];
 #include "alarm_logic.h"
 #endif
 //
+// cooperative multitasking staff
+//
+#define _TASK_SLEEP_ON_IDLE_RUN
+#include <TaskScheduler.h>
+Scheduler taskScheduler;
+// Callback methods prototypes
+void master();
+void slave();
 //
 //  Arduino setup function - call all local setups her
 //
@@ -111,6 +119,7 @@ void setup() {
   logger.printf("\n\nStarting setup\n\n");
 //
 #ifdef SLAVE
+   slaveAdr = readOwnAdr();		       // Slave destination ---------   TODO - only for loopback testing
    SlaveMsgChannel.begin ();                     // allocate data buffers and init message encoding/decoding engines (485_non_blocking library)
 #ifdef LOOPBACK
   SlaveUART.begin(BITRATE,SERIAL_8N1, 21, 22);    // re-routing RxD to  GPIO21 and TxD to GPIO22

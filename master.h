@@ -1,5 +1,4 @@
-  boardID = MASTER_ADDRESS;                     // TODO - only for loopback testing
-
+//void master() {
   static int i=0;
   memcpy(errorsDB_backup, errorsDB, sizeof(errorsDB_backup)); // backup error DB
 //

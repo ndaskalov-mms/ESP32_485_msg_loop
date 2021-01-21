@@ -36,8 +36,8 @@ enum ADDR {                                         // board adresses, MASTER is
 #define ERROR   true
 
 // some other conf defines
-#define POLL_INTERVAL  1000           // Shall be 200ms 
-#define REPLY_TIMEOUT  100            // REPLY_TIMEOUT MUST be at least 2x less POLL_INTERVAL to avoid sending a new command while waiting for 
+#define POLL_INTERVAL  200UL           // Shall be 200ms 
+#define REPLY_TIMEOUT  100UL            // REPLY_TIMEOUT MUST be at least 2x less POLL_INTERVAL to avoid sending a new command while waiting for 
 #define NO_TIMEOUT      0
 
 // define log and errors channel
@@ -110,6 +110,10 @@ Scheduler taskScheduler;
 // Callback methods prototypes
 void master();
 void slave();
+
+Task t1(3, TASK_FOREVER, &master, &taskScheduler, true);
+Task t2(3, TASK_FOREVER, &slave, &taskScheduler, true);
+
 //
 //  Arduino setup function - call all local setups her
 //
@@ -154,16 +158,27 @@ void setup() {
    printAlarmZones((byte *) &alarmConfig.zoneConfigs, MASTER_ADDRESS, MAX_SLAVES);
    //printAlarmPgms((byte *) &alarmConfig.pgmConfigs, MASTER_ADDRESS, MAX_SLAVES);
 #endif
+
+  taskScheduler.startNow();  // set point-in-time for scheduling start
 }
 //
 //
-//
-void loop ()
-{
 #ifdef MASTER
 #include "master.h"
 #endif
 #ifdef SLAVE
 #include "slave.h"
 #endif
+//
+void loop ()
+{
+/*
+#ifdef MASTER
+#include "master.h"
+#endif
+#ifdef SLAVE
+#include "slave.h"
+#endif
+*/
+taskScheduler.execute();
 }  // end of loop

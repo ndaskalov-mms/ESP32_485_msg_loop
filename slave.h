@@ -4,6 +4,7 @@
 // ----------- slave simulation -------------------------------------------
 //
 //
+void slave() {
     logger.printf("Slave loop\n");
 	memcpy(errorsDB_backup, errorsDB, sizeof(errorsDB_backup));   // backup error DB
 	retCode = check4msg(SlaveMsgChannel, slaveAdr, NO_TIMEOUT);             // message if available will stored in global rcvMSG variable
@@ -20,3 +21,4 @@
 	// find out if some new errors occured while receiving/processing the message
 	if(memcmp(errorsDB, errorsDB_backup, sizeof(errorsDB))) 
 		printNewErrors();
+}

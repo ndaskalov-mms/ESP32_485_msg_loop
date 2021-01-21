@@ -240,10 +240,12 @@ struct MSG  parse_msg(RS485& rcv_channel) {
 // returns: false - on wrong command checked or tot a time yet
 //          true  - time to send
 int isTimeFor(byte cmd, unsigned long timeout) {
+
     int cmd_index = findCmdEntry(cmd);              	 // get index into database in order to access command parameters
     if(ERR_DB_INDEX_NOT_FND == cmd_index) {              //  the command is not found in the database
       ErrWrite(ERR_DB_INDEX_NOT_FND, "IsTimeFor: CMD %d not found\n", cmd);
 	  return false;                                      // this is a bit ugly, but will notify the world  
     }                                                    // that we cannot send this command 
-    return ((unsigned long)(millis() - cmdDB[cmd_index].last_transmitted) > timeout);
+	logger.printf("IsTimeFor: CMD = %d, sent =  %ul, now =  %ul tout = %ul\n", cmd, cmdDB[cmd_index].last_transmitted, millis(), timeout);
+    return ((unsigned long)(millis() - (unsigned long)(cmdDB[cmd_index].last_transmitted)) > (unsigned long)timeout);
 }

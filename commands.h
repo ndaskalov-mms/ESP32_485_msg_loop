@@ -192,7 +192,7 @@ static byte curSlave = SLAVE_ADDRESS1;
 	ErrWrite(ERR_DEBUG, "Sending config data to slave %d\n", curSlave);
 	setSlaveZones(zonesDB[curSlave], curSlave); // sendCmd handle and reports errors internally 
       ErrWrite( ERR_INFO, ("Config sent, receive timeout started\n"));
-	//wait4reply(100);
+	wait4reply(100);
 }	
 //
 #endif

@@ -89,9 +89,6 @@ void waitReply() {
   if (!waiting_for_reply)                        // check for message available
     t1.yield(&master);                              // not waiting for message
 //    
-  logger.printf("before delay\n");
-  t1.delay(500);
-    logger.printf("after delay\n");
   while (ERR_OK == (retCode = check4msg(MasterMsgChannel, MASTER_ADDRESS, REPLY_TIMEOUT))) {  // ERR_OK means nothing received so far, otherwise will be error or MSG_READY
     t1.delay();                                   // no message yet, yield all other processes
 	logger.printf("waitReply() delay\n");

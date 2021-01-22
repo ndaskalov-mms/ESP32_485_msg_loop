@@ -3,10 +3,18 @@ void master() {
   logger.printf("Master loop\n");
   memcpy(errorsDB_backup, errorsDB, sizeof(errorsDB_backup)); // backup error DB
 //
-  wait4reply(2);                                 // checks waiting_for_reply flag and if set, receives and process message or exits with timeout
-  logger.printf("slavesSetMap = %2x\n", slavesSetMap);
-  if(slavesSetMap) 
-	  sendSlavesConfigs();
+// first check if there is ongoing transaction, if yes, return to arduino to run some other tasks and after it will call our loop again
+// wait4reply will call inside rs485 stack and check for message. If there is ready message, process it and store the results in global vars
+  if(waiting_for_reply)	{					// is command/reply interaction in progress??
+	  wait4reply(2);                // checks waiting_for_reply flag and if set, receives and process message or exits with timeout
+	  return;								        // give chance to other processes to run while waiting
+	}
+// top priority is to send cofig data to slaves, we cannot do anything before this is done
+  if(slavesSetMap) {						  // send configs to slaves, nothing we can do before this is done
+	  sendSlavesConfigs();					// TODO - add support for mor slaves
+    return;                       // inside wait4reply we will collect the answers from slaves and reflect in zones, pgms, etc DBs
+    }  
+  ErrWrite( ERR_INFO, ("Slaves configured \n"));
   // not waiting for reply, check if it is time to send new command
   //if(ERR_OK == sendFreeText(SLAVE_ADDRESS1, FREE_CMD_DATA_LEN, test_msg[(++i)%3])) // sendCmd handle and reports errors internally 
       //ErrWrite( ERR_INFO, ("Master MSG transmitted, receive timeout started\n"));

@@ -193,8 +193,8 @@ static byte curSlave = SLAVE_ADDRESS1;
 	setSlaveZones(zonesDB[curSlave], curSlave); // sendCmd handle and reports errors internally 
       ErrWrite( ERR_INFO, ("Config sent, receive timeout started\n"));
 	//wait4reply(100);
-	logger.printf("Yielding to waitReply\n");
-	t1.yield(&waitReply);            // This will pass control back to Scheduler and then continue with connection checking
+	//logger.printf("Yielding to waitReply\n");
+	//t1.yield(&waitReply);            // This will pass control back to Scheduler and then continue with connection checking
 }	
 //
 #endif

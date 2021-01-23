@@ -183,6 +183,7 @@ void masterProcessMsg(struct MSG msg) {
 // 
 void sendSlavesConfigs() {
 static byte curSlave = SLAVE_ADDRESS1;
+	logger.printf("curSlave = %d\n", curSlave);
 	if(!slavesSetMap) 						// check if some board needs configuration
 		return;								// all boards set
 	if (waiting_for_reply)                  // system is busy
@@ -195,6 +196,7 @@ static byte curSlave = SLAVE_ADDRESS1;
 	curSlave++;
 	if(curSlave > MAX_SLAVES)
 		curSlave = SLAVE_ADDRESS1;
+	logger.printf("Exit curSlave = %d\n", curSlave);
 	//wait4reply(100);
 	//logger.printf("Yielding to waitReply\n");
 	//t1.yield(&waitReply);            // This will pass control back to Scheduler and then continue with connection checking

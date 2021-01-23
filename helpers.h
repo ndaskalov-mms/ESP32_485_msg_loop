@@ -178,7 +178,7 @@ byte markSlaveAsSet(int slave, byte slaveMap) {
 //
 byte bitmap2slaveIdx(byte slaveMap, int max_slaves) {
 		for(int i =0; i< max_slaves; i++) {
-			if(slaveMap | (1<<i))
+			if(slaveMap & (1<<i))
 				return ++i;
 		}
 		return 0;

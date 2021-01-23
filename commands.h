@@ -183,15 +183,18 @@ void masterProcessMsg(struct MSG msg) {
 // 
 void sendSlavesConfigs() {
 static byte curSlave = SLAVE_ADDRESS1;
-	if (waiting_for_reply)                 // system is busy
-		return;       
-	logger.printf("slavesSetMap = %2x\n", slavesSetMap);
 	if(!slavesSetMap) 						// check if some board needs configuration
 		return;								// all boards set
+	if (waiting_for_reply)                  // system is busy
+		return;       
+	logger.printf("slavesSetMap = %2x\n", slavesSetMap);
 	curSlave = bitmap2slaveIdx(slavesSetMap, MAX_SLAVES); 
 	ErrWrite(ERR_DEBUG, "Sending config data to slave %d\n", curSlave);
 	setSlaveZones(zonesDB[curSlave], curSlave); // sendCmd handle and reports errors internally 
       ErrWrite( ERR_INFO, ("Config sent, receive timeout started\n"));
+	curSlave++;
+	if(curSlave > MAX_SLAVES)
+		curSlave = SLAVE_ADDRESS1;
 	//wait4reply(100);
 	//logger.printf("Yielding to waitReply\n");
 	//t1.yield(&waitReply);            // This will pass control back to Scheduler and then continue with connection checking

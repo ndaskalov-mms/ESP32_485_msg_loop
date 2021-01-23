@@ -5,8 +5,7 @@ void master() {
 //
 // first check if there is ongoing transaction, if yes, return to arduino to run some other tasks and after it will call our loop again
 // wait4reply will call inside rs485 stack and check for message. If there is ready message, process it and store the results in global vars
-  if(waiting_for_reply)	{					// is command/reply interaction in progress??
-	  wait4reply(2);                // checks waiting_for_reply flag and if set, receives and process message or exits with timeout
+  if(ERR_OK != wait4reply(10))	{					// is command/reply interaction in progress?? checks waiting_for_reply flag and if set, receives and process message or exits with timeout
 	  return;								        // give chance to other processes to run while waiting
 	}
 // top priority is to send cofig data to slaves, we cannot do anything before this is done

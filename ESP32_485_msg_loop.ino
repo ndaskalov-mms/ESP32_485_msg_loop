@@ -15,7 +15,7 @@
 #define MASTER
 #define SLAVE
 #define LOOPBACK
-#define MAX_SLAVES 1
+#define MAX_SLAVES 2
 //
 // board IDs
 enum ADDR {                                         // board adresses, MASTER is ALLWAYS 0

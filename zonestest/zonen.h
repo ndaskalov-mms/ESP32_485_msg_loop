@@ -145,7 +145,7 @@ void printZones(struct ZONE DB[], int zones_cnt) {
 void printPGMs(struct PGM DB[], int pgm_cnt) { 
     int i; 
     for (i = 0; i <  pgm_cnt; i++) {                        // iterate
-       logger.printf ("PGM data: PGM ID: %d: GPIO: %2d: \tAvg init val: %d\tcur val: %d;x\n", DB[i].rNum, DB[i].gpio, DB[i].iValue, DB[i].cValue);
+       logger.printf ("PGM data: PGM ID: %d: GPIO: %2d: \tinit val: %d\tcur val: %d\n", DB[i].rNum, DB[i].gpio, DB[i].iValue, DB[i].cValue);
     }
 }
 //
@@ -258,7 +258,7 @@ void convertZones(struct ZONE DB[], int zoneCnt, byte zoneResult[]) {
       zoneResult[i/2] = 0;                                 // clear results array
     zoneResult[i/2] = ((zoneResult[i/2] << ZONE_ENC_BITS) & ~ZONE_ENC_MASK) | DB[i].zoneABstat ;
     }  
-  //printZonesPayload(zoneResult, zoneCnt%2?(zoneCnt/2+1):zoneCnt/2);
+  printZonesPayload(zoneResult, zoneCnt%2?(zoneCnt/2+1):zoneCnt/2);
   //logger.printf ("Elapsed time %d millisec\n", (unsigned long)(millis() - lastRead));
 }
 //

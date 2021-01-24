@@ -15,7 +15,7 @@
 #define MASTER
 #define SLAVE
 #define LOOPBACK
-#define MAX_SLAVES 3
+#define MAX_SLAVES 1
 //
 // board IDs
 enum ADDR {                                         // board adresses, MASTER is ALLWAYS 0
@@ -52,7 +52,8 @@ constexpr int LOG_BITRATE = 115200;
 HardwareSerial& logger(Serial);
 //
 #ifdef MASTER
-byte slavesSetMap = 0xFF;			  // bitmap tracking if config data are loaded to slaves: bit 0 cooresponds to slave 1, bit 1 oslave 2,
+byte slavesSetZonesMap = 0xFF;			  // bitmap tracking if zones data are pending to  be send slaves: bit 0 cooresponds to slave 1, bit 1 oslave 2,
+byte slavesSetPgmsMap = 0xFF;			  // bitmap tracking if pgms data are pending to  be send  to slaves: bit 0 cooresponds to slave 1, bit 1 oslave 2,
 HardwareSerial& MasterUART(Serial2);
 const char configFileName[] = "/alarmConfig3.cfg";
 #endif
@@ -143,7 +144,8 @@ void setup() {
 #ifdef MASTER
    MasterUART.begin(BITRATE,SERIAL_8N1);  
    MasterMsgChannel.begin ();                 // allocate data buffers and init message encoding/decoding engines (485_non_blocking library)
-   slavesSetMap = prepareSlavesSetMap(MAX_SLAVES); // init bitmap to track if config data are loaded to slaves
+   slavesSetZonesMap = prepareSlavesSetMap(MAX_SLAVES); // init bitmap to track if zones data are loaded to slaves
+   slavesSetPgmsMap =  prepareSlavesSetMap(MAX_SLAVES); // init bitmap to track if pgms data are loaded to slaves
    if(!storageSetup()) {                      // mount file system
       while(true) {                           // loop forever
         ReportMQTT(ERROR_TOPIC, "Error initializing storage");

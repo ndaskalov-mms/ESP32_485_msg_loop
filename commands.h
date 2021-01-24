@@ -23,7 +23,8 @@ int sendCmd(byte cmd, byte dst, byte * payload) {
     }
     cmdDB[cmd_index].last_transmitted = millis();        // register the send time
 	  len = cmdDB[cmd_index].len;                          // get payload len from cmd db 
-	  if(!len) 											                       // if len == 0, the len is at index 1 of the payload (FREE CMD)
+	  //logger.printf("cmd len = %d\n", len);
+	  if(len == EXTRACT_LEN_FROM_PAYLOAD) 											                       // if len == 0, the len is at index 1 of the payload (FREE CMD)
 		  len = payload[FREE_CMD_DATA_LEN_OFFSET]+FREE_CMD_HDR_LEN;								                   // sendMessage will validate it
     if (ERR_OK != (ret_code = SendMessage(MasterMsgChannel, MasterUART, cmd, dst, MASTER_ADDRESS,  payload, len))) {
       ErrWrite(ERR_TRM_MSG, "\n\nMaster: Err in sendMessage sending %d cmd\n\n", cmd);
@@ -73,8 +74,17 @@ int sendFreeText(byte dst, int dataLen,  byte payload[]) {
 // returns: see sendFreeCmd() for return codes
 // 
 int getSlaveZones(byte dst) {
-byte cmdCode=0;
+byte cmdCode=0;		// dummy payload
 	return sendFreeCmd(GET_ZONE_SUB_CMD, dst, 1, &cmdCode);
+}	
+//
+// request from remote slave board zones conversion result
+// params: int dst - destination board ID 
+// returns: see sendCmd() for return codes
+// 
+int pollSlaveZones(byte dst) {
+byte cmdCode=0;		// dummy payload
+	return sendCmd(POLL_ZONES, dst, &cmdCode);
 }	
 //
 // extracts and sets to remote slave board zones params - GPIO, mux, zone number (zoneID)
@@ -86,7 +96,7 @@ byte cmdCode=0;
 //
 extern void printAlarmZones(byte *zone, int start, int end);
 
-int setSlaveZones(struct ALARM_ZONE zone[], int dst) {
+int sendSlaveZones(struct ALARM_ZONE zone[], int dst) {
 int j = 0; int i = 0;
 //
 	//printAlarmZones((byte *) zone, 0, 0);
@@ -112,7 +122,7 @@ int j = 0; int i = 0;
 // returns: see sendFreeCmd() for return codes
 // 
 //
-int setSlavePGMs(struct ALARM_PGM pgm[], int dst) {
+int sendSlavePGMs(struct ALARM_PGM pgm[], int dst) {
 int j = 0; int i = 0;
 //
 	for(i=0; (i<SLAVE_PGM_CNT) && (j<FREE_CMD_DATA_LEN); i++) {   // extract current PGM info from all pgms array
@@ -157,19 +167,18 @@ void masterProcessMsg(struct MSG msg) {
                 logger.printf("%s\n", msg.payload);
   				break;
    			case SET_ZONE_SUB_CMD:
-			  	ErrWrite(ERR_DEBUG, "Master: reply received for SET_ZONE_SUB_CMD\n");
-				slavesSetMap = markSlaveAsSet(msg.src, slavesSetMap);  // mark we got reply from this slave, so we continue with others
 			case GET_ZONE_SUB_CMD:
-  				ErrWrite(ERR_DEBUG, "Master: reply received for GET_ZONE_SUB_CMD\n");
-				slavesSetMap = markSlaveAsSet(msg.src, slavesSetMap);  // mark we got reply from this slave, so we continue with others
+  				ErrWrite(ERR_DEBUG, "Master: reply received for SET/GET_ZONE_SUB_CMD\n");
+				slavesSetZonesMap = markSlaveAsSet(msg.src, slavesSetZonesMap);  // mark we got reply from this slave, so we continue with others
   				break;
 			case SET_PGM_SUB_CMD:
 			case GET_PGM_SUB_CMD:
 			  ErrWrite(ERR_DEBUG, "Master: reply received for SET_PGM_SUB_CMD or GET_PGM_SUB_CMD: \n");
+			  slavesSetPgmsMap = markSlaveAsSet(msg.src, slavesSetPgmsMap);  // mark we got reply from this slave, so we continue with others
 			  break;
-				default:
-					ErrWrite(ERR_WARNING, "Master: invalid sub-command received %x\n", msg.subCmd);
-					break;
+			default:
+			  ErrWrite(ERR_WARNING, "Master: invalid sub-command received %x\n", msg.subCmd);
+			  break;
 			  }
 		  break;
     default:
@@ -177,26 +186,55 @@ void masterProcessMsg(struct MSG msg) {
     }  // switch
 } 
 //
-// void sendSlavesConfigs() - sends zones, pgms, etc config data to all slaves in the system
+// void setSlavesZones() - sends zones, pgms, etc config data to all slaves in the slavesSetZonesMap
 // nonblocking function, shall be called periodically from loop() in order to check the results and move to next slave
-// config data are read from global zonesDB, pgmsDB, etc. Progress is tracked by clearing corresponding bits in global slavesSetMap
+// config data are read from global zonesDB, pgmsDB, etc. Progress is tracked by clearing corresponding bits in global slavesSetZonesMap
 // 
-void sendSlavesConfigs() {
-static byte curSlave = SLAVE_ADDRESS1;
-	logger.printf("curSlave = %d\n", curSlave);
-	if(!slavesSetMap) 						// check if some board needs configuration
+void setSlavesZones() {
+static byte curSlave;
+	//logger.printf("Zones curSlave = %d\n", curSlave);
+	if(!slavesSetZonesMap) 						// check if some board needs configuration
 		return;								// all boards set
 	if (waiting_for_reply)                  // system is busy
 		return;       
-	logger.printf("slavesSetMap = %2x\n", slavesSetMap);
-	curSlave = bitmap2slaveIdx(slavesSetMap, MAX_SLAVES); 
-	ErrWrite(ERR_DEBUG, "Sending config data to slave %d\n", curSlave);
-	setSlaveZones(zonesDB[curSlave], curSlave); // sendCmd handle and reports errors internally 
-      ErrWrite( ERR_INFO, ("Config sent, receive timeout started\n"));
+	logger.printf("slavesSetZonesMap = %2x\n", slavesSetZonesMap);
+	curSlave = bitmap2slaveIdx(slavesSetZonesMap, MAX_SLAVES); 
+	ErrWrite(ERR_DEBUG, "Sending zones config data to slave %d\n", curSlave);
+	if(ERR_OK == sendSlaveZones(zonesDB[curSlave], curSlave))  // sendCmd handle and reports errors internally 
+      ErrWrite( ERR_DEBUG, "Zones config sent to %d, receive timeout started\n",curSlave);
+	else 
+	  ErrWrite( ERR_INFO, "Zones config sent to %d failure\n", curSlave);
 	curSlave++;
 	if(curSlave > MAX_SLAVES)
 		curSlave = SLAVE_ADDRESS1;
-	logger.printf("Exit curSlave = %d\n", curSlave);
+	//logger.printf("Exit curSlave = %d\n", curSlave);
+	//wait4reply(100);
+	//logger.printf("Yielding to waitReply\n");
+	//t1.yield(&waitReply);            // This will pass control back to Scheduler and then continue with connection checking
+}	
+//
+// void setSlavesPgms() - sends pgms config data to all slaves in the slavesSetPgmsMap
+// nonblocking function, shall be called periodically from loop() in order to check the results and move to next slave
+// config data are read from global zonesDB, pgmsDB, etc. Progress is tracked by clearing corresponding bits in global slavesSetPgmsMap
+// 
+void setSlavesPgms() {
+static byte curSlave;
+	logger.printf("PGMs curSlave = %d\n", curSlave);
+	if(!slavesSetPgmsMap) 						// check if some board needs configuration
+		return;								// all boards set
+	if (waiting_for_reply)                  // system is busy
+		return;       
+	logger.printf("slavesSetPgmsMap = %2x\n", slavesSetPgmsMap);
+	curSlave = bitmap2slaveIdx(slavesSetPgmsMap, MAX_SLAVES); 
+	ErrWrite(ERR_DEBUG, "Sending PGMs config data to slave %d\n", curSlave);
+	if(ERR_OK == sendSlavePGMs(pgmsDB[curSlave], curSlave))  // sendCmd handle and reports errors internally 
+      ErrWrite( ERR_DEBUG, "PGMs config sent to %d, receive timeout started\n",curSlave);
+	else 
+	  ErrWrite( ERR_INFO, "PGMs config sent to %d failure\n", curSlave);
+	curSlave++;
+	if(curSlave > MAX_SLAVES)
+		curSlave = SLAVE_ADDRESS1;
+	//logger.printf("Exit curSlave = %d\n", curSlave);
 	//wait4reply(100);
 	//logger.printf("Yielding to waitReply\n");
 	//t1.yield(&waitReply);            // This will pass control back to Scheduler and then continue with connection checking
@@ -256,10 +294,10 @@ void setAlarmZones(byte pldBuf[]) {
 //
 int replySetAlarmZones(int err) {
 	tmpMsg[FREE_CMD_SUB_CMD_OFFSET] = SET_ZONE_SUB_CMD;       // prepare reply payload, first byte  is the subcommand we are replying to 
-	tmpMsg[FREE_CMD_DATA_LEN_OFFSET]  = 1;                    // second бъте is the payload len,  which is 1 byte
-	tmpMsg[FREE_CMD_DATA_OFFSET]  = err;           					  // third is the aktual payload which in this cas is no error (ERR_OK)	 
+	tmpMsg[FREE_CMD_DATA_LEN_OFFSET]  = 1;                    // second byte is the payload len,  which is 1 byte
+	tmpMsg[FREE_CMD_DATA_OFFSET]  = err;           			  // third is the aktual payload which in this case is no error (ERR_OK)	 
 	//for(int i =0; i< MAX_MSG_LENGHT; i++)
-	  //logger.printf ("%2d ", tmpMsg[i]);             				// there is one byte cmd|dst
+	  //logger.printf ("%2d ", tmpMsg[i]);             				
 	//logger.printf("\n");
 	return SendMessage(SlaveMsgChannel, SlaveUART, (FREE_CMD | REPLY_OFFSET), MASTER_ADDRESS, slaveAdr, tmpMsg, FREE_CMD_HDR_LEN+1); // one byte payload only
 }
@@ -328,7 +366,7 @@ int slaveProcessCmd(struct MSG msg) {
 int i;
   for(i =0; i< MAX_MSG_LENGHT; i++)
     tmpMsg[i] = 0;
-  LogMsg("slaveProcessCmd: message recv: DATA LEN = %d, CMD = %x, DST = %x, SRC = %x, PAYLOAD: ", msg.dataLen, msg.cmd, msg.dst, msg.src, msg.payload);
+  //LogMsg("slaveProcessCmd: message recv: DATA LEN = %d, CMD = %x, DST = %x, SRC = %x, PAYLOAD: ", msg.dataLen, msg.cmd, msg.dst, msg.src, msg.payload);
   switch (msg.cmd) {
     case PING:
     ErrWrite(ERR_INFO, "Master: Unsupported command received PING_RES\n");

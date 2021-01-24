@@ -242,7 +242,7 @@ struct MSG  parse_msg(RS485& rcv_channel) {
         rmsg.subCmd = tmpBuf[PAYLOAD_OFFSET+FREE_CMD_SUB_CMD_OFFSET]; 
         if ((rmsg.len == rmsg.dataLen+FREE_CMD_HDR_LEN+CMD_HEADER_LEN)) {                            // accound for cmd and src|dst bytes  TODO check for overflow (rmsg.dataLen < FREE_CMD_DATA_LEN)&&
            memcpy(rmsg.payload, &tmpBuf[PAYLOAD_OFFSET+FREE_CMD_HDR_LEN], rmsg.dataLen);// two bytes for subCmd and payload len
-           LogMsg("Parse_msg: FREE CMD recv: Total LEN: %d, CMD: %2x, SRC = %x, DST = %x, subCMD = %2x, DATA LEN %d, DATA: ", rmsg.len, rmsg.cmd, rmsg.src, rmsg.dst, rmsg.subCmd,  rmsg.dataLen, rmsg.payload);
+           //LogMsg("Parse_msg: FREE CMD recv: Total LEN: %d, CMD: %2x, SRC = %x, DST = %x, subCMD = %2x, DATA LEN %d, DATA: ", rmsg.len, rmsg.cmd, rmsg.src, rmsg.dst, rmsg.subCmd,  rmsg.dataLen, rmsg.payload);
           }      
         else  {
           rmsg.parse_err = ERR_INV_PAYLD_LEN;
@@ -265,7 +265,6 @@ struct MSG  parse_msg(RS485& rcv_channel) {
 // returns: false - on wrong command checked or tot a time yet
 //          true  - time to send
 int isTimeFor(byte cmd, unsigned long timeout) {
-
     int cmd_index = findCmdEntry(cmd);              	 // get index into database in order to access command parameters
     if(ERR_DB_INDEX_NOT_FND == cmd_index) {              //  the command is not found in the database
       ErrWrite(ERR_DB_INDEX_NOT_FND, "IsTimeFor: CMD %d not found\n", cmd);

@@ -18,7 +18,7 @@
 #define MAX_PAYLOAD_SIZE  (MAX_MSG_LENGHT - CMD_SIZE/2)   // shall be max 60 = ((128-(1+1+1))/2) - 2
 #define RxBUF_SIZE 128  //no material limit
 #define BROADCAST_ID    0x0F
-#define REPLY_OFFSET    0x8
+#define REPLY_OFFSET    0x80
 #define DST_BITS		0x0F
 #define SRC_BITS		0xF0
 #define SRC_SHIFT		4
@@ -61,6 +61,7 @@
 #define FREE_CMD_DATA_LEN_OFFSET	1
 #define FREE_CMD_DATA_OFFSET		2
 #define FREE_CMD_RES         (FREE_CMD  | REPLY_OFFSET)
+#define EXTRACT_LEN_FROM_PAYLOAD 0xFF
 // free cmd sub-commands
 #define	FREE_TEXT_SUB_CMD	0x1
 #define	FREE_TEXT_DATA_LEN	FREE_CMD_DATA_LEN
@@ -84,7 +85,7 @@ struct COMMAND {
 // commands database to look-up command params and store temporary data (like last transmition time)
 // 
 struct COMMAND cmdDB[] = {{PING, PING_PAYLD_LEN,  0}, {POLL_ZONES, POLL_PAYLD_LEN, 0}, {SET_OUTS, SET_OUTS_PAYLD_LEN, 0}, \
-                          {FREE_CMD, 0,  0}} ;  // len 0 means the len of the payload will determine the message len
+                          {FREE_CMD, EXTRACT_LEN_FROM_PAYLOAD,  0}} ;  // len 0 means the len of the payload will determine the message len
 
 struct MSG {
   byte cmd;
@@ -111,7 +112,7 @@ void LogMsg(char *formatStr, int len, byte cmd, byte dst, byte src, byte *payloa
   if(!DEBUG)
 		return;
 	logger.printf(formatStr, len, cmd, dst, src);
-  for(int i =0; i< len; i++)
+  for(int i =0; i< len-CMD_HEADER_LEN; i++)
     logger.printf ("%d ", payload[i]);                // there is one byte cmd|dst
    logger.println();
 }
@@ -135,11 +136,11 @@ void LogMsg(char *formatStr, int len, byte cmd, byte dst, byte src, byte subCmd,
 }
 int findCmdEntry(byte cmd) {
   //ErrWrite(ERR_DEBUG, "Looking for record for cmd code   %d \n", cmd);
-  cmd = cmd & ~(0xF0 | REPLY_OFFSET );                      // clear reply flag if any
+  cmd = cmd & ~REPLY_OFFSET;                      // clear reply flag if any
+  logger.printf("Looking at index  %d out of  %d:\n", cmd, sizeof(cmdDB)/sizeof(struct COMMAND)-1);
   for (int i = 0; i < sizeof(cmdDB)/sizeof(struct COMMAND); i++) {
-    //logger.printf("Looking at index  %d out of  %d:\n", cmd, sizeof(cmdDB)/sizeof(struct COMMAND)-1);
     if(cmdDB[i].cmdID == cmd) {
-      //ErrWrite(ERR_DEBUG,"Found cmd at  index %d\n", i);
+      ErrWrite(ERR_DEBUG,"Found cmd at  index %d\n", i);
       return  i;
     }
   }
@@ -169,7 +170,7 @@ byte tmp = 0;
 //
 byte markSlaveAsSet(int slave, byte slaveMap) {
 		slaveMap = slaveMap & ~(1<<(--slave));
-		logger.printf("SlaveMap = %d\n", slaveMap);
+		//logger.printf("SlaveMap = %d\n", slaveMap);
 		return slaveMap;
 } 
 //

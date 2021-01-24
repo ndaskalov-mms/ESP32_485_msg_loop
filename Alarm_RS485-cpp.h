@@ -142,7 +142,7 @@ bool RS485::sendMsg (const byte * data, const byte length)
 {
   static int run = 0;
   byte screw_pattern[] =  {1,1,0,1,0};          //{0,0,1,0,1,1};
-  logger.printf("--------run = %d -------------\n", run);
+  //logger.printf("--------run = %d -------------\n", run);
   //fErrCallback_(ERR_DEBUG, "-------------------------Sending message-----------------------------------------\n");
   // no callback? Can't send
   if (fWriteCallback_ == NULL) {

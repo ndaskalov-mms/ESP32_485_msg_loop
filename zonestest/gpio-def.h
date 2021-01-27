@@ -155,7 +155,17 @@ struct ALARM_PGM {
   byte  cValue;             // current
   char  pgmName[16];           // user friendly name
 };   
-
+//
+// keyswitch related staff
+//
+struct ALARM_KEYSW {
+  byte  partition;				// Keyswitch can be assigned to one partition only. If == NO_PARTITION (0) the keyswitch is not defined/valid
+  byte  type;					// disabled, momentary, maintained,  generate utility key on open/close, .... see enum  KEYSW_OPTS_t 
+  byte  action;					// keyswitch action definition - see enum  KEYSW_ACTS_t 
+  byte	boardID;				// the board which zones that will e used as keyswitch belong to. Master ID is 0	
+  byte  zoneID;                 // the number of zone that will e used as keyswitch
+  char  keyswName[16];          // user friendly name
+};  
 //
 // zoneDB - database with all zones (master&slaves) info. Info from slaves are fetched via pul command over RS485
 // TODO - use prep to get largest zone count
@@ -170,18 +180,23 @@ alarmZoneArr_t zonesDB;
 typedef struct ALARM_PGM alarmPgmArr_t[MAX_SLAVES+1][MAX_PGM_CNT];		        // typically master has more pgms than slave, so we use the largest denominator
 alarmPgmArr_t pgmsDB;
 //
+// alarm keysw records structure to hold all alarm pgms related info
+typedef struct ALARM_KEYSW alarmKeyswArr_t[MAX_KEYSW_CNT];		        // typically master has more pgms than slave, so we use the largest denominator
+alarmKeyswArr_t keyswDB;
+//
 // Struct to store the all alarm configuration
 //
 struct CONFIG_t {
   byte  version;
   byte  zoneConfigs[sizeof(zonesDB)];
   byte  pgmConfigs[sizeof(pgmsDB)];
+  byte  keyswConfigs[sizeof(keyswDB)];
   byte  csum;
 } alarmConfig, tmpConfig;
-//
 #endif
 //
 // read board address//
 byte readOwnAdr() {												// TODO read the address from dDIO switch
 return SLAVE_ADDRESS1;	
 }
+

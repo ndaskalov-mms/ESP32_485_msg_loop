@@ -258,7 +258,7 @@ void convertZones(struct ZONE DB[], int zoneCnt, byte zoneResult[]) {
       zoneResult[i/2] = 0;                                 // clear results array
     zoneResult[i/2] = ((zoneResult[i/2] << ZONE_ENC_BITS) & ~ZONE_ENC_MASK) | DB[i].zoneABstat ;
     }  
-  printZonesPayload(zoneResult, zoneCnt%2?(zoneCnt/2+1):zoneCnt/2);
+  //printZonesPayload(zoneResult, zoneCnt%2?(zoneCnt/2+1):zoneCnt/2);
   //logger.printf ("Elapsed time %d millisec\n", (unsigned long)(millis() - lastRead));
 }
 //

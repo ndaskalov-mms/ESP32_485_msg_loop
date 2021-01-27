@@ -204,13 +204,14 @@ struct MSG  parse_msg(RS485& rcv_channel) {
     memcpy (tmpBuf, rcv_channel.getData (), rmsg.len);    // copy message in temp buf
     LogMsg("Parse_msg: message recv: TOTAL LEN = %d, CMD = %x, SRC|DST = %x, PAYLOAD: ", rmsg.len, tmpBuf[CMD_OFFSET], tmpBuf[DST_OFFSET], &tmpBuf[PAYLOAD_OFFSET]);
     // extract command and destination
-    rmsg.cmd = tmpBuf[CMD_OFFSET];        // cmd is hihg nibble
+    rmsg.cmd = tmpBuf[CMD_OFFSET];        // cmd is the first byte
     rmsg.dst = tmpBuf[DST_OFFSET] & DST_BITS;                 // destination is low nibble
 	rmsg.src = ((tmpBuf[DST_OFFSET] & SRC_BITS) >> SRC_SHIFT);     // destination is low nibble
     rmsg.dataLen = rmsg.len-CMD_HEADER_LEN;                            // account for command + src|dst code
     //LogMsg("Parse_msg: message recv: PAYLOAD LEN = %d, CMD = %x, DST = %x, SRC = %x, PAYLOAD: ", rmsg.dataLen, rmsg.cmd, rmsg.dst, rmsg.src, &tmpBuf[PAYLOAD_OFFSET]);
-    switch (rmsg.cmd & ~REPLY_OFFSET) {         // check for valid commands and replies. clear reply bit to facilitate test
-      case PING:
+    switch (rmsg.cmd) {         // check for valid commands and replies. clear reply bit to facilitate test
+      case PING | REPLY_OFFSET:
+	  case PING:
         if (rmsg.dataLen == PING_PAYLD_LEN)
           memcpy(rmsg.payload, &tmpBuf[PAYLOAD_OFFSET], rmsg.len);
         else {
@@ -225,6 +226,15 @@ struct MSG  parse_msg(RS485& rcv_channel) {
         else { 
           rmsg.parse_err = ERR_INV_PAYLD_LEN;
           ErrWrite(rmsg.parse_err, "Parse message: invalid payload len for POLL_ZONES msg received\n");
+          return rmsg;
+        }
+        break;
+	 case (POLL_ZONES | REPLY_OFFSET):
+        if (rmsg.dataLen == POLL_RES_PAYLD_LEN)
+          memcpy(rmsg.payload, &tmpBuf[PAYLOAD_OFFSET], rmsg.len);
+        else { 
+          rmsg.parse_err = ERR_INV_PAYLD_LEN;
+          ErrWrite(rmsg.parse_err, "Parse message: invalid payload len for reply to POLL_ZONES msg received\n");
           return rmsg;
         }
         break;

@@ -82,4 +82,22 @@ enum PARTITIONS {
     PARTITION8,
     MAX_PARTITION,
 };
-
+//
+// Keysw
+//
+enum  KEYSW_OPTS_t {
+    ENABLED 				= 0x1,                            
+    MAINTAINED           	= 0x2, 				 // MOMENTARY = 0; MAINTAINED = 1  
+    GEN_UTL_KEY_ON_OPEN_AND_CLOSE = 0x4,         // GEN_UTL_KEY_ON_OPEN_AND_CLOSE = 1; ON_OPEN_ONLY = 0;
+};
+//
+enum  KEYSW_ACTS_t {
+    DISARM_ONLY	= 0x1,                            
+    STAY_INSTANT_DISARM_ONLY, 				 
+    ARM_ONLY,
+	REGULAR_ARM_ONLY,
+	STAY_ARM_ONLY,
+	FORCE_ARM_ONLY,
+	INSTANT_ARM_ONLY,
+};
+	

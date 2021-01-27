@@ -43,8 +43,8 @@
 #define POLL_ZONES            0x2 // poll the extenders for zones status
 #define POLL_PAYLD_LEN        0   // poll message has no payload
 #define POLL_ZONES_RES        (POLL_ZONES|REPLY_OFFSET) // poll the extenders for zones status
-#define POLL_RES_PAYLD_LEN    6                         // poll payload is 6 bytes, 4 bytes zones (32 zones, 1 bit per zone, LSB is zone 1,
-                                                        // 1 byte for outputs (8 outputs, LSB is OUT1) and 1 byte status
+#define POLL_RES_PAYLD_LEN    SZONERES_LEN              // poll payload is 4bits per zone
+                                                  
 
 // ----------------- SET OUTPUTS -----------------------------
 #define SET_OUTS              0x3                       // set output relay
@@ -137,10 +137,10 @@ void LogMsg(char *formatStr, int len, byte cmd, byte dst, byte src, byte subCmd,
 int findCmdEntry(byte cmd) {
   //ErrWrite(ERR_DEBUG, "Looking for record for cmd code   %d \n", cmd);
   cmd = cmd & ~REPLY_OFFSET;                      // clear reply flag if any
-  logger.printf("Looking at index  %d out of  %d:\n", cmd, sizeof(cmdDB)/sizeof(struct COMMAND)-1);
+  //logger.printf("Looking at index  %d out of  %d:\n", cmd, sizeof(cmdDB)/sizeof(struct COMMAND)-1);
   for (int i = 0; i < sizeof(cmdDB)/sizeof(struct COMMAND); i++) {
     if(cmdDB[i].cmdID == cmd) {
-      ErrWrite(ERR_DEBUG,"Found cmd at  index %d\n", i);
+      //ErrWrite(ERR_DEBUG,"Found cmd at  index %d\n", i);
       return  i;
     }
   }

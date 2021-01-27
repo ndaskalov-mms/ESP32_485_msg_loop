@@ -30,6 +30,18 @@ void printAlarmPgms(byte* pgmArrPtr, int startBoard, int endBoard) {
     }
 }
 //
+//  print alarm keysw data
+//  parms: (byte pointer) to array of ALARM_KEYSW  containing the keysw to be printed
+//
+void printAlarmKeysw(byte* keyswArrPtr, int maxKeysw) { 
+    alarmKeyswArr_t *pgmArr = (alarmKeyswArr_t *)keyswArrPtr;
+	logger.printf("      partition; type; action; boardID;	zoneID;  keyswName[16];\n");
+	for (int i = 0; i < maxKeysw; i++) {                        // iterate
+	   logger.printf ("KeySwitch data: %2d\t%2d\t%2d\t%2d\t%2d%16s\n",(*pgmArr)[i].partition,(*pgmArr)[i].type, (*pgmArr)[i].action, (*pgmArr)[i].boardID,\
+														   (*pgmArr)[i].zoneID, (*pgmArr)[i].keyswName);
+	}
+}
+//
 // initializes master's zonesDB with default data from master's MzoneDB and SzonesDB templates as defined in compile time
 // zonesDB contains MAX_SLAVE+1 arrays of struct ALARM_ZONE. Each array corresponds to one slave, and one is for master.
 // 
@@ -98,6 +110,17 @@ void setAlarmPgmsDefaults(bool validFlag) {
     }
 }
 //
+// set kesy switches defaults
+void setAlarmKeyswDefaults() {
+//
+	ErrWrite(ERR_DEBUG, "Setting keysw defaults\n");
+    memset((void*)&keyswDB, 0, sizeof(keyswDB));                  // clear all data
+    for(int j=0; j<MAX_KEYSW_CNT; j++) {                       
+        sprintf(keyswDB[j].keyswName, "KSW_%d", j);
+        keyswDB[j].partition = NO_PARTITION;     				// this is redundant, as 0 mens no partition which effective disables it
+	}
+}
+//
 // Initialize zones, pgm, parttitons, etc data storage in case there is no valid CONFIG FILE on storage
 // uses globals zonesDB, pgmsDB, etc
 // 1. initializes zonesDB with default data from MzonesDB and SzonesDB
@@ -107,12 +130,15 @@ void setAlarmDefaults(bool validFlag) {
 //    
    setAlarmZonesDefaults(validFlag);
    setAlarmPgmsDefaults(validFlag);
+   setAlarmKeyswDefaults();
    // copy zonesDB into alarmConfig 
    memcpy((byte *) &alarmConfig.zoneConfigs, (byte *) zonesDB, sizeof(alarmConfig.zoneConfigs));
    // printAlarmZones((byte *) &alarmConfig.zoneConfigs, MASTER_ADDRESS, MAX_SLAVES);
    // copy pgmsDB into alarmConfig 
    memcpy((byte *) &alarmConfig.pgmConfigs, (byte *) pgmsDB, sizeof(alarmConfig.pgmConfigs)); 
    //printAlarmPgms((byte*) &alarmConfig.pgmConfigs, MASTER_ADDRESS, MAX_SLAVES); 
+   memcpy((byte *) &alarmConfig.keyswConfigs, (byte *) keyswDB, sizeof(alarmConfig.keyswConfigs)); 
+   printAlarmKeysw((byte*) &alarmConfig.keyswConfigs, MAX_KEYSW_CNT); 
 }
 //
 //  initAlarm() - tries to load complete alarm zones data from storage
@@ -149,4 +175,9 @@ void initAlarm() {
 //   masterDataValid = true;                  	// master data fetched successfully from storage
 //   remoteDataValid = true;                 		// slaves data fetched successfully from storage	
 }
-
+//
+// alarmLoop() - implement all alarm business
+//
+void alarmLoop() {
+	
+}

@@ -121,6 +121,11 @@ int readConfig(const char cFileName []) {
           cFile.close();
           return false;
           }
+		if(cFile.size() != sizeof(tmpConfig)) {
+          ErrWrite(ERR_CRITICAL, "Problem reading config file - wrong len!\n");
+          cFile.close();
+          return false;
+          }  
         cFile.close();
         byte cs8;
         cs8 = crc8((byte*) &tmpConfig, sizeof(tmpConfig)-1);

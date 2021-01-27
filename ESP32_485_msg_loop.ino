@@ -7,6 +7,8 @@
 #define MAX_PGM_CNT		    8		  // 8 on MASTER, 2 on SLAVE
 #define MASTER_PGM_CNT	  8		
 #define SLAVE_PGM_CNT     2
+#define SZONERES_LEN      (SLAVE_ZONES_CNT/2 + SLAVE_ZONES_CNT%2)
+#define MAX_KEYSW_CNT	32
 
 #define ENABLE_CONFIG_CREATE true
 #define FORCE_FORMAT_FS      false
@@ -89,7 +91,7 @@ RS485 MasterMsgChannel (MasterRead, MasterAvailable, MasterWrite, ErrWrite, RxBU
 #endif
 #ifdef SLAVE
 byte slaveAdr;                          // board ID: master is 0, expanders and others up to 0xE; OxF means bradcast
-byte SzoneResult[SLAVE_ZONES_CNT/2 + SLAVE_ZONES_CNT%2];          //each zone will be in 4bits
+byte SzoneResult[SZONERES_LEN];          //each zone will be in 4bits
 RS485 SlaveMsgChannel  (SlaveRead, SlaveAvailable, SlaveWrite, ErrWrite, RxBUF_SIZE);      //RS485 myChannel (read_func, available_func, write_func, msg_len);
 #endif
 //

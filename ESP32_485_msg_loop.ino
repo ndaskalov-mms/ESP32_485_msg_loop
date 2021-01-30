@@ -1,15 +1,19 @@
 #define SW_VERSION  100				// UPDATE ON EVERY CHANGE OF ZONEs, PGMs, etc
 //
 // define maximal configuration per board. IF MODIFIED, COMPILE AND CHANGE SIMULTANEOUSLY BOTH MASTER AND SLAVES!!!!
-#define MAX_ZONES_CNT	    18		// Limited by ADC channels, 18 on SLAVE, less on MASTER. System voltages are read via mux and includded
-#define SLAVE_ZONES_CNT	  18		
-#define MASTER_ZONES_CNT  12		
+#define SLAVE_ZONES_CNT	  18		// number of zones (physical ADC channels)  on slave board	
+#define MASTER_ZONES_CNT  12		// number of zones (physical ADC channels)  on master board	
+// every zone support two contacts connected to one ADC channel, that's why logical zones are twice more than physical
+#define SLAVE_ALARM_ZONES_CNT	(SLAVE_ZONES_CNT*2) // each slave zone (ADC channel)  reports two sensors	
+#define MASTER_ALARM_ZONES_CNT	(MASTER_ZONES_CNT*2) // each master zone reports two sensors 
+#define MAX_ALARM_ZONES_PER_BOARD	    SLAVE_ALARM_ZONES_CNT		// dimension all arrays to hold up to max alarm zones count
+//
 #define MAX_PGM_CNT		    8		  // 8 on MASTER, 2 on SLAVE
 #define MASTER_PGM_CNT	  8		
 #define SLAVE_PGM_CNT     2
 #define SZONERES_LEN      (SLAVE_ZONES_CNT/2 + SLAVE_ZONES_CNT%2)
 #define MAX_KEYSW_CNT	32
-
+//
 #define ENABLE_CONFIG_CREATE true
 #define FORCE_FORMAT_FS      false
 //

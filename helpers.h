@@ -104,7 +104,7 @@ void LogMsg(char *formatStr, int len, byte cmd, byte src_dst, byte *payload) {
 		return;
   logger.printf(formatStr, len, cmd, src_dst);
   for(int i =0; i< len-CMD_HEADER_LEN; i++)
-    logger.printf ("%d ", payload[i]);                // there is one byte cmd|dst
+    logger.printf ("%2x ", payload[i]);                // there is one byte cmd|dst
   logger.println();
 }
 
@@ -113,7 +113,7 @@ void LogMsg(char *formatStr, int len, byte cmd, byte dst, byte src, byte *payloa
 		return;
 	logger.printf(formatStr, len, cmd, dst, src);
   for(int i =0; i< len-CMD_HEADER_LEN; i++)
-    logger.printf ("%d ", payload[i]);                // there is one byte cmd|dst
+    logger.printf ("%2x ", payload[i]);                // there is one byte cmd|dst
    logger.println();
 }
 
@@ -122,7 +122,7 @@ void LogMsg(char *formatStr, int len, byte cmd, byte src_dst, byte subCmd, int p
 		return;
 	logger.printf(formatStr, len, cmd, src_dst, subCmd, pldLen);
   for(int i =0; i< pldLen; i++)
-    logger.printf ("%d ", payload[i]);                // there is one byte cmd|dst
+    logger.printf ("%2x ", payload[i]);                // there is one byte cmd|dst
    logger.println();
 }
 
@@ -131,7 +131,7 @@ void LogMsg(char *formatStr, int len, byte cmd, byte dst, byte src, byte subCmd,
     return;
   logger.printf(formatStr, len, cmd, dst, src, subCmd, pldLen);
   for(int i =0; i< pldLen; i++)
-    logger.printf ("%d ", payload[i]);                // there is one byte cmd|dst
+    logger.printf ("%2x ", payload[i]);                // there is one byte cmd|dst
    logger.println();
 }
 int findCmdEntry(byte cmd) {

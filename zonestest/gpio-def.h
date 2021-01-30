@@ -132,11 +132,7 @@ struct PGM MpgmDB[MASTER_PGM_CNT] =     {{PGM1_, 1, HIGH, 0}, {PGM2_, 2, HIGH, 0
 //
 struct ALARM_ZONE {
   byte  valid;					// data valid	
-  byte	boardID;				// the board which zones belong to. Master ID is 0	
-  byte  zoneID;                 // the number of zone by which the master will identify it. Zero based. Each ADC gpio produces one zone, but with two results  
-  byte  gpio;					// first members  are the same as struct ZONE
-  byte  mux;                    // 1 - activate mux to read, 0 - read direct
-  byte  zoneABstat;             // encodded status of the A and B parts of the zone
+  byte  zoneStat;               // status of the zone switch. (open, close, short, line break
   byte  zoneDefs;				// zone type - enable, entry delay, follow, instant, stay, etc
   byte  zonePartition;          // assigned to partition X
   byte  zoneOptions;            // auto shutdown, bypass, stay, force, alarm type, intellyzone, dealyed transission
@@ -148,9 +144,9 @@ struct ALARM_ZONE {
 //
 struct ALARM_PGM {
   byte  valid; 					// data valid	
-  byte	boardID;				// the board which zones belong to. Master ID is 0	
-  byte  pgmID;                 // the number of zone by which the master will identify it. Zero based. Each ADC gpio produces one zone, but with two results  
-  byte  gpio;					// first members  are the same as struct ZONE
+  //byte	boardID;				// the board which zones belong to. Master ID is 0	
+  //byte  pgmID;                 // the number of zone by which the master will identify it. Zero based. Each ADC gpio produces one zone, but with two results  
+  //byte  gpio;					// first members  are the same as struct ZONE
   byte  iValue;             // initial value
   byte  cValue;             // current
   char  pgmName[16];           // user friendly name
@@ -162,7 +158,7 @@ struct ALARM_KEYSW {
   byte  partition;				// Keyswitch can be assigned to one partition only. If == NO_PARTITION (0) the keyswitch is not defined/valid
   byte  type;					// disabled, momentary, maintained,  generate utility key on open/close, .... see enum  KEYSW_OPTS_t 
   byte  action;					// keyswitch action definition - see enum  KEYSW_ACTS_t 
-  byte	boardID;				// the board which zones that will e used as keyswitch belong to. Master ID is 0	
+  byte	boardID;				// the board of which zone will e used as keyswitch belong. Master ID is 0	
   byte  zoneID;                 // the number of zone that will e used as keyswitch
   char  keyswName[16];          // user friendly name
 };  
@@ -171,7 +167,7 @@ struct ALARM_KEYSW {
 // TODO - use prep to get largest zone count
 // All alarm zones zones organized as 2D array - [board][zones]. Contains data for all boards and zones in each board, incl. master
 //
-typedef struct ALARM_ZONE alarmZoneArr_t[MAX_SLAVES+1][MAX_ZONES_CNT];
+typedef struct ALARM_ZONE alarmZoneArr_t[MAX_SLAVES+1][MAX_ALARM_ZONES_PER_BOARD]; // every two zones here report for two contacts connected to one ADC channel
 alarmZoneArr_t zonesDB;
 //
 //

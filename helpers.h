@@ -184,3 +184,8 @@ byte bitmap2slaveIdx(byte slaveMap, int max_slaves) {
 		}
 		return 0;
 } 
+//
+// read board address//
+byte readOwnAdr() {												// TODO read the address from dDIO switch
+return SLAVE_ADDRESS1;	
+}

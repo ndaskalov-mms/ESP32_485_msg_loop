@@ -117,10 +117,10 @@ Task t2(3, TASK_FOREVER, &slave, &taskScheduler, true);
 
 //
 #include "protocol.h"                     // send/receive and compse messgaes staff
-#include "commands.h"                     // master/slave commands implementation
 #ifdef MASTER
 #include "alarm_logic.h"
 #endif
+#include "commands.h"                     // master/slave commands implementation
 
 //
 //  Arduino setup function - call all local setups her
@@ -164,8 +164,8 @@ void setup() {
    zoneHWSetup();                                  // init mux for zones selection
    pgmSetup(MpgmDB, MASTER_PGM_CNT);             // init PGMs (output and default value)
    ErrWrite(ERR_DEBUG, "ALARM ZONES read from config file\n");
-   printAlarmZones((byte *) &alarmConfig.zoneConfigs, MASTER_ADDRESS, MAX_SLAVES);
-   //printAlarmPgms((byte *) &alarmConfig.pgmConfigs, MASTER_ADDRESS, MAX_SLAVES);
+   printAlarmZones((byte *) &alarmConfig.zoneConfig, MASTER_ADDRESS, MAX_SLAVES);
+   //printAlarmPgms((byte *) &alarmConfig.pgmConfig, MASTER_ADDRESS, MAX_SLAVES);
 #endif
 
   taskScheduler.startNow();  // set point-in-time for scheduling start

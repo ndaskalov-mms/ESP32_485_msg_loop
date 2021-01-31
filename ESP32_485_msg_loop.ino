@@ -43,7 +43,7 @@ enum ADDR {                                         // board adresses, MASTER is
 
 // some other conf defines
 #define POLL_INTERVAL  200UL           // Shall be 200ms 
-#define REPLY_TIMEOUT  100UL            // REPLY_TIMEOUT MUST be at least 2x less POLL_INTERVAL to avoid sending a new command while waiting for 
+#define REPLY_TIMEOUT  10UL            // REPLY_TIMEOUT MUST be at least 2x less POLL_INTERVAL to avoid sending a new command while waiting for 
 #define NO_TIMEOUT      0
 
 // define log and errors channel

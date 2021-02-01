@@ -66,6 +66,13 @@ enum PARTITIONS {
     MAX_PARTITION = PARTITION8,
 };
 //
+enum  ARM_METHODS_t {
+    DISARM = 0;
+	REGULAR = 0x1,
+    INSTANT = 0x2,                                    
+    STAY    = 0x4,
+};
+//
 enum  ARM_RESTRICTIONS_t {
     RESTRICT_ON_SUPERVISOR_LOSS = 0x1,
     RESTRICT_ON_TIMER           = 0x2,                                    // default ON

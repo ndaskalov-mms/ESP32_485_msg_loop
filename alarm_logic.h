@@ -10,6 +10,8 @@ struct ALARM_ZONE {
   byte  zonePartition;          // assigned to partition X
   byte  zoneOptions;            // auto shutdown, bypass, stay, force, alarm type, intellyzone, dealyed transission
   byte  zoneExtOpt;             // zone tamper, tamper supervision, antimask, antimask supervision
+  byte	lastZoneStat;			// last zone status reported
+  unsigned long reportedAt;		// the time when the zone status was reported
   char  zoneName[16];           // user friendly name
 };        
 //
@@ -41,17 +43,16 @@ struct ALARM_GLOBAL_OPTS_t {
 	byte troubleLatch;
 	byte tamperOpts;
 	byte antiMaskOpt;
+	unsigned long entryDelay1Start;
+	unsigned long entryDelay2Start;
 };
 //
 // alarm partition 
 //
 struct PARTITION_OPTS_t {
 	byte status;
-	byte follows[MAX_PARTITION]
-	unsigned long entryDelayTimer1;
-	unsigned long entryDelayTimer2;
 	unsigned long armTime;	
-	byte entryDelayOn;
+	byte follows[MAX_PARTITION];
 };
 //
 // zoneDB - database with all zones (master&slaves) info. Info from slaves are fetched via pul command over RS485
@@ -86,7 +87,6 @@ struct CONFIG_t {
   byte  zoneConfig[sizeof(zonesDB)];
   byte  pgmConfig[sizeof(pgmsDB)];
   byte  keyswConfig[sizeof(keyswDB)];
-  byte  followMapConfig[sizeof(partFollowMap)];
   byte  alarmOptionsConfig[sizeof(alarmGlobalOpts)];
   byte  alarmPartConfig[sizeof(alarmPartOpts)];
   byte  csum;
@@ -102,9 +102,9 @@ void printAlarmZones(byte* zoneArrPtr, int startBoard, int endBoard) {
     for (int j = startBoard; j <= endBoard; j++) {
         logger.printf("      valid zoneStat zoneDefs zonePart zoneOpt zoneExtOpt zoneName\n");
         for (int i = 0; i < MAX_ALARM_ZONES_PER_BOARD; i++) {                        // iterate
-           logger.printf ("Zone data: %2d\t%2d\t%2d\t%2d\t%2d\t%2d%16s\n",(*zoneArr)[j][i].valid, (*zoneArr)[j][i].zoneStat, (*zoneArr)[j][i].zoneDefs,\
+           logger.printf ("Zone data: %2d\t%2d\t%2d\t%2d\t%2d\t%2d\t%2d\t%ul\t%16s\n",(*zoneArr)[j][i].valid, (*zoneArr)[j][i].zoneStat, (*zoneArr)[j][i].zoneDefs,\
                                                                           (*zoneArr)[j][i].zonePartition, (*zoneArr)[j][i].zoneOptions, (*zoneArr)[j][i].zoneExtOpt,\
-                                                                          (*zoneArr)[j][i].zoneName);
+                                                                          (*zoneArr)[j][i].lastZoneStat, (*zoneArr)[j][i].reportedAt, (*zoneArr)[j][i].zoneName);
         }
     }
 }
@@ -133,22 +133,15 @@ void printAlarmKeysw(byte* keyswArrPtr, int maxKeysw) {
 														   (*pgmArr)[i].zoneID, (*pgmArr)[i].keyswName);
 	}
 }
-/*struct PARTITION_OPTS_t {
-	byte status;
-	byte follows[MAX_PARTITION]
-	unsigned long entryDelayTimer1;
-	unsigned long entryDelayTimer2;
-	unsigned long armTime;	
-	byte entryDelayOn;
-}; */
-void printAlarmPartOpts(struct PARTITION_OPTS_t PartArrPtr, int maxPart) {
+//
+// print partition options
+//
+void printAlarmPartOpts(byte * PartArrPtr, int maxPart) {
 	alarmPartOpts_t *prtArr = (alarmPartOpts_t *)PartArrPtr;
-    logger.printf("                status entryDelayTimer1 entryDelayTimer2   armTime  entryDelayOn Follows\n");
+    logger.printf("      	status armTime follows\n");
 	for (int j = 0; j <= maxPart; j++) {
-		logger.printf ("Partitions status: %2d\t%ul\t%ul\t%ul%2d",(*prtArr)[j].status,(*prtArr)[j].entryDelayTimer1,\
-																	(*prtArr)[j].entryDelayTimer2, (*prtArr)[j].armTime,\
-																	(*prtArr)[j].entryDelayOn);
-        for (int i = 0; i < MAX_PARTITION; i++) {                        // iterate
+		logger.printf ("Partitions status: %2d\t%u",(*prtArr)[j].status, (*prtArr)[j].armTime);
+       for (int i = 0; i < MAX_PARTITION; i++) {                        // iterate
 			logger.printf(" %d", (*prtArr)[j].follows[i]);
 		}
 		logger.printf("\n");
@@ -157,10 +150,10 @@ void printAlarmPartOpts(struct PARTITION_OPTS_t PartArrPtr, int maxPart) {
 //
 // print Alarm Global options
 //
-void printAlarmOpts((struct ALARM_GLOBAL_OPTS_t * optsPtr); ) {
+void printAlarmOpts(byte * optsPtr) {
 	ALARM_GLOBAL_OPTS_t *opts = (ALARM_GLOBAL_OPTS_t *) optsPtr;
-	logger.printf("Alarm Global Options armRestrictions %d,  troubleLatch %d, tamperOpts %d, antiMaskOpt %d\n",\
-												opts.armRestrictions, opts.troubleLatch, opts.tamperOpts, opts.antiMaskOpt);
+	logger.printf("Alarm Global Options armRestrictions %d,  troubleLatch %d, tamperOpts %d, antiMaskOpt %d entryDelay1Start %u, entryDelay2Start %u\n",\
+				  opts->armRestrictions, opts->troubleLatch, opts->tamperOpts, opts->antiMaskOpt, opts->entryDelay1Start, opts->entryDelay2Start);
 }
 //
 // initializes master's zonesDB with default data from master's MzoneDB and SzonesDB templates as defined in compile time
@@ -236,17 +229,15 @@ void setAlarmGlobalOptsDefaults() {
 	alarmGlobalOpts.armRestrictions = 0;
 	alarmGlobalOpts.troubleLatch = false;
 	alarmGlobalOpts.tamperOpts	= ZONE_TAMPER_OPT_DISABLED;
-	alarmGlobalOpts.antiMaskOpt = ZONE_ANTI_MASK_SUPERVISION_DISABLED
+	alarmGlobalOpts.antiMaskOpt = ZONE_ANTI_MASK_SUPERVISION_DISABLED;
 }
 //
 // sets Alarm Partititons Options Defaults
 //
 void setAlarmPartOptsDefaults() {
 	memset((void*)&alarmPartOpts, 0, sizeof(alarmPartOpts));                  // clear all data
-	for(int i = 0; i , MAX_PARTITION; i++) {
-		alarmPartOpts[i].entryDelayTimer1 = ENTRY_DELAY_TIMER1;
-		alarmPartOpts[i].entryDelayTimer2 = ENTRY_DELAY_TIMER2;
-	}
+	//for(int i = 0; i , MAX_PARTITION; i++) {
+	//}
 }
 //
 // Initialize zones, pgm, parttitons, etc data storage in case there is no valid CONFIG FILE on storage
@@ -259,7 +250,7 @@ void setAlarmDefaults(bool validFlag) {
    setAlarmZonesDefaults(validFlag);
    setAlarmPgmsDefaults(validFlag);
    setAlarmKeyswDefaults();
-   setAlarmOptsDefaults();
+   setAlarmGlobalOptsDefaults();
    setAlarmPartOptsDefaults();
    // copy zonesDB into alarmConfig 
    memcpy((byte *) &alarmConfig.zoneConfig, (byte *) zonesDB, sizeof(alarmConfig.zoneConfig));
@@ -268,8 +259,8 @@ void setAlarmDefaults(bool validFlag) {
    memcpy((byte *) &alarmConfig.pgmConfig, (byte *) pgmsDB, sizeof(alarmConfig.pgmConfig)); 
    //printAlarmPgms((byte*) &alarmConfig.pgmConfig, MASTER_ADDRESS, MAX_SLAVES); 
    memcpy((byte *) &alarmConfig.keyswConfig, (byte *) keyswDB, sizeof(alarmConfig.keyswConfig)); 
-   printAlarmKeysw((byte*) &alarmConfig.keyswConfig, MAX_KEYSW_CNT); 
-   memcpy((byte *) &alarmConfig.alarmOptionsConfig, (byte *) alarmGlobalOpts, sizeof(alarmConfig.alarmOptionsConfig)); 
+   //printAlarmKeysw((byte*) &alarmConfig.keyswConfig, MAX_KEYSW_CNT); 
+   memcpy((byte *) &alarmConfig.alarmOptionsConfig, (byte *) &alarmGlobalOpts, sizeof(alarmConfig.alarmOptionsConfig)); 
    printAlarmOpts((byte*) &alarmConfig.alarmOptionsConfig); 
    memcpy((byte *) &alarmConfig.alarmPartConfig, (byte *) alarmPartOpts, sizeof(alarmConfig.alarmPartConfig)); 
    printAlarmPartOpts((byte*) &alarmConfig.alarmPartConfig, MAX_PARTITION); 
@@ -291,9 +282,9 @@ void initAlarm() {
 	    memcpy((byte *) keyswDB, (byte *) &alarmConfig.keyswConfig, sizeof(keyswDB)); 
 		memcpy((byte *) &alarmGlobalOpts, (byte *) alarmConfig.alarmOptionsConfig, sizeof(alarmGlobalOpts)); 
 	    memcpy((byte *) &alarmPartOpts, (byte *) alarmConfig.alarmPartConfig, sizeof(alarmPartOpts)); 
-		printAlarmKeysw((byte*) &keyswDB, MAX_KEYSW_CNT); 
+		//printAlarmKeysw((byte*) &keyswDB, MAX_KEYSW_CNT); 
 	    printAlarmOpts((byte*) &alarmGlobalOpts); 
-	    printAlarmPartConfig((byte*) &alarmPartOpts, MAX_PARTITION); 
+	    printAlarmPartOpts((byte*) &alarmPartOpts, MAX_PARTITION); 
 		//printAlarmZones((byte *) &alarmConfig.zoneConfig, MASTER_ADDRESS, MAX_SLAVES);
 		//printAlarmZones((byte *) zonesDB, 0, 1);
 		return;   
@@ -302,12 +293,15 @@ void initAlarm() {
    ErrWrite(ERR_WARNING, "Wrong or missing config file\n");
    if(!ENABLE_CONFIG_CREATE) { 					  // do not create config, we have to wait for data from MQTT 	
 		setAlarmDefaults(false);                  // init zones and pgms DBs with default data and set valid flag to false to all zones and pgms 
+		logger.printf("Looping for getting alarm settings from MQTT\n");
+		while(true) ;							  
 		return;									  // because dataValid flags are false, main loop will wait 	
         }
    // create config file with parms from default zones and pgms DBs, mostly used for testing 
    ErrWrite(ERR_WARNING, "Creating config file\n");
    setAlarmDefaults(true);                  	// set valid flag to all zones and pgms to true
    saveConfig(configFileName);              	// create the file, maybe this is the first ride TODO - make it to check only once
+   logger.printf("Setted alarm defaults for testing\n");
 }
 /*
 struct ALARM_ZONE {
@@ -337,19 +331,19 @@ enum ZONE_EXT_OPT_t {
 //
 void processZoneError(struct ALARM_ZONE zone) {
 int tamperOpt;
-	if(!(zone.zoneExtOpt & ZONE_TAMPER_OPT))	// if local otpions are specified
-		tamperOpt = 								// no, follow the global tamper settings
+	//if(!(zone.zoneExtOpt & ZONE_TAMPER_OPT))	// if local otpions are specified
+		//tamperOpt = 								// no, follow the global tamper settings
 }	
 //
 // alarmLoop() - implement all alarm business
 //
 void alarmLoop() {
-int cz;
-		for(cz = 0; cz < MASTER_ALARM_ZONES_CNT; cz++) {
-				if(!(zonesDB[cz].valid || zonesDB[cz].bypassed)	// check if zone is no defined/in use or if bypassed
+int cz, cb;
+  		for(cz = 0; cz < MASTER_ALARM_ZONES_CNT; cz++) {
+				if(!(zonesDB[MASTER_ADDRESS][cz].valid || zonesDB[MASTER_ADDRESS][cz].bypassed))	// check if zone is no defined/in use or if bypassed
 					continue;									// yes, continue with next one
-				if(zonesDB[cz].zoneStat & ZONE_ERROR_MASK) {    // check for tampered zone or masked
-					processZoneError(zonesDB[cz]);				// process zone error, generates trouble or alarm
+				if(zonesDB[MASTER_ADDRESS][cz].zoneStat & ZONE_ERROR_MASK) {    // check for tampered zone or masked
+					processZoneError(zonesDB[MASTER_ADDRESS][cz]);				// process zone error, generates trouble or alarm
 					continue;
 				}
 		}

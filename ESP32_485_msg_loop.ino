@@ -14,7 +14,7 @@
 #define SZONERES_LEN      (SLAVE_ZONES_CNT/2 + SLAVE_ZONES_CNT%2)
 #define MAX_KEYSW_CNT	32
 //
-#define ENABLE_CONFIG_CREATE true
+#define ENABLE_CONFIG_CREATE false
 #define FORCE_FORMAT_FS      false
 //
 // define roles

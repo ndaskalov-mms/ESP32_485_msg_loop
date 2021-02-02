@@ -1,6 +1,6 @@
 #define TEST 1
 #include "gpio-def.h"       // include gpio and zones definitions and persistant storage
-#include "zonedef.h"
+#include "zone-def.h"
 //
 enum timeoutOper {
   SET = 1,

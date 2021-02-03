@@ -12,9 +12,10 @@ void master2slave() {
 	  // check if it is time to send new command
 	  if(isTimeFor(POLL_ZONES, POLL_INTERVAL))  { // calculate the time elapsed sinse the particular command was send, yes if > interval
 		  if(ERR_OK == pollSlaveZones(SLAVE_ADDRESS1))    // sendCmd handle and reports errors internally 
-			ErrWrite( ERR_INFO, ("Poll slave zones send\n"));
+			  ErrWrite( ERR_INFO, ("Poll slave zones send\n"));
 		  return;								  // return will cause the master() to be called from Arduino loop and wait4reply
 		  }		
+      //alarmLoop();
 	  }   										  // else if(waiting_for_reply)
 }
 //

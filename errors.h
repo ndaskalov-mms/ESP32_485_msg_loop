@@ -134,7 +134,7 @@ int ErrWrite (int err_code, char * what)           // callback to dump info to s
       if(SERIAL_LOG)
         logger.printf (what);
       if(MQTT_LOG)
-         ReportMQTT(WARNING_TOPIC, what);
+         ReportMQTT(CRITICAL_TOPIC, what);
       break; 
 	case ERR_INV_PAYLD_LEN:
 	case ERR_BAD_CMD:

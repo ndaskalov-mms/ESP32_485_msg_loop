@@ -19,12 +19,9 @@ struct ALARM_ZONE {
 //
 struct ALARM_PGM {
   byte  valid; 					// data valid	
-  //byte	boardID;				// the board which zones belong to. Master ID is 0	
-  //byte  pgmID;                 // the number of zone by which the master will identify it. Zero based. Each ADC gpio produces one zone, but with two results  
-  //byte  gpio;					// first members  are the same as struct ZONE
-  byte  iValue;             // initial value
-  byte  cValue;             // current
-  char  pgmName[16];           // user friendly name
+  byte  iValue;             	// initial value
+  byte  cValue;             	// current
+  char  pgmName[16];           	// user friendly name
 };
 //
 // keyswitch related staff
@@ -39,18 +36,18 @@ struct ALARM_KEYSW {
 };  
 //
 struct ALARM_GLOBAL_OPTS_t {
-	byte armRestrictions;
-	byte troubleLatch;
-	byte tamperOpts;
-	byte antiMaskOpt;
-	unsigned long entryDelay1Start;
-	unsigned long entryDelay2Start;
+	byte armRestrictions;			// arming restrictions like restrict arm on tamper, supervision, etc - see enum  ARM_RESTRICTIONS_t 
+	byte troubleLatch;				// if trouble, latch it or not
+	byte tamperOpts;				// global tamper optons, 
+	byte antiMaskOpt;				// global antimask options 
+	unsigned long entryDelay1Start;	//to store the time when entry delay 1 zone opens
+	unsigned long entryDelay2Start; //to store the time when entry delay 2 zone opens
 };
 //
 // alarm partition 
 //
-struct PARTITION_OPTS_t {
-	byte status;
+struct ALARM_PARTITION_t {
+	byte armStatus;					//  bitmask, DISARM = 0, REGULAR_ARM, FORCE_ARM, INSTANT_ARM, STAY_ARM 
 	unsigned long armTime;	
 	byte follows[MAX_PARTITION];
 };
@@ -76,9 +73,8 @@ alarmKeyswArr_t keyswDB;
 struct ALARM_GLOBAL_OPTS_t  alarmGlobalOpts;
 //
 // alarm partition options storage
-typedef struct PARTITION_OPTS_t alarmPartOpts_t[MAX_PARTITION];
-alarmPartOpts_t alarmPartOpts;
-//
+typedef struct ALARM_PARTITION_t alarmPartArr_t[MAX_PARTITION];
+alarmPartArr_t partitionDB;
 //
 // Struct to store the all alarm configuration
 //
@@ -88,7 +84,7 @@ struct CONFIG_t {
   byte  pgmConfig[sizeof(pgmsDB)];
   byte  keyswConfig[sizeof(keyswDB)];
   byte  alarmOptionsConfig[sizeof(alarmGlobalOpts)];
-  byte  alarmPartConfig[sizeof(alarmPartOpts)];
+  byte  alarmPartConfig[sizeof(partitionDB)];
   byte  csum;
 } alarmConfig, tmpConfig;
 //
@@ -137,10 +133,10 @@ void printAlarmKeysw(byte* keyswArrPtr, int maxKeysw) {
 // print partition options
 //
 void printAlarmPartOpts(byte * PartArrPtr, int maxPart) {
-	alarmPartOpts_t *prtArr = (alarmPartOpts_t *)PartArrPtr;
-    logger.printf("      	status armTime follows\n");
+	alarmPartArr_t *prtArr = (alarmPartArr_t *)PartArrPtr;
+    logger.printf("      	         status  armTime      follows\n");
 	for (int j = 0; j <= maxPart; j++) {
-		logger.printf ("Partitions status: %2d\t%u",(*prtArr)[j].status, (*prtArr)[j].armTime);
+		logger.printf ("Partitions status: %2d\t\t %u    ",(*prtArr)[j].armStatus, (*prtArr)[j].armTime);
        for (int i = 0; i < MAX_PARTITION; i++) {                        // iterate
 			logger.printf(" %d", (*prtArr)[j].follows[i]);
 		}
@@ -224,7 +220,7 @@ void setAlarmKeyswDefaults() {
 // set Alarm Global Opts Defaults
 //
 void setAlarmGlobalOptsDefaults() {
-	ErrWrite(ERR_DEBUG, "Alarm Global Opts Defaults\n");
+	ErrWrite(ERR_DEBUG, "Setting Alarm Global Opts Defaults\n");
     memset((void*)&alarmGlobalOpts, 0, sizeof(alarmGlobalOpts));                  // clear all data
 	alarmGlobalOpts.armRestrictions = 0;
 	alarmGlobalOpts.troubleLatch = false;
@@ -235,9 +231,15 @@ void setAlarmGlobalOptsDefaults() {
 // sets Alarm Partititons Options Defaults
 //
 void setAlarmPartOptsDefaults() {
-	memset((void*)&alarmPartOpts, 0, sizeof(alarmPartOpts));                  // clear all data
-	//for(int i = 0; i , MAX_PARTITION; i++) {
-	//}
+	memset((void*)&partitionDB, 0, sizeof(partitionDB));                  // clear all data
+#ifdef TEST
+  logger.printf("Setting random partititon follows\t");
+	for(int i = 0; i < MAX_PARTITION; i++) {
+		for(int j = 0; j < MAX_PARTITION; j++) 
+			partitionDB[i].follows[j] = true;
+	}
+  logger.printf("Done\n");
+#endif
 }
 //
 // Initialize zones, pgm, parttitons, etc data storage in case there is no valid CONFIG FILE on storage
@@ -262,7 +264,7 @@ void setAlarmDefaults(bool validFlag) {
    //printAlarmKeysw((byte*) &alarmConfig.keyswConfig, MAX_KEYSW_CNT); 
    memcpy((byte *) &alarmConfig.alarmOptionsConfig, (byte *) &alarmGlobalOpts, sizeof(alarmConfig.alarmOptionsConfig)); 
    printAlarmOpts((byte*) &alarmConfig.alarmOptionsConfig); 
-   memcpy((byte *) &alarmConfig.alarmPartConfig, (byte *) alarmPartOpts, sizeof(alarmConfig.alarmPartConfig)); 
+   memcpy((byte *) &alarmConfig.alarmPartConfig, (byte *) partitionDB, sizeof(alarmConfig.alarmPartConfig)); 
    printAlarmPartOpts((byte*) &alarmConfig.alarmPartConfig, MAX_PARTITION); 
 }
 //
@@ -281,10 +283,10 @@ void initAlarm() {
 		memcpy((byte *) pgmsDB,  (byte *) &alarmConfig.pgmConfig,  sizeof(pgmsDB)); // and return
 	    memcpy((byte *) keyswDB, (byte *) &alarmConfig.keyswConfig, sizeof(keyswDB)); 
 		memcpy((byte *) &alarmGlobalOpts, (byte *) alarmConfig.alarmOptionsConfig, sizeof(alarmGlobalOpts)); 
-	    memcpy((byte *) &alarmPartOpts, (byte *) alarmConfig.alarmPartConfig, sizeof(alarmPartOpts)); 
+	    memcpy((byte *) &partitionDB, (byte *) alarmConfig.alarmPartConfig, sizeof(partitionDB)); 
 		//printAlarmKeysw((byte*) &keyswDB, MAX_KEYSW_CNT); 
 	    printAlarmOpts((byte*) &alarmGlobalOpts); 
-	    printAlarmPartOpts((byte*) &alarmPartOpts, MAX_PARTITION); 
+	    printAlarmPartOpts((byte*) &partitionDB, MAX_PARTITION); 
 		//printAlarmZones((byte *) &alarmConfig.zoneConfig, MASTER_ADDRESS, MAX_SLAVES);
 		//printAlarmZones((byte *) zonesDB, 0, 1);
 		return;   
@@ -303,6 +305,7 @@ void initAlarm() {
    saveConfig(configFileName);              	// create the file, maybe this is the first ride TODO - make it to check only once
    logger.printf("Setted alarm defaults for testing\n");
 }
+
 /*
 struct ALARM_ZONE {
   byte  valid;					// data valid	
@@ -335,10 +338,66 @@ int tamperOpt;
 		//tamperOpt = 								// no, follow the global tamper settings
 }	
 //
+// check arm restrictions
+// params: byte partIxd - partition number (ID) to be used as index in partitionDB
+//			   int 	action	- bitmask, DISARM = 0, REGULAR_ARM, FORCE_ARM, INSTANT_ARM, STAY_ARM, see enum  ARM_METHODS_t
+//	returns: ERR_OK(0) if no restrictions found, !0 if something prevents partition arming
+//
+int checkArmRestrctions(byte partIxd, int action) {
+    return ERR_OK;
+}
+//
+void reportArm(int partIxd) {
+  ReportMQTT(ARM_TOPIC, "Arming");
+}
+//
+// arm partition 
+// params: byte partIxd - partition number (ID) to be used as index in partitionDB
+//			   int 	action	- bitmask, DISARM = 0, REGULAR_ARM, FORCE_ARM, INSTANT_ARM, STAY_ARM, see enum  ARM_METHODS_t
+//
+void armPartition(byte partIxd, int action)  {
+   ErrWrite(ERR_DEBUG, "Arming/Disarming partition %d\n", partIxd);                
+   switch (action) {
+		case DISARM:
+		case REGULAR_ARM:
+		case FORCE_ARM:
+		case INSTANT_ARM:
+		case STAY_ARM:
+      if(action != DISARM) {
+        if(ERR_OK != checkArmRestrctions(partIxd, action)) {
+          ReportMQTT(ARM_TOPIC, "Partition not armed due to restrictions");
+          return; 
+        }
+      }
+			if(partitionDB[partIxd].armStatus == action) {
+				ErrWrite(ERR_DEBUG, "Partition %d already armed\n", partIxd);    
+				return;
+			}
+			partitionDB[partIxd].armStatus = action;
+			partitionDB[partIxd].armTime = millis();
+			reportArm(partIxd);
+			break;
+		default:
+			ErrWrite(ERR_WARNING, "Request to arm/disarm invalid partition %d\n", partIxd);
+			break;
+		}
+	// fix follows partitions RECURSIVELLY
+	for(int i = 0; i < MAX_PARTITION; i++) {
+		if(i == partIxd)                        // skip check for current partition to avoid loops 
+			continue;                             // like part 1 follows part 1
+		logger.printf("Checking partition %d if follows partition %d\n", i, partIxd);
+		if(!partitionDB[i].follows[partIxd])		// follows is array of MAX_PARTITION bytes, if byte of idx i is true, 
+			continue;								              // it means that this partition follows partition idx = i
+		logger.printf("Found partition %d follows partition %d\n", i, partIxd);
+		armPartition(i, action); 		            // call recursively
+		}
+}	
+//
 // alarmLoop() - implement all alarm business
 //
 void alarmLoop() {
 int cz, cb;
+/*
   		for(cz = 0; cz < MASTER_ALARM_ZONES_CNT; cz++) {
 				if(!(zonesDB[MASTER_ADDRESS][cz].valid || zonesDB[MASTER_ADDRESS][cz].bypassed))	// check if zone is no defined/in use or if bypassed
 					continue;									// yes, continue with next one
@@ -347,4 +406,6 @@ int cz, cb;
 					continue;
 				}
 		}
+*/
+  armPartition( 0, REGULAR_ARM);
 }

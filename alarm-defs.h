@@ -68,9 +68,10 @@ enum PARTITIONS {
 //
 enum  ARM_METHODS_t {
     DISARM = 0,
-	  REGULAR_ARM = 0x1,
-    INSTANT_ARM = 0x2,                                    
-    STAY_ARM    = 0x4,
+	REGULAR_ARM = 0x1,
+	FORCE_ARM 	= 0x2,
+    INSTANT_ARM = 0x4,                                    
+    STAY_ARM    = 0x8,
 };
 //
 enum  ARM_RESTRICTIONS_t {

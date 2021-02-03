@@ -4,7 +4,8 @@
 #define INFO_TOPIC		""
 #define WARNING_TOPIC	""
 #define ERROR_TOPIC		""
-
+#define CRITICAL_TOPIC    ""
+#define ARM_TOPIC    ""
 //
 //  ReportMQTT(char * topic, char * mqtt_msg)  - called that UNRECOVERY  error occured while sending command
 //                  - this might triger some actions as send notification over MQTT, e-mail, watchdog reset, etc
@@ -14,5 +15,5 @@
 
 void  ReportMQTT(char * topic, char * mqtt_msg) {
 
-     logger.printf("MQTT topic %s: CMD: %d MSG %s", topic, waiting_for_reply, mqtt_msg);
+     logger.printf("MQTT topic: %s MSG: %s\n", topic, mqtt_msg);
 }

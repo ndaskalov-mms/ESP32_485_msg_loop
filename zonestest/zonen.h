@@ -88,7 +88,7 @@ void fillZonesTestData(unsigned long zoneTest[], int zones_cnt) {
     //logger.printf ("Zone filled data: ");
     for (i = 0; i <  zones_cnt; i++) {               // iterate
        zoneTest[i] = i*increment; //+increment/3;
-       //logger.printf ("%d ", zoneTest[i]);
+       logger.printf ("%d ", zoneTest[i]);
     }
     logger.printf ("\n");
     //zoneTest[0] = 4000;
@@ -102,7 +102,7 @@ void zoneHWSetup() {
 	//set adc channels???
    if(TEST)                                 // prepare test data
 #ifdef MASTER
-    fillZonesTestData(zoneTest, MASTER_ZONES_CNT);
+    fillZonesTestData(zoneTest, SLAVE_ZONES_CNT);
 #endif
 #ifdef SLAVE
     fillZonesTestData(zoneTest, SLAVE_ZONES_CNT);
@@ -238,6 +238,8 @@ void convertZones(struct ZONE DB[], int zoneCnt, byte zoneResult[]) {
     }
   zoneVal2Code(DB, zoneCnt);                               // convert analog values to digital status
   //printZones(DB, zoneCnt);
+  if(!zoneResult)											// do we need to prepare the zones info in format for sending
+	return;													// no, return now (case for Master which does not need to send zones)
   //copy results to results array
   for (i=0; i < zoneCnt; i++) {                            // combine two zones in one byte, 12, 34, 56, ....
     if(!(i%2))

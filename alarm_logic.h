@@ -315,7 +315,7 @@ int ret = 0;
   ErrWrite(ERR_DEBUG, "Checking arm restictions for part %d\n", partIdx);
   for(int i = 0; i <= MAX_SLAVES; i++) {         // for each board 
      for(int j=0; j< (i?SLAVE_ALARM_ZONES_CNT:MASTER_ALARM_ZONES_CNT); j++) {             // for each board' zone
-        logger.printf("Looking at board %d zone %d\n", i, j);  
+        //logger.printf("Looking at board %d zone %d\n", i, j);  
         sprintf(zonesDB[i][j].zoneName, "Zone_%d", j);
         zonesDB[i][j].zoneDefs = 0;
         if(zonesDB[i][j].zonePartition == partIdx) {                         // check only zones assigned to this partition

@@ -1,3 +1,14 @@
+//
+// copy zones results coneverted early from MzonesDB to zonesDB	
+//
+void copyZonesStat() {
+	for(int i = 0; i < MASTER_ZONES_CNT; i++ ) { //for each zone
+	  // extract info from high nibble first - this shall be lower number zone
+	  zonesDB[MASTER_ADDRESS][2*i].zoneStat   = (MzoneDB[i].zoneABstat & (ZONE_ERROR_MASK | ZONE_A_MASK)); // get zone A info
+	  zonesDB[MASTER_ADDRESS][2*i+1].zoneStat = (MzoneDB[i].zoneABstat & (ZONE_ERROR_MASK | ZONE_B_MASK)); // get zone A info	
+	}
+}	
+
 void master2slave() {
 //
 // first check if there is ongoing transaction, if yes, call wait4reply which will loop calling rs485 stack and collect the message if any
@@ -11,13 +22,14 @@ void master2slave() {
   else {										// not waiting for reply, check if we have to send message
 	  // check if it is time to send new command
 	  if(isTimeFor(POLL_ZONES, POLL_INTERVAL))  { // calculate the time elapsed sinse the particular command was send, yes if > interval
-		  // get master zones data
-		  
 		  if(ERR_OK == pollSlaveZones(SLAVE_ADDRESS1))    // sendCmd handle and reports errors internally 
 			  ErrWrite( ERR_INFO, ("Poll slave zones send\n"));
 		  return;								  // return will cause the master() to be called from Arduino loop and wait4reply
 		  }		
-      alarmLoop();
+      		  // get master zones data
+	  convertZones(MzoneDB, MASTER_ZONES_CNT, 0);  // read ADC and convert to zones info
+	  copyZonesStat();							   // copy zones results coneverted early from MzonesDB to zonesDB	
+	  alarmLoop();
 	  }   										  // else if(waiting_for_reply)
 }
 //

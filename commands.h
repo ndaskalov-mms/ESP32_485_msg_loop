@@ -64,7 +64,6 @@ int tmp;
 	  ErrWrite(ERR_DEBUG, "Master: Reply received for POLL_ZONES_RES\n");
 	  if(msg.dataLen > SZONERES_LEN)
 		msg.dataLen = SZONERES_LEN;
-	  //zoneResult[i/2] = ((zoneResult[i/2] << ZONE_ENC_BITS) & ~ZONE_ENC_MASK) | DB[i].zoneABstat ;
 	  for(int i = 0; i < msg.dataLen; i++ ) { // each byte contains result for two ADC channels or four alarm zones
 		  // extract info from high nibble first - this shall be lower number zone
 		  zonesDB[msg.src][4*i].zoneStat   = ((msg.payload[i] >> ZONE_ENC_BITS) & (ZONE_ERROR_MASK | ZONE_A_MASK)); // get zone A info

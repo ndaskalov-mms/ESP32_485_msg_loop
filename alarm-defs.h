@@ -36,10 +36,10 @@ enum  ZONE_OPTS_t {
 #define REPORTONLY_ALARM 0x30
 
 enum ZONE_EXT_OPT_t {
-    ZONE_TAMPER_OPT  = 0x1,
-    ZONE_TAMPER_SUPERVISION = (0x2 | 0x4),
-    ZONE_ANTI_MASK_TROUBLE  = 0x8,
-    ZONE_ANTI_MASK_SUPERVISION = (0x10 | 0x20),
+    ZONE_TAMPER_OPT  = 0x1,					// false - follow gloabl tamper options, true - follow zone tamper options
+    ZONE_TAMPER_SUPERVISION = (0x2 | 0x4),  // zone tamper opions bits
+    ZONE_ANTI_MASK_TROUBLE  = 0x8,			// false - follow gloabl antimask options, true - follow zone antimask options
+    ZONE_ANTI_MASK_SUPERVISION = (0x10 | 0x20), // zone antimask options bits
 };
 
 #define ZONE_TAMPER_OPT_DISABLED    0
@@ -76,14 +76,13 @@ enum  ARM_METHODS_t {
 //
 enum  ARM_RESTRICTIONS_t {
     RESTRICT_ON_SUPERVISOR_LOSS = 0x1,
-    RESTRICT_ON_TIMER           = 0x2,                                    // default ON
+    RESTRICT_ON_TAMPER          = 0x2,                                    // default ON
     RESTRICT_ON_AC_FAILURE      = 0x4,
     RESTRICT_ON_BATTERY_FAILURE = 0x8,                                    // default ON
     RESTRICT_ON_BELL         	= 0x10, 
 	RESTRICT_ON_SLAVE 			= 0x20,
     RESTRICT_ON_ANTI_MASK       = 0X40,
 };
-
 //
 // Keysw
 //

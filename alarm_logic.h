@@ -36,10 +36,10 @@ struct ALARM_KEYSW {
 };  
 //
 struct ALARM_GLOBAL_OPTS_t {
-	byte armRestrictions;			// arming restrictions like restrict arm on tamper, supervision, etc - see enum  ARM_RESTRICTIONS_t 
+	int  armRestrictions;
 	byte troubleLatch;				// if trouble, latch it or not
-	byte tamperOpts;				// global tamper optons, 
-	byte antiMaskOpt;				// global antimask options 
+	byte tamperOpts;				// global tamper optons, same as local - see #define ZONE_TAMPER_OPT_XXXXXX
+	byte antiMaskOpt;				// global antimask options - see #define ZONE_ANTI_MASK_SUPERVISION_XXXX
 	unsigned long entryDelay1Start;	//to store the time when entry delay 1 zone opens
 	unsigned long entryDelay2Start; //to store the time when entry delay 2 zone opens
 };
@@ -48,6 +48,9 @@ struct ALARM_GLOBAL_OPTS_t {
 //
 struct ALARM_PARTITION_t {
 	byte armStatus;					//  bitmask, DISARM = 0, REGULAR_ARM, FORCE_ARM, INSTANT_ARM, STAY_ARM 
+	byte forceOnRegularArm;			// allways use force arm (bypass open zones) when regular arming
+	byte forceOnStayArm;			// allways use force arm (bypass open zones) when stay arming
+	byte followZone2entryDelay2;	// if and entry delay zone is bypassed and follow zone is opens, the alarm will be postponed by EntryDelay2 
 	unsigned long armTime;	
 	byte follows[MAX_PARTITION];
 };
@@ -97,7 +100,7 @@ void printAlarmZones(byte* zoneArrPtr, int startBoard, int endBoard) {
     alarmZoneArr_t *zoneArr = (alarmZoneArr_t *)zoneArrPtr;
     for (int j = startBoard; j <= endBoard; j++) {
         logger.printf("      valid zoneStat zoneDefs zonePart zoneOpt zoneExtOpt zoneName\n");
-        for (int i = 0; i < MAX_ALARM_ZONES_PER_BOARD; i++) {                        // iterate
+        for(int i=0; i< (j?SLAVE_ALARM_ZONES_CNT:MASTER_ALARM_ZONES_CNT); i++) {             // for each board' zone
            logger.printf ("Zone data: %2d\t%2d\t%2d\t%2d\t%2d\t%2d\t%2d\t%ul\t%16s\n",(*zoneArr)[j][i].valid, (*zoneArr)[j][i].zoneStat, (*zoneArr)[j][i].zoneDefs,\
                                                                           (*zoneArr)[j][i].zonePartition, (*zoneArr)[j][i].zoneOptions, (*zoneArr)[j][i].zoneExtOpt,\
                                                                           (*zoneArr)[j][i].lastZoneStat, (*zoneArr)[j][i].reportedAt, (*zoneArr)[j][i].zoneName);
@@ -134,14 +137,14 @@ void printAlarmKeysw(byte* keyswArrPtr, int maxKeysw) {
 //
 void printAlarmPartOpts(byte * PartArrPtr, int maxPart) {
 	alarmPartArr_t *prtArr = (alarmPartArr_t *)PartArrPtr;
-    logger.printf("      	         status  armTime      follows\n");
-	for (int j = 0; j <= maxPart; j++) {
-		logger.printf ("Partitions status: %2d\t\t %u    ",(*prtArr)[j].armStatus, (*prtArr)[j].armTime);
-       for (int i = 0; i < MAX_PARTITION; i++) {                        // iterate
-			logger.printf(" %d", (*prtArr)[j].follows[i]);
+  logger.printf("      	      status armTime followZone2entryDelay2              follows\n");
+	for (int j = 0; j < maxPart; j++) {
+		logger.printf ("Partitions status: %2d\t%d\t %u    ",(*prtArr)[j].armStatus, (*prtArr)[j].followZone2entryDelay2, (*prtArr)[j].armTime);
+       for (int i = 0; i < MAX_PARTITION; i++) {                        
+			  logger.printf(" %d", (*prtArr)[j].follows[i]);
 		}
 		logger.printf("\n");
-    }
+  }
 }
 //
 // print Alarm Global options
@@ -159,29 +162,17 @@ void setAlarmZonesDefaults(bool validFlag) {
 //
 	ErrWrite(ERR_DEBUG, "Setting alarm zones defaults\n");
     memset((void*)&zonesDB, 0, sizeof(zonesDB));              // clear all data, just in case
-    // copy master zone defaults first
-    for(int j=0; j<MASTER_ALARM_ZONES_CNT; j++) {     				// for each master's zone
-        sprintf(zonesDB[MASTER_ADDRESS][j].zoneName, "Zone_%d", j);
-        zonesDB[MASTER_ADDRESS][j].zoneDefs = 0;
-        zonesDB[MASTER_ADDRESS][j].zonePartition = NO_PARTITION; 
-        zonesDB[MASTER_ADDRESS][j].zoneOptions = BYPASS_EN  | FORCE_EN;   
-        zonesDB[MASTER_ADDRESS][j].zoneExtOpt = 0;   
-	    zonesDB[MASTER_ADDRESS][j].valid = validFlag;   	
-    }
-    //logger.printf("Master alarm zones from zonesDB\n");
-	//printAlarmZones((byte *) zonesDB, MASTER_ADDRESS, MASTER_ADDRESS);
-    // then init defaults for all slaves
-    for(int i = SLAVE_ADDRESS1; i <= MAX_SLAVES; i++) {         // for each slave board 
-        for(int j=0; j<SLAVE_ALARM_ZONES_CNT; j++) {     // for each zone
-            sprintf(zonesDB[i][j].zoneName, "Zone_%d", j);
-            zonesDB[i][j].zoneDefs = 0;
-            zonesDB[i][j].zonePartition = NO_PARTITION; 
-            zonesDB[i][j].zoneOptions = BYPASS_EN  | FORCE_EN;   
-            zonesDB[i][j].zoneExtOpt = 0;
-		    zonesDB[i][j].valid = validFlag; 
-        }
-        //logger.printf("Slave %d alarm zones from zonesDB\n", i);
-        //printAlarmZones((byte *) zonesDB, i, i);
+    for(int i = 0; i <= MAX_SLAVES; i++) {         // for each board 
+        for(int j=0; j< (i?SLAVE_ALARM_ZONES_CNT:MASTER_ALARM_ZONES_CNT); j++) {             // for each board' zone
+          sprintf(zonesDB[i][j].zoneName, "Zone_%d", j);
+          zonesDB[i][j].zoneDefs = 0;
+          zonesDB[i][j].zonePartition = NO_PARTITION; 
+          zonesDB[i][j].zoneOptions = BYPASS_EN  | FORCE_EN;   
+          zonesDB[i][j].zoneExtOpt = 0;
+  		    zonesDB[i][j].valid = validFlag; 
+          }
+        logger.printf("Board %d alarm zones from zonesDB\n", i);
+        printAlarmZones((byte *) zonesDB, i, i);
     }
 }
 //
@@ -210,7 +201,7 @@ void setAlarmPgmsDefaults(bool validFlag) {
 void setAlarmKeyswDefaults() {
 //
 	ErrWrite(ERR_DEBUG, "Setting keysw defaults\n");
-    memset((void*)&keyswDB, 0, sizeof(keyswDB));                  // clear all data
+    memset((void*)&keyswDB, 0, sizeof(keyswDB));                // clear all data
     for(int j=0; j<MAX_KEYSW_CNT; j++) {                       
         sprintf(keyswDB[j].keyswName, "KSW_%d", j);
         keyswDB[j].partition = NO_PARTITION;     				// this is redundant, as 0 means no partition which effective disables it
@@ -221,11 +212,10 @@ void setAlarmKeyswDefaults() {
 //
 void setAlarmGlobalOptsDefaults() {
 	ErrWrite(ERR_DEBUG, "Setting Alarm Global Opts Defaults\n");
-    memset((void*)&alarmGlobalOpts, 0, sizeof(alarmGlobalOpts));                  // clear all data
-	alarmGlobalOpts.armRestrictions = 0;
+    memset((void*)&alarmGlobalOpts, 0, sizeof(alarmGlobalOpts)); // clear all data
 	alarmGlobalOpts.troubleLatch = false;
-	alarmGlobalOpts.tamperOpts	= ZONE_TAMPER_OPT_DISABLED;
-	alarmGlobalOpts.antiMaskOpt = ZONE_ANTI_MASK_SUPERVISION_DISABLED;
+	alarmGlobalOpts.tamperOpts	= ZONE_TAMPER_OPT_DISABLED;		// follow zone settings for tamper occurs
+	alarmGlobalOpts.antiMaskOpt = ZONE_ANTI_MASK_SUPERVISION_DISABLED;	// follow zone settings for anti-mask
 }
 //
 // sets Alarm Partititons Options Defaults
@@ -235,8 +225,9 @@ void setAlarmPartOptsDefaults() {
 #ifdef TEST
   logger.printf("Setting random partititon follows\t");
 	for(int i = 0; i < MAX_PARTITION; i++) {
+		partitionDB[i].followZone2entryDelay2 = true;
 		for(int j = 0; j < MAX_PARTITION; j++) 
-			partitionDB[i].follows[j] = true;
+			partitionDB[i].follows[j] = (millis()%2);
 	}
   logger.printf("Done\n");
 #endif
@@ -305,30 +296,6 @@ void initAlarm() {
    saveConfig(configFileName);              	// create the file, maybe this is the first ride TODO - make it to check only once
    logger.printf("Setted alarm defaults for testing\n");
 }
-
-/*
-struct ALARM_ZONE {
-  byte  valid;					// data valid	
-  byte  bypassed;			    // true if zone is bypassed
-  byte  zoneStat;               // status of the zone switch. (open, close, short, line break
-  byte  zoneDefs;				// zone type - enable, entry delay, follow, instant, stay, etc
-  byte  zonePartition;          // assigned to partition X
-  byte  zoneOptions;            // auto shutdown, bypass, stay, force, alarm type, intellyzone, dealyed transission
-  byte  zoneExtOpt;             // zone tamper, tamper supervision, antimask, antimask supervision
-  char  zoneName[16];           // user friendly name
-};  
-//
-enum ZONE_EXT_OPT_t {
-    ZONE_TAMPER_OPT  = 0x1,
-    ZONE_TAMPER_SUPERVISION = (0x2 | 0x4),
-    ZONE_ANTI_MASK_TROUBLE  = 0x8,
-    ZONE_ANTI_MASK_SUPERVISION = (0x10 | 0x20),
-};
-#define ZONE_TAMPER_OPT_DISABLED    0
-#define ZONE_TAMPER_OPT_TROUBLE_ONLY  0x4
-#define ZONE_TAMPER_OPT_ALARM_WHEN_ARMED  0x2
-#define ZONE_TAMPER_OPT_ALARM  (0x4 | 0x2)
-*/
 //
 // process zone error, generates trouble or alarm
 //
@@ -341,13 +308,29 @@ int tamperOpt;
 // check arm restrictions
 // params: byte partIxd - partition number (ID) to be used as index in partitionDB
 //			   int 	action	- bitmask, DISARM = 0, REGULAR_ARM, FORCE_ARM, INSTANT_ARM, STAY_ARM, see enum  ARM_METHODS_t
-//	returns: ERR_OK(0) if no restrictions found, !0 if something prevents partition arming
+//	returns: ERR_OK(0) if no restrictions found, otherwise number of zones in error conditions
 //
-int checkArmRestrctions(byte partIxd, int action) {
-    return ERR_OK;
+int checkArmRestrctions(byte partIdx, int action) {
+int ret = 0; 
+  ErrWrite(ERR_DEBUG, "Checking arm restictions for part %d\n", partIdx);
+  for(int i = 0; i <= MAX_SLAVES; i++) {         // for each board 
+     for(int j=0; j< (i?SLAVE_ALARM_ZONES_CNT:MASTER_ALARM_ZONES_CNT); j++) {             // for each board' zone
+        logger.printf("Looking at board %d zone %d\n", i, j);  
+        sprintf(zonesDB[i][j].zoneName, "Zone_%d", j);
+        zonesDB[i][j].zoneDefs = 0;
+        if(zonesDB[i][j].zonePartition == partIdx) {                         // check only zones assigned to this partition
+          if(zonesDB[i][j].valid && !zonesDB[i][j].bypassed)              // check if zone is no defined/in use or if bypassed
+            if(zonesDB[i][j].zoneStat & ZONE_ERROR_MASK)                     // tamper or antimask error in zone?
+              ret+=1;                                                         // no error, continue
+          }
+        }
+    }
+  logger.printf("Found %d alarm zones of partition %d in error condition\n", ret, partIdx);
+  //printAlarmZones((byte *) zonesDB, i, i);
+  return ret; 
 }
 //
-void reportArm(int partIxd) {
+void reportArm(int partIdx) {
   ReportMQTT(ARM_TOPIC, "Arming");
 }
 //
@@ -356,7 +339,10 @@ void reportArm(int partIxd) {
 //			   int 	action	- bitmask, DISARM = 0, REGULAR_ARM, FORCE_ARM, INSTANT_ARM, STAY_ARM, see enum  ARM_METHODS_t
 //
 void armPartition(byte partIxd, int action)  {
-   ErrWrite(ERR_DEBUG, "Arming/Disarming partition %d\n", partIxd);                
+   if(action == DISARM)
+    ErrWrite(ERR_DEBUG, "Disarming partition %d\n", partIxd);
+   else
+    ErrWrite(ERR_DEBUG, "Arming partition %d\n", partIxd);                                
    switch (action) {
 		case DISARM:
 		case REGULAR_ARM:
@@ -407,5 +393,16 @@ int cz, cb;
 				}
 		}
 */
+#ifdef TEST
+  logger.printf("Setting random partititon follows\t");
+  for(int i = 0; i < MAX_PARTITION; i++) {
+    for(int j = 0; j < MAX_PARTITION; j++) 
+      partitionDB[i].follows[j] = (byte)(rand()&1);
+  }
+  logger.printf("Done\n");
+  printAlarmPartOpts((byte*) &partitionDB, MAX_PARTITION); 
+#endif
   armPartition( 0, REGULAR_ARM);
+  armPartition( 0, DISARM);
+
 }

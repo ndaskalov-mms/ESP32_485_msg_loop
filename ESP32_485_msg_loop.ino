@@ -14,7 +14,7 @@
 #define SZONERES_LEN      (SLAVE_ZONES_CNT/2 + SLAVE_ZONES_CNT%2)
 #define MAX_KEYSW_CNT	32
 //
-#define ENABLE_CONFIG_CREATE false
+#define ENABLE_CONFIG_CREATE true
 #define FORCE_FORMAT_FS      false
 //
 // define roles
@@ -42,7 +42,7 @@ enum ADDR {                                         // board adresses, MASTER is
 #define ERROR   true
 
 // some other conf defines
-#define POLL_INTERVAL  200UL           // Shall be 200ms 
+#define POLL_INTERVAL  1000UL           // Shall be 200ms 
 #define REPLY_TIMEOUT  10UL            // REPLY_TIMEOUT MUST be at least 2x less POLL_INTERVAL to avoid sending a new command while waiting for 
 #define NO_TIMEOUT      0
 

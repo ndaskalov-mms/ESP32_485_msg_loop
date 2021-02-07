@@ -14,8 +14,9 @@
 #define SZONERES_LEN      (SLAVE_ZONES_CNT/2 + SLAVE_ZONES_CNT%2)
 #define MAX_KEYSW_CNT	32
 //
-#define ENABLE_CONFIG_CREATE true
+#define ENABLE_CONFIG_CREATE false
 #define FORCE_FORMAT_FS      false
+#define FORCE_NEW_CONFIG     false
 //
 // define roles
 #define MASTER
@@ -49,8 +50,8 @@ enum ADDR {                                         // board adresses, MASTER is
 // define log and errors channel
 #define SERIAL_LOG 	true
 #define MQTT_LOG	  false
-#define ZONES_A_READ_INTERVAL 100     // read A zones at 100mS
-#define ZONES_B_READ_INTERVAL 500     // read system voltages (B zones) at 100mS
+#define ZONES_A_READ_INTERVAL 500     // read A zones at 100mS
+#define ZONES_B_READ_INTERVAL 1000     // read system voltages (B zones) at 100mS
 #define MUX_SET_INTERVAL      10      // time to set the analog lines after mux switch
 
 constexpr int BITRATE = 115200;

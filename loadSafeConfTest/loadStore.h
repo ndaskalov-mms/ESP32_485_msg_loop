@@ -112,6 +112,8 @@ int saveConfig(const char cFileName []) {
 
 int readConfig(const char cFileName []) {
 //
+	if(FORCE_NEW_CONFIG)
+		return false;
     File cFile = SPIFFS.open(cFileName, "r");
 	memset((void*)&tmpConfig, 0, sizeof(tmpConfig));		// clear tmp buffer
     if (cFile){

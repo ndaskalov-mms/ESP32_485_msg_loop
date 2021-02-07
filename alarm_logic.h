@@ -222,20 +222,22 @@ void setAlarmGlobalOptsDefaults() {
 //
 void setAlarmPartOptsDefaults() {
 	memset((void*)&partitionDB, 0, sizeof(partitionDB));                  // clear all data
-#ifdef TEST
+#ifdef TEST_PART_FOLLOW
   logger.printf("Setting random partititon follows\t");
-	for(int i = 0; i < MAX_PARTITION; i++) {
-		partitionDB[i].followZone2entryDelay2 = true;
-		for(int j = 0; j < MAX_PARTITION; j++) 
-			partitionDB[i].follows[j] = (millis()%2);
-	}
+  for(int i = 0; i < MAX_PARTITION; i++) {
+    partitionDB[i].followZone2entryDelay2 = true;
+    for(int j = 0; j < MAX_PARTITION; j++) 
+      partitionDB[i].follows[j] = (byte)(rand()&1);
+  }
   logger.printf("Done\n");
+  printAlarmPartOpts((byte*) &partitionDB, MAX_PARTITION);
+  logger.printf("Done\n"); 
 #endif
 }
 //
 // Initialize zones, pgm, parttitons, etc data storage in case there is no valid CONFIG FILE on storage
 // uses globals zonesDB, pgmsDB, etc
-// 1. initializes zonesDB with default data from MzonesDB and SzonesDB
+// 1. initializes zonesDB with default data from MzoneDB and SzonesDB
 // 2. copy zonesDB to alarmConfig
 //
 void setAlarmDefaults(bool validFlag) {
@@ -371,10 +373,10 @@ void armPartition(byte partIxd, int action)  {
 	for(int i = 0; i < MAX_PARTITION; i++) {
 		if(i == partIxd)                        // skip check for current partition to avoid loops 
 			continue;                             // like part 1 follows part 1
-		logger.printf("Checking partition %d if follows partition %d\n", i, partIxd);
+		//logger.printf("Checking partition %d if follows partition %d\n", i, partIxd);
 		if(!partitionDB[i].follows[partIxd])		// follows is array of MAX_PARTITION bytes, if byte of idx i is true, 
 			continue;								              // it means that this partition follows partition idx = i
-		logger.printf("Found partition %d follows partition %d\n", i, partIxd);
+		//logger.printf("Found partition %d follows partition %d\n", i, partIxd);
 		armPartition(i, action); 		            // call recursively
 		}
 }	
@@ -393,15 +395,6 @@ int cz, cb;
 				}
 		}
 */
-#ifdef TEST
-  logger.printf("Setting random partititon follows\t");
-  for(int i = 0; i < MAX_PARTITION; i++) {
-    for(int j = 0; j < MAX_PARTITION; j++) 
-      partitionDB[i].follows[j] = (byte)(rand()&1);
-  }
-  logger.printf("Done\n");
-  printAlarmPartOpts((byte*) &partitionDB, MAX_PARTITION); 
-#endif
   armPartition( 0, REGULAR_ARM);
   armPartition( 0, DISARM);
 

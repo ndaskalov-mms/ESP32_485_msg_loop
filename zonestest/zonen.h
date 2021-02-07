@@ -1,6 +1,7 @@
 #define TEST 1
 #include "gpio-def.h"       // include gpio and zones definitions and persistant storage
 #include "zone-def.h"
+extern void copyZonesStat(); //  to copy results to MzoneDB
 //
 enum timeoutOper {
   SET = 1,
@@ -101,12 +102,8 @@ void zoneHWSetup() {
 	selectZones	(Azones);					// select A zones
 	//set adc channels???
    if(TEST)                                 // prepare test data
-#ifdef MASTER
     fillZonesTestData(zoneTest, SLAVE_ZONES_CNT);
-#endif
-#ifdef SLAVE
-    fillZonesTestData(zoneTest, SLAVE_ZONES_CNT);
-#endif
+
 }
 //
 //convert oversampled ADC value to mV
@@ -200,47 +197,49 @@ void readZones(struct ZONE DB[], int zones_cnt, int mux) {
 // read and convert zone adc values to mV first and after to zone status
 // allows to read A/B zones (or Azones/system voltages with different timing, as we don't need to update the system voltages so often
 // supports mux set interval before read in order to allow analog inputs to settle
+// implements small state machine which states are switched when timer expires
+// states are WAITING_FOR_MUX, WAITING_TO_READ_A_ZONES, WAITING_TO_READ_B_ZONES
+// before swiching zones we need to set mux and give some time for voltages to settle
 //
 void convertZones(struct ZONE DB[], int zoneCnt, byte zoneResult[]) {
   int i = 0;
-  int thrIndex; 
   unsigned long lastRead = 0;
   static int  muxState = Azones;
-//
-  // read zones analog value   
-  if(!timeout(GET, MUX_SET_TIMER))
+// this is state machine cannot be called from both master and slave to read zones analog value   
+  if(!timeout(GET, MUX_SET_TIMER))						  // do we wait for mux set-up time?	
     return;                                               // can't do anything, wait for analog inputs to settle
   lastRead = millis();                                    // to calculate how much time we spend in here
   if(muxState == Azones) {
-    if(timeout(GET, ZONES_A_READ_TIMER)) {                // time to read A zones
-      //logger.printf("%ld: Reading A zones\n", millis());
+    if(timeout(GET, ZONES_A_READ_TIMER)) {                // time to read A zones?
+      logger.printf("%ld: Reading A zones\n", millis());
 	  zoneInfoValid |=	ZONE_A_VALID;					  // mark as valid to avoid sending invalid info	
       readZones(DB, zoneCnt, muxState);                   // do read
       timeout(SET, ZONES_A_READ_TIMER);                   // remember when
       }
     else if(timeout(GET, ZONES_B_READ_TIMER)) {           // time to read B zones?
       timeout(SET, MUX_SET_TIMER);                        // start mux settle time
-      //logger.printf("%ld: Mux B timeout started\n", millis());
+      logger.printf("%ld: Mux B timeout started\n", millis());
       selectZones(muxState = Bzones);                     // switch mux
       return;                                             // nothing to do, wait mux timeout to expire
       }
     else
-      return;
+      return;											  // do nothing, time to read did not came yet	
   }
-  else {                                                  // zones B are selected and mux set interval expired                   
-    //logger.printf("%ld: Reading B zones\n", millis());
+  else {                                                  // time to read zones B, mux is set and setup time interval expired                   
+    logger.printf("%ld: Reading B zones\n", millis());
     readZones(DB, zoneCnt, muxState);                     // do read
 	zoneInfoValid |=	ZONE_B_VALID;					  // mark as valid to avoid sending invalid info	
     timeout(SET, ZONES_B_READ_TIMER);                     // remember when    
-    timeout(SET, MUX_SET_TIMER);                          // start mux settle time
-    //logger.printf("%ld: Mux A timeout started\n", millis());
-    selectZones(muxState = Azones);   
+    timeout(SET, MUX_SET_TIMER);                          // start mux settle time switching back to A channel
+    logger.printf("%ld: Mux A timeout started\n", millis());
+    selectZones(muxState = Azones);   					   // switching back to A channel	
     }
   zoneVal2Code(DB, zoneCnt);                               // convert analog values to digital status
   //printZones(DB, zoneCnt);
   if(!zoneResult)											// do we need to prepare the zones info in format for sending
 	return;													// no, return now (case for Master which does not need to send zones)
-  //copy results to results array
+#ifdef SLAVE
+  // copy converted zones results to results array which will be send to master
   for (i=0; i < zoneCnt; i++) {                            // combine two zones in one byte, 12, 34, 56, ....
     if(!(i%2))
       zoneResult[i/2] = 0;                                 // clear results array
@@ -248,6 +247,12 @@ void convertZones(struct ZONE DB[], int zoneCnt, byte zoneResult[]) {
     }  
   //printZonesPayload(zoneResult, zoneCnt%2?(zoneCnt/2+1):zoneCnt/2);
   //logger.printf ("Elapsed time %d millisec\n", (unsigned long)(millis() - lastRead));
+#endif
+#ifdef MASTER												// decode the zones statuses and copy them to zonesDB    
+#ifndef LOOPBACK
+	copyZonesStat();
+#endif
+#endif
 }
 //
 //  PGM control code here

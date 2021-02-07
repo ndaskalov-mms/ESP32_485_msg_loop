@@ -1,14 +1,23 @@
 //
-// copy zones results coneverted early from MzonesDB to zonesDB	
+// copy fake zones results to zonesDB	for master
 //
-void copyZonesStat() {
-	for(int i = 0; i < MASTER_ZONES_CNT; i++ ) { //for each zone
-	  // extract info from high nibble first - this shall be lower number zone
-	  zonesDB[MASTER_ADDRESS][2*i].zoneStat   = (MzoneDB[i].zoneABstat & (ZONE_ERROR_MASK | ZONE_A_MASK)); // get zone A info
-	  zonesDB[MASTER_ADDRESS][2*i+1].zoneStat = (MzoneDB[i].zoneABstat & (ZONE_ERROR_MASK | ZONE_B_MASK)); // get zone A info	
+void copyFakeZonesStat() {
+  logger.printf("Loading master zones with fake data\n");
+	for(int i = 0; i < MASTER_ALARM_ZONES_CNT; i++ ) { //for each zone
+	  // copy info from slave zones in reverse order for testing
+	  zonesDB[MASTER_ADDRESS][i].zoneStat   = zonesDB[SLAVE_ADDRESS1][SLAVE_ALARM_ZONES_CNT-i-1].zoneStat; // get zone A info
 	}
 }	
-
+//
+// copy zones results coneverted early from MzoneDB to zonesDB	
+//
+void copyZonesStat() {
+	for(int i = 0; i < MASTER_ZONES_CNT; i++ ) { 			// from MzoneDB, which is provide as DB parameter
+	  // extract info from high nibble first - this shall be lower number zone
+	  zonesDB[MASTER_ADDRESS][2*i].zoneStat   = (MzoneDB[i].zoneABstat & (ZONE_ERROR_MASK | ZONE_A_MASK)); // get zone A info
+	  zonesDB[MASTER_ADDRESS][2*i+1].zoneStat = (MzoneDB[i].zoneABstat & (ZONE_ERROR_MASK | ZONE_B_MASK)); // get zone B info
+	}
+}	
 void master2slave() {
 //
 // first check if there is ongoing transaction, if yes, call wait4reply which will loop calling rs485 stack and collect the message if any
@@ -26,10 +35,6 @@ void master2slave() {
 			  ErrWrite( ERR_INFO, ("Poll slave zones send\n"));
 		  return;								  // return will cause the master() to be called from Arduino loop and wait4reply
 		  }		
-      		  // get master zones data
-	  convertZones(MzoneDB, MASTER_ZONES_CNT, 0);  // read ADC and convert to zones info
-	  copyZonesStat();							   // copy zones results coneverted early from MzonesDB to zonesDB	
-	  alarmLoop();
 	  }   										  // else if(waiting_for_reply)
 }
 //
@@ -39,7 +44,18 @@ void master() {
   logger.printf("Master loop\n");
   memcpy(errorsDB_backup, errorsDB, sizeof(errorsDB_backup)); // backup error DB
   master2slave();								  // send if there is sometinigh to be send
-  // check for new errors and send via MQTT when it is availabel some sunny day
+  // do master tasks here 
+#ifdef LOOPBACK	// for testing, copy results from SLAVE zones
+	logger.printf("Chech if time for copying fake results\n");
+	if(timeout(GET, ZONES_A_READ_TIMER)) {
+		copyFakeZonesStat();
+	}	
+#else
+  logger.printf("Converting master zones\n");
+  convertZones(MzoneDB, MASTER_ZONES_CNT, 0);  // read ADC and convert to zones info
+#endif
+  printAlarmZones((byte *) &zonesDB, MASTER_ADDRESS, MAX_SLAVES);
+  alarmLoop();
   if(memcmp(errorsDB, errorsDB_backup, sizeof(errorsDB))) {
     printNewErrors();
   }   // else if(waiting_for_reply)

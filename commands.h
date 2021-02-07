@@ -71,7 +71,7 @@ int tmp;
 		  zonesDB[msg.src][4*i+2].zoneStat = (msg.payload[i] & (ZONE_ERROR_MASK | ZONE_A_MASK)); // get zone A info
 		  zonesDB[msg.src][4*i+3].zoneStat = (msg.payload[i] & (ZONE_ERROR_MASK | ZONE_B_MASK)); // get zone A info	
       }
-      printAlarmZones((byte *) &zonesDB, MASTER_ADDRESS, MAX_SLAVES);
+      //printAlarmZones((byte *) &zonesDB, MASTER_ADDRESS, MAX_SLAVES);
       break;
     case SET_OUTS_RES:
       ErrWrite(ERR_INFO, "Master: Unsupported reply command received SET_OUTPUTS_RES\n");

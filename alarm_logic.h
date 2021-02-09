@@ -38,8 +38,10 @@ struct ALARM_KEYSW {
 struct ALARM_GLOBAL_OPTS_t {
 	int  armRestrictions;
 	byte troubleLatch;				// if trouble, latch it or not
+	byte tamperBypassEn;			// true - if zone is bypassed ignore tamper; false - follow global or local tamper settings
 	byte tamperOpts;				// global tamper optons, same as local - see #define ZONE_TAMPER_OPT_XXXXXX
-	byte antiMaskOpt;				// global antimask options - see #define ZONE_ANTI_MASK_SUPERVISION_XXXX
+	byte antiMaskOpt;				// global antimask optons, same as local - see #define ZONE_ANTI_MASK_SUPERVISION__XXXXXX
+	byte rfSupervisionOpt;			// wireless sensors supervision see RF_SUPERVISION_XXXX
 	unsigned long entryDelay1Start;	//to store the time when entry delay 1 zone opens
 	unsigned long entryDelay2Start; //to store the time when entry delay 2 zone opens
 };
@@ -51,7 +53,12 @@ struct ALARM_PARTITION_t {
 	byte forceOnRegularArm;			// allways use force arm (bypass open zones) when regular arming
 	byte forceOnStayArm;			// allways use force arm (bypass open zones) when stay arming
 	byte followZone2entryDelay2;	// if and entry delay zone is bypassed and follow zone is opens, the alarm will be postponed by EntryDelay2 
-	unsigned long armTime;	
+	byte alarmOutputEn;				// enable to triger bell or siren once alarm condition is detected in partition
+	byte alarmCutOffTime;			// cut alarm output after 1-255 seconds
+	byte noCutOffOnFire;			// disable cut-off for fire alarms
+	byte alarmRecycleTime;			// re-enable after this time if alarm condition not fixed
+	unsigned long armTime;			// arm time
+	byte exitDelay;					// exit delay in seconds 1-255
 	byte follows[MAX_PARTITION];
 };
 //
@@ -166,7 +173,7 @@ void setAlarmZonesDefaults(bool validFlag) {
         for(int j=0; j< (i?SLAVE_ALARM_ZONES_CNT:MASTER_ALARM_ZONES_CNT); j++) {             // for each board' zone
           sprintf(zonesDB[i][j].zoneName, "Zone_%d", j);
           zonesDB[i][j].zoneDefs = 0;
-          zonesDB[i][j].zonePartition = NO_PARTITION; 
+          zonesDB[i][j].zonePartition = PARTITION1; 
           zonesDB[i][j].zoneOptions = BYPASS_EN  | FORCE_EN;   
           zonesDB[i][j].zoneExtOpt = 0;
   		    zonesDB[i][j].valid = validFlag; 
@@ -204,7 +211,7 @@ void setAlarmKeyswDefaults() {
     memset((void*)&keyswDB, 0, sizeof(keyswDB));                // clear all data
     for(int j=0; j<MAX_KEYSW_CNT; j++) {                       
         sprintf(keyswDB[j].keyswName, "KSW_%d", j);
-        keyswDB[j].partition = NO_PARTITION;     				// this is redundant, as 0 means no partition which effective disables it
+        keyswDB[j].partition = PARTITION1;     				// this is redundant, as 0 means no partition which effective disables it
 	}
 }
 //

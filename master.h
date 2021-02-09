@@ -2,7 +2,7 @@
 // copy fake zones results to zonesDB	for master
 //
 void copyFakeZonesStat() {
-  logger.printf("Loading master zones with fake data\n");
+  //logger.printf("Loading master zones with fake data\n");
 	for(int i = 0; i < MASTER_ALARM_ZONES_CNT; i++ ) { //for each zone
 	  // copy info from slave zones in reverse order for testing
 	  zonesDB[MASTER_ADDRESS][i].zoneStat   = zonesDB[SLAVE_ADDRESS1][SLAVE_ALARM_ZONES_CNT-i-1].zoneStat; // get zone A info
@@ -46,7 +46,7 @@ void master() {
   master2slave();								  // send if there is sometinigh to be send
   // do master tasks here 
 #ifdef LOOPBACK	// for testing, copy results from SLAVE zones
-	logger.printf("Chech if time for copying fake results\n");
+	//logger.printf("Chech if time for copying fake results\n");
 	if(timeout(GET, ZONES_A_READ_TIMER)) {
 		copyFakeZonesStat();
 	}	
@@ -54,7 +54,7 @@ void master() {
   logger.printf("Converting master zones\n");
   convertZones(MzoneDB, MASTER_ZONES_CNT, 0);  // read ADC and convert to zones info
 #endif
-  printAlarmZones((byte *) &zonesDB, MASTER_ADDRESS, MAX_SLAVES);
+  //printAlarmZones((byte *) &zonesDB, MASTER_ADDRESS, MAX_SLAVES);
   alarmLoop();
   if(memcmp(errorsDB, errorsDB_backup, sizeof(errorsDB))) {
     printNewErrors();

@@ -110,12 +110,14 @@ byte tmpMsg [MAX_PAYLOAD_SIZE];
 #include <TaskScheduler.h>
 Scheduler taskScheduler;
 // Callback methods prototypes
+#ifdef MASTER
 void master();
-void slave();
-
 Task t1(3, TASK_FOREVER, &master, &taskScheduler, true);
+#endif
+#ifdef SLAVE
+void slave();
 Task t2(3, TASK_FOREVER, &slave, &taskScheduler, true);
-
+#endif
 //
 #include "protocol.h"                     // send/receive and compse messgaes staff
 #ifdef MASTER

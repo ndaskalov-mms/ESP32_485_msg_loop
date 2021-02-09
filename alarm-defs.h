@@ -41,7 +41,12 @@ enum ZONE_EXT_OPT_t {
     ZONE_ANTI_MASK_TROUBLE  = 0x8,			// false - follow gloabl antimask options, true - follow zone antimask options
     ZONE_ANTI_MASK_SUPERVISION = (0x10 | 0x20), // zone antimask options bits
 };
-
+//
+#define RF_SUPERVISION_DISABLED    0
+#define RF_SUPERVISION_TROUBLE_ONLY  0x1
+#define RF_SUPERVISION_ALARM_WHEN_ARMED  0x2
+#define RF_SUPERVISION_ALARM  (0x1 | 0x2)
+//
 #define ZONE_TAMPER_OPT_DISABLED    0
 #define ZONE_TAMPER_OPT_TROUBLE_ONLY  0x4
 #define ZONE_TAMPER_OPT_ALARM_WHEN_ARMED  0x2
@@ -54,8 +59,7 @@ enum ZONE_EXT_OPT_t {
 //
 //    
 enum PARTITIONS {
-    NO_PARTITION = 0,
-    PARTITION1,
+    PARTITION1 = 0,
     PARTITION2,
     PARTITION3,
     PARTITION4,

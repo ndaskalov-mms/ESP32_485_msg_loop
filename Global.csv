@@ -1,0 +1,17 @@
+,,,,,,,
+,,,,,,,
+,SUPERVISOR,TAMPER,AC_FAILURE,BATTERY,BELL,SLAVE,ANTIMASK
+armRestrictions,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,FALSE
+,,,,,,,
+,,,,,,,
+,,,,,,,
+,,,,,,,
+,,,,,,,
+,,,,,,,
+,,,,,,,
+,,,,,,,
+troubleLatch,TRUE,"#if trouble, latch it or not",,,,,
+tamperBypassEn,TRUE,#true - if zone is bypassed ignore tamper; false - follow global or local tamper settings,,,,,
+tamperOpts,DISABLE,"#global tamper optons, can be DISABLE or TROUBLE_ONLY or ALARM_WHEN_ARMED or ALARM",,,,#can be DISABLE or TROUBLE_ONLY or ALARM_WHEN_ARMED or ALARM,
+antiMaskOpt,DISABLE,"#global tamper optons, can be DISABLE or TROUBLE_ONLY or ALARM_WHEN_ARMED or ALARM",,,,#can be DISABLE or TROUBLE_ONLY or ALARM_WHEN_ARMED or ALARM,
+rfSupervisionOpt,DISABLE,"#global tamper optons, can be DISABLE or TROUBLE_ONLY or ALARM_WHEN_ARMED or ALARM",,,,#can be DISABLE or TROUBLE_ONLY or ALARM_WHEN_ARMED or ALARM,

@@ -153,8 +153,6 @@ void setup() {
 #ifdef MASTER
    MasterUART.begin(BITRATE,SERIAL_8N1);  
    MasterMsgChannel.begin ();                 // allocate data buffers and init message encoding/decoding engines (485_non_blocking library)
-   slavesSetZonesMap = prepareSlavesSetMap(MAX_SLAVES); // init bitmap to track if zones data are loaded to slaves
-   slavesSetPgmsMap =  prepareSlavesSetMap(MAX_SLAVES); // init bitmap to track if pgms data are loaded to slaves
    if(!storageSetup()) {                      // mount file system
       while(true) {                           // loop forever
         ReportMQTT(ERROR_TOPIC, "Error initializing storage");
@@ -162,13 +160,14 @@ void setup() {
       }
    }
    // read config file from storage and init all alarm internals and databases for zones, pgms, partitions, keswitches, etc
-   initAlarm();              					// set flag for loop() to know if the initialization was successful
+   initAlarm();              					// read setting from storage and set all variables
    storageClose();								// unmount FS
+   maxSlaves = alarmGlobalOpts.maxSlaveBrds;	// 
    zoneHWSetup();                                  // init mux for zones selection
    pgmSetup(MpgmDB, MASTER_PGM_CNT);             // init PGMs (output and default value)
    ErrWrite(ERR_DEBUG, "ALARM ZONES read from config file\n");
-   printAlarmZones((byte *) &alarmConfig.zoneConfig, MASTER_ADDRESS, MAX_SLAVES);
-   //printAlarmPgms((byte *) &alarmConfig.pgmConfig, MASTER_ADDRESS, MAX_SLAVES);
+   printAlarmZones((byte *) &alarmConfig.zoneConfig, MASTER_ADDRESS, maxSlaves);
+   //printAlarmPgms((byte *) &alarmConfig.pgmConfig, MASTER_ADDRESS, maxSlaves);
 #endif
 
   taskScheduler.startNow();  // set point-in-time for scheduling start

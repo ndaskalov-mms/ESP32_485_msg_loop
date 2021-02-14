@@ -248,11 +248,6 @@ void convertZones(struct ZONE DB[], int zoneCnt, byte zoneResult[]) {
   //printZonesPayload(zoneResult, zoneCnt%2?(zoneCnt/2+1):zoneCnt/2);
   //logger.printf ("Elapsed time %d millisec\n", (unsigned long)(millis() - lastRead));
 #endif
-#ifdef MASTER												// decode the zones statuses and copy them to zonesDB    
-#ifndef LOOPBACK
-	copyZonesStat();
-#endif
-#endif
 }
 //
 //  PGM control code here

@@ -153,37 +153,7 @@ byte test_msg [][FREE_CMD_PAYLD_LEN] = {{"5Hello world;6Hello world;7Hello world
                                      {"1234567890123456789012345678901234567890123456789012345678"},\
                                      {"~!@#$%^&*()_+~!@#$%^&*()_+~!@#$%^&*()_+~!@#$%^&*()_+~!@#"},
                                      {"zxcvbnm,./';lkjhgfdsaqwertyuiop[]\\][poiuytrewqasdfghjkl"}};
-									 
-//
-// create bitmap to track if config data are loaded to slaves: bit 0 cooresponds to slave 1, bit 1 oslave 2, ....
-// bit set means the config data are not sent to slave board
-//
-byte prepareSlavesSetMap(int max_slaves) {
-byte tmp = 0;
-	for(int i = 0; i< max_slaves; i++) 
-		tmp |= 1<<i;
-	return tmp;
-}
-//
-// markSlaveAsSet in slaves bitmap tracking if config data are loaded to slaves: bit 0 cooresponds to slave 1, bit 1 oslave 2, ....
-// bit set means the config data are not sent to slave board, cleared means config data loaded successfully
-//
-byte markSlaveAsSet(int slave, byte slaveMap) {
-		slaveMap = slaveMap & ~(1<<(--slave));
-		//logger.printf("SlaveMap = %d\n", slaveMap);
-		return slaveMap;
-} 
-//
-// returns slave adress of the first board not set in the slaveSetMap
-// bit set means the config data are not sent to slave board, cleared means config data loaded successfully
-//
-byte bitmap2slaveIdx(byte slaveMap, int max_slaves) {
-		for(int i =0; i< max_slaves; i++) {
-			if(slaveMap & (1<<i))
-				return ++i;
-		}
-		return 0;
-} 
+				 
 //
 // read board address//
 byte readOwnAdr() {												// TODO read the address from dDIO switch

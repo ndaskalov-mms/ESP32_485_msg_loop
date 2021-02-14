@@ -21,25 +21,25 @@ enum ZONE_DEFS_t {
 };
 
 enum  ZONE_OPTS_t {
-    AUTO_ZONE_SHUTDN_EN = 0x1,
+    SHUTDWN_EN 			= 0x1,
     BYPASS_EN           = 0x2,                                    // default ON
     STAY_ZONE           = 0x4,
     FORCE_EN            = 0x8,                                    // default ON
     ALARM_TYPE          = (0x10 | 0x20),
     INTELIZONE          = 0X40,
-    DELAY_TRANSMISSION  = 0x80,
+    DELAY_TRM		  	= 0x80,
 };
     
 #define STEADY_ALARM    0x0
 #define PULSED_ALARM    0X20
 #define SILENT_ALARM    0x10
-#define REPORTONLY_ALARM 0x30
+#define REPORT_ALARM 	0x30
 
 enum ZONE_EXT_OPT_t {
-    ZONE_TAMPER_OPT  = 0x1,					// false - follow gloabl tamper options, true - follow zone tamper options
-    ZONE_TAMPER_SUPERVISION = (0x2 | 0x4),  // zone tamper opions bits
-    ZONE_ANTI_MASK_TROUBLE  = 0x8,			// false - follow gloabl antimask options, true - follow zone antimask options
-    ZONE_ANTI_MASK_SUPERVISION = (0x10 | 0x20), // zone antimask options bits
+    ZONE_FOLLOW_PANEL_ONTAMPER  = 0x1,				// false - follow gloabl tamper options, true - follow zone tamper options
+    ZONE_TAMPER_OPT = (0x2 | 0x4),  		// zone tamper opions bits - see ZONE_TAMPER_OPT_XXX
+    ZONE_FOLLOW_GLOBAL_ON_ANTIMASK  = 0x8,			// false - follow gloabl antimask options, true - follow zone antimask options
+    ZONE_ANTIMASK_OPT = (0x10 | 0x20), 	// zone antimask options bits - see ZONE_ANTI_MASK_SUPERVISION_XXX
 };
 //
 #define RF_SUPERVISION_DISABLED    0
@@ -85,7 +85,7 @@ enum  ARM_RESTRICTIONS_t {
     RESTRICT_ON_BATTERY_FAILURE = 0x8,                                    // default ON
     RESTRICT_ON_BELL         	= 0x10, 
 	RESTRICT_ON_SLAVE 			= 0x20,
-    RESTRICT_ON_ANTI_MASK       = 0X40,
+    RESTRICT_ON_ANTIMASK        = 0X40,
 };
 //
 // Keysw

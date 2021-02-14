@@ -6,11 +6,11 @@ struct ALARM_ZONE {
   byte  valid;					// data valid	
   byte  bypassed;			    // true if zone is bypassed
   byte  zoneStat;               // status of the zone switch. (open, close, short, line break
-  byte  zoneDefs;				// zone type - enable, entry delay, follow, instant, stay, etc
+  byte  zoneType;				// zone type - enable, entry delay, follow, instant, stay, etc
   byte  zonePartition;          // assigned to partition X
   byte  zoneOptions;            // auto shutdown, bypass, stay, force, alarm type, intellyzone, dealyed transission
   byte  zoneExtOpt;             // zone tamper, tamper supervision, antimask, antimask supervision
-  byte	lastZoneStat;			// last zone status reported
+  //byte	lastZoneStat;			// last zone status reported
   unsigned long reportedAt;		// the time when the zone status was reported
   char  zoneName[16];           // user friendly name
 };        
@@ -36,7 +36,8 @@ struct ALARM_KEYSW {
 };  
 //
 struct ALARM_GLOBAL_OPTS_t {
-	int  armRestrictions;
+	byte maxSlaveBrds;				// how many slaves are installed. Run-time this value is copied to maxSlaves
+	int  armRestrictions;			// all DBs are sized to MAX_SLAVES compile time, means maxSlaveBrds =< maxSlave !!!!
 	byte troubleLatch;				// if trouble, latch it or not
 	byte tamperBypassEn;			// true - if zone is bypassed ignore tamper; false - follow global or local tamper settings
 	byte tamperOpts;				// global tamper optons, same as local - see #define ZONE_TAMPER_OPT_XXXXXX
@@ -106,11 +107,11 @@ struct CONFIG_t {
 void printAlarmZones(byte* zoneArrPtr, int startBoard, int endBoard) { 
     alarmZoneArr_t *zoneArr = (alarmZoneArr_t *)zoneArrPtr;
     for (int j = startBoard; j <= endBoard; j++) {
-        logger.printf("      valid zoneStat zoneDefs zonePart zoneOpt zoneExtOpt zoneName\n");
+        logger.printf("      valid zoneStat zoneType zonePart zoneOpt zoneExtOpt zoneName\n");
         for(int i=0; i< (j?SLAVE_ALARM_ZONES_CNT:MASTER_ALARM_ZONES_CNT); i++) {             // for each board' zone
-           logger.printf ("Zone data: %2d\t%2d\t%2d\t%2d\t%2d\t%2d\t%2d\t%ul\t%16s\n",(*zoneArr)[j][i].valid, (*zoneArr)[j][i].zoneStat, (*zoneArr)[j][i].zoneDefs,\
+           logger.printf ("Zone data: %2d\t%2d\t%2d\t%2d\t%2d\t%2d\t%ul\t%16s\n",(*zoneArr)[j][i].valid, (*zoneArr)[j][i].zoneStat, (*zoneArr)[j][i].zoneType,\
                                                                           (*zoneArr)[j][i].zonePartition, (*zoneArr)[j][i].zoneOptions, (*zoneArr)[j][i].zoneExtOpt,\
-                                                                          (*zoneArr)[j][i].lastZoneStat, (*zoneArr)[j][i].reportedAt, (*zoneArr)[j][i].zoneName);
+                                                                          /*(*zoneArr)[j][i].lastZoneStat,*/ (*zoneArr)[j][i].reportedAt, (*zoneArr)[j][i].zoneName);
         }
     }
 }
@@ -172,7 +173,7 @@ void setAlarmZonesDefaults(bool validFlag) {
     for(int i = 0; i <= MAX_SLAVES; i++) {         // for each board 
         for(int j=0; j< (i?SLAVE_ALARM_ZONES_CNT:MASTER_ALARM_ZONES_CNT); j++) {             // for each board' zone
           sprintf(zonesDB[i][j].zoneName, "Zone_%d", j);
-          zonesDB[i][j].zoneDefs = 0;
+          zonesDB[i][j].zoneType = 0;
           zonesDB[i][j].zonePartition = PARTITION1; 
           zonesDB[i][j].zoneOptions = BYPASS_EN  | FORCE_EN;   
           zonesDB[i][j].zoneExtOpt = 0;
@@ -220,6 +221,7 @@ void setAlarmKeyswDefaults() {
 void setAlarmGlobalOptsDefaults() {
 	ErrWrite(ERR_DEBUG, "Setting Alarm Global Opts Defaults\n");
     memset((void*)&alarmGlobalOpts, 0, sizeof(alarmGlobalOpts)); // clear all data
+	alarmGlobalOpts.maxSlaveBrds = MAX_SLAVES;
 	alarmGlobalOpts.troubleLatch = false;
 	alarmGlobalOpts.tamperOpts	= ZONE_TAMPER_OPT_DISABLED;		// follow zone settings for tamper occurs
 	alarmGlobalOpts.antiMaskOpt = ZONE_ANTI_MASK_SUPERVISION_DISABLED;	// follow zone settings for anti-mask
@@ -306,6 +308,46 @@ void initAlarm() {
    logger.printf("Setted alarm defaults for testing\n");
 }
 //
+// copy fake zones results to zonesDB	for master
+//
+void copyFakeZonesStat() {
+  //logger.printf("Loading master zones with fake data\n");
+	for(int i = 0; i < MASTER_ALARM_ZONES_CNT; i++ ) { //for each zone
+	  // copy info from slave zones in reverse order for testing
+	  zonesDB[MASTER_ADDRESS][i].zoneStat   = zonesDB[SLAVE_ADDRESS1][SLAVE_ALARM_ZONES_CNT-i-1].zoneStat; // get zone A info
+	}
+}	
+//
+// copy zones results coneverted early from MzoneDB to zonesDB	
+// sets newZonesDataAvailable if some of the zones info has changed
+//
+void copyZonesStat() {
+	
+	for(int i = 0; i < MASTER_ZONES_CNT; i++ ) { 			// from MzoneDB, which is provide as DB parameter
+	  // extract info from high nibble first - this shall be lower number zone
+	  zonesDB[MASTER_ADDRESS][2*i].zoneStat   = (MzoneDB[i].zoneABstat & (ZONE_ERROR_MASK | ZONE_A_MASK)); // get zone A info
+	  zonesDB[MASTER_ADDRESS][2*i+1].zoneStat = (MzoneDB[i].zoneABstat & (ZONE_ERROR_MASK | ZONE_B_MASK)); // get zone B info
+	}
+}	
+//
+// Convert master's zones ADC values to digital domain. Relies on convertZones
+// in case of LOOPBACK (master and slve executed simultaneously on one board) 
+// we cannot use convertZones directly as it implements time driven test machine 
+// and calling from two different threads can cause re-setting of time bases
+//
+void convertMasterZones() {
+#ifdef LOOPBACK							// we cannot use convertZones directly  
+  //logger.printf("Chech if time for copying fake results\n");
+  if(timeout(GET, ZONES_A_READ_TIMER)) {
+	copyFakeZonesStat();			// for testing, copy results from SLAVE zones
+	newZonesData = true;
+	return;							// 
+  }	
+#endif
+  logger.printf("Converting master zones\n");
+  convertZones(MzoneDB, MASTER_ZONES_CNT, 0);  // read ADC and convert to zones info
+}
+//
 // process zone error, generates trouble or alarm
 //
 void processZoneError(struct ALARM_ZONE zone) {
@@ -322,11 +364,11 @@ int tamperOpt;
 int checkArmRestrctions(byte partIdx, int action) {
 int ret = 0; 
   ErrWrite(ERR_DEBUG, "Checking arm restictions for part %d\n", partIdx);
-  for(int i = 0; i <= MAX_SLAVES; i++) {         // for each board 
+  for(int i = 0; i <=maxSlaves; i++) {         // for each board 
      for(int j=0; j< (i?SLAVE_ALARM_ZONES_CNT:MASTER_ALARM_ZONES_CNT); j++) {             // for each board' zone
         //logger.printf("Looking at board %d zone %d\n", i, j);  
         sprintf(zonesDB[i][j].zoneName, "Zone_%d", j);
-        zonesDB[i][j].zoneDefs = 0;
+        zonesDB[i][j].zoneType = 0;
         if(zonesDB[i][j].zonePartition == partIdx) {                         // check only zones assigned to this partition
           if(zonesDB[i][j].valid && !zonesDB[i][j].bypassed)              // check if zone is no defined/in use or if bypassed
             if(zonesDB[i][j].zoneStat & ZONE_ERROR_MASK)                     // tamper or antimask error in zone?
@@ -392,6 +434,7 @@ void armPartition(byte partIxd, int action)  {
 //
 void alarmLoop() {
 int cz, cb;
+
 /*
   		for(cz = 0; cz < MASTER_ALARM_ZONES_CNT; cz++) {
 				if(!(zonesDB[MASTER_ADDRESS][cz].valid || zonesDB[MASTER_ADDRESS][cz].bypassed))	// check if zone is no defined/in use or if bypassed

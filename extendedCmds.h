@@ -341,6 +341,9 @@ int j = FREE_CMD_DATA_OFFSET; int i = 0;						// index where to put the payload,
 #endif
 
 // from master.h
+byte slavesSetZonesMap = 0xFF;			  // bitmap tracking if zones data are pending to  be send slaves: bit 0 cooresponds to slave 1, bit 1 oslave 2,
+byte slavesSetPgmsMap = 0xFF;			  // bitmap tracking if pgms data are pending to  be send  to slaves: bit 0 cooresponds to slave 1, bit 1 oslave 2,
+
 /*
 //if(ERR_OK == sendFreeText(SLAVE_ADDRESS1, FREE_CMD_DATA_LEN, test_msg[(++i)%3])) // sendCmd handle and reports errors internally 
   //ErrWrite( ERR_INFO, ("Master MSG transmitted, receive timeout started\n"));
@@ -363,6 +366,29 @@ int j = FREE_CMD_DATA_OFFSET; int i = 0;						// index where to put the payload,
     //  setSlavesPgms();            // slavesSetPgms holds bitmap of slaves with new PGMs settings  and will do error reporting
     //  return;                               // inside wait4reply we will collect the answers from slaves and reflect in zones, pgms, etc DBs
     //  }                   // return as we have to wait for slave reply  
-*/
-
+//
+// waits for message reply up to timeout milliseconds of REPLY_TIMEOUT, whichever comes first
+// returns: int ERR_OK -            if message processed 
+//              error code -       otherwise
+//
+void waitReply() {
+  int retCode;
+  // are we waiting for reply? MSG_READY means good msg,ERR_OK(0) means no msg,<0 means UART error or parse err
+  if (!waiting_for_reply)                        // check for message available
+    t1.yield(&master);                              // not waiting for message
+//    
+  while (ERR_OK == (retCode = check4msg(MasterMsgChannel, MASTER_ADDRESS, REPLY_TIMEOUT))) {  // ERR_OK means nothing received so far, otherwise will be error or MSG_READY
+    t1.delay();                                   // no message yet, yield all other processes
+	logger.printf("waitReply() delay\n");
+    }											// end while
+  if(retCode != MSG_READY)  {                   // we got something, either message or error             
+    ErrWrite(ERR_WARNING, "Master rcv reply error or timeout\n");    // error   
+    }
+  else {
+    masterProcessMsg(rcvMsg);                   // message, process it. 
+    }     
+  waiting_for_reply = 0;                      // stop waiting in case of error
+  logger.printf("Yielding to master loop\n");
+  t1.yield(&master);     												
+}
 */

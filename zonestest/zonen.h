@@ -12,6 +12,7 @@ enum TIMERS {
   ZONES_A_READ_TIMER = 1,
   ZONES_B_READ_TIMER = 2,
   MUX_SET_TIMER = 3,
+  MASTER_ZONES_READ_TIMER = 4,
 };
 
 
@@ -24,7 +25,8 @@ struct TIMER {
 //
 // timerss database to look-up timer params 
 // 
-struct TIMER timerDB[] = {{ZONES_A_READ_TIMER, ZONES_A_READ_INTERVAL,  0}, {ZONES_B_READ_TIMER, ZONES_B_READ_INTERVAL, 0}, {MUX_SET_TIMER, MUX_SET_INTERVAL, 0}} ;
+struct TIMER timerDB[] = {{ZONES_A_READ_TIMER, ZONES_A_READ_INTERVAL,  0}, {ZONES_B_READ_TIMER, ZONES_B_READ_INTERVAL, 0},\
+						  {MUX_SET_TIMER, MUX_SET_INTERVAL, 0}, 		   {MASTER_ZONES_READ_TIMER, MASTER_ZONES_READ_INTERVAL, 0}} ;
 //
 int findTimer(byte timer) {
   //ErrWrite(ERR_DEBUG, "Looking for record for timer ID   %d \n", timer);
@@ -42,7 +44,7 @@ int findTimer(byte timer) {
 // set timeout / check if timeout expired
 // TODO - organize all timeouts as separate database similar to commands
 // 
-bool timeout(int oper, int whichOne) {
+bool timeoutOps(int oper, int whichOne) {
 int index;
 // find timer index first
   if((index = findTimer(whichOne))<0)	    // timer not found
@@ -206,18 +208,18 @@ void convertZones(struct ZONE DB[], int zoneCnt, byte zoneResult[]) {
   unsigned long lastRead = 0;
   static int  muxState = Azones;
 // this is state machine cannot be called from both master and slave to read zones analog value   
-  if(!timeout(GET, MUX_SET_TIMER))						  // do we wait for mux set-up time?	
+  if(!timeoutOps(GET, MUX_SET_TIMER))						  // do we wait for mux set-up time?	
     return;                                               // can't do anything, wait for analog inputs to settle
   lastRead = millis();                                    // to calculate how much time we spend in here
   if(muxState == Azones) {
-    if(timeout(GET, ZONES_A_READ_TIMER)) {                // time to read A zones?
+    if(timeoutOps(GET, ZONES_A_READ_TIMER)) {                // time to read A zones?
       logger.printf("%ld: Reading A zones\n", millis());
 	  zoneInfoValid |=	ZONE_A_VALID;					  // mark as valid to avoid sending invalid info	
       readZones(DB, zoneCnt, muxState);                   // do read
-      timeout(SET, ZONES_A_READ_TIMER);                   // remember when
+      timeoutOps(SET, ZONES_A_READ_TIMER);                   // remember when
       }
-    else if(timeout(GET, ZONES_B_READ_TIMER)) {           // time to read B zones?
-      timeout(SET, MUX_SET_TIMER);                        // start mux settle time
+    else if(timeoutOps(GET, ZONES_B_READ_TIMER)) {           // time to read B zones?
+      timeoutOps(SET, MUX_SET_TIMER);                        // start mux settle time
       logger.printf("%ld: Mux B timeout started\n", millis());
       selectZones(muxState = Bzones);                     // switch mux
       return;                                             // nothing to do, wait mux timeout to expire
@@ -229,8 +231,8 @@ void convertZones(struct ZONE DB[], int zoneCnt, byte zoneResult[]) {
     logger.printf("%ld: Reading B zones\n", millis());
     readZones(DB, zoneCnt, muxState);                     // do read
 	zoneInfoValid |=	ZONE_B_VALID;					  // mark as valid to avoid sending invalid info	
-    timeout(SET, ZONES_B_READ_TIMER);                     // remember when    
-    timeout(SET, MUX_SET_TIMER);                          // start mux settle time switching back to A channel
+    timeoutOps(SET, ZONES_B_READ_TIMER);                     // remember when    
+    timeoutOps(SET, MUX_SET_TIMER);                          // start mux settle time switching back to A channel
     logger.printf("%ld: Mux A timeout started\n", millis());
     selectZones(muxState = Azones);   					   // switching back to A channel	
     }

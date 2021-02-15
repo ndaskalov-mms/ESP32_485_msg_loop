@@ -280,73 +280,34 @@ void initAlarm() {
       formatStorage();
    memset((void*)&alarmConfig, 0, sizeof(alarmConfig));		// clear alarm config DB
    if(readConfig(configFileName))   {          //read config file  
-		logger.printf("Copying from alarmConfig to zonesDB\n");
-		memcpy((byte *) zonesDB, (byte *) &alarmConfig.zoneConfig, sizeof(zonesDB)); // config OK, copy the databases
-		memcpy((byte *) pgmsDB,  (byte *) &alarmConfig.pgmConfig,  sizeof(pgmsDB)); // and return
-	    memcpy((byte *) keyswDB, (byte *) &alarmConfig.keyswConfig, sizeof(keyswDB)); 
-		memcpy((byte *) &alarmGlobalOpts, (byte *) alarmConfig.alarmOptionsConfig, sizeof(alarmGlobalOpts)); 
-	    memcpy((byte *) &partitionDB, (byte *) alarmConfig.alarmPartConfig, sizeof(partitionDB)); 
-		//printAlarmKeysw((byte*) &keyswDB, MAX_KEYSW_CNT); 
-	    printAlarmOpts((byte*) &alarmGlobalOpts); 
-	    printAlarmPartOpts((byte*) &partitionDB, MAX_PARTITION); 
-		//printAlarmZones((byte *) &alarmConfig.zoneConfig, MASTER_ADDRESS, MAX_SLAVES);
-		//printAlarmZones((byte *) zonesDB, 0, 1);
-		return;   
-	    }
+  		logger.printf("Copying from alarmConfig to zonesDB\n");
+  		memcpy((byte *) zonesDB, (byte *) &alarmConfig.zoneConfig, sizeof(zonesDB)); // config OK, copy the databases
+  		memcpy((byte *) pgmsDB,  (byte *) &alarmConfig.pgmConfig,  sizeof(pgmsDB)); // and return
+  	    memcpy((byte *) keyswDB, (byte *) &alarmConfig.keyswConfig, sizeof(keyswDB)); 
+  		memcpy((byte *) &alarmGlobalOpts, (byte *) alarmConfig.alarmOptionsConfig, sizeof(alarmGlobalOpts)); 
+  	    memcpy((byte *) &partitionDB, (byte *) alarmConfig.alarmPartConfig, sizeof(partitionDB)); 
+  		//printAlarmKeysw((byte*) &keyswDB, MAX_KEYSW_CNT); 
+  	    printAlarmOpts((byte*) &alarmGlobalOpts); 
+  	    printAlarmPartOpts((byte*) &partitionDB, MAX_PARTITION); 
+  		//printAlarmZones((byte *) &alarmConfig.zoneConfig, MASTER_ADDRESS, MAX_SLAVES);
+  		//printAlarmZones((byte *) zonesDB, 0, 1);
+  		return;   
+	 }
    //   wrong or missing config file
    ErrWrite(ERR_WARNING, "Wrong or missing config file\n");
    if(!ENABLE_CONFIG_CREATE) { 					  // do not create config, we have to wait for data from MQTT 	
-		setAlarmDefaults(false);                  // init zones and pgms DBs with default data and set valid flag to false to all zones and pgms 
-		logger.printf("Looping for getting alarm settings from MQTT\n");
-		while(true) ;							  
-		return;									  // because dataValid flags are false, main loop will wait 	
-        }
+  		setAlarmDefaults(false);                  // init zones and pgms DBs with default data and set valid flag to false to all zones and pgms 
+  		logger.printf("Looping for getting alarm settings from MQTT\n");
+  		while(true) ;							  
+  		return;									  // because dataValid flags are false, main loop will wait 	
+   }
    // create config file with parms from default zones and pgms DBs, mostly used for testing 
    ErrWrite(ERR_WARNING, "Creating config file\n");
    setAlarmDefaults(true);                  	// set valid flag to all zones and pgms to true
    saveConfig(configFileName);              	// create the file, maybe this is the first ride TODO - make it to check only once
    logger.printf("Setted alarm defaults for testing\n");
 }
-//
-// copy fake zones results to zonesDB	for master
-//
-void copyFakeZonesStat() {
-  //logger.printf("Loading master zones with fake data\n");
-	for(int i = 0; i < MASTER_ALARM_ZONES_CNT; i++ ) { //for each zone
-	  // copy info from slave zones in reverse order for testing
-	  zonesDB[MASTER_ADDRESS][i].zoneStat   = zonesDB[SLAVE_ADDRESS1][SLAVE_ALARM_ZONES_CNT-i-1].zoneStat; // get zone A info
-	}
-}	
-//
-// copy zones results coneverted early from MzoneDB to zonesDB	
-// sets newZonesDataAvailable if some of the zones info has changed
-//
-void copyZonesStat() {
-	
-	for(int i = 0; i < MASTER_ZONES_CNT; i++ ) { 			// from MzoneDB, which is provide as DB parameter
-	  // extract info from high nibble first - this shall be lower number zone
-	  zonesDB[MASTER_ADDRESS][2*i].zoneStat   = (MzoneDB[i].zoneABstat & (ZONE_ERROR_MASK | ZONE_A_MASK)); // get zone A info
-	  zonesDB[MASTER_ADDRESS][2*i+1].zoneStat = (MzoneDB[i].zoneABstat & (ZONE_ERROR_MASK | ZONE_B_MASK)); // get zone B info
-	}
-}	
-//
-// Convert master's zones ADC values to digital domain. Relies on convertZones
-// in case of LOOPBACK (master and slve executed simultaneously on one board) 
-// we cannot use convertZones directly as it implements time driven test machine 
-// and calling from two different threads can cause re-setting of time bases
-//
-void convertMasterZones() {
-#ifdef LOOPBACK							// we cannot use convertZones directly  
-  //logger.printf("Chech if time for copying fake results\n");
-  if(timeout(GET, ZONES_A_READ_TIMER)) {
-	copyFakeZonesStat();			// for testing, copy results from SLAVE zones
-	newZonesData = true;
-	return;							// 
-  }	
-#endif
-  logger.printf("Converting master zones\n");
-  convertZones(MzoneDB, MASTER_ZONES_CNT, 0);  // read ADC and convert to zones info
-}
+
 //
 // process zone error, generates trouble or alarm
 //
@@ -445,7 +406,7 @@ int cz, cb;
 				}
 		}
 */
-  armPartition( 0, REGULAR_ARM);
-  armPartition( 0, DISARM);
+//  armPartition( 0, REGULAR_ARM);
+//  armPartition( 0, DISARM);
 
 }

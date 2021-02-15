@@ -46,6 +46,43 @@ byte cmdCode=0;		// dummy payload
 	return sendCmd(POLL_ZONES, dst, &cmdCode);
 }
 //
+// extracts slave's zones info from POLL_ZONES command
+// params: byte slave - slave board ID
+//		   payload - byte [] - pointer to buffer with POLL_ZONES command result payload returned from slave
+//		   int  len - payload len
+//
+void extractSlaveZonesInfo(int slave, byte payload[], int len) {
+int res;
+int newData = 0;
+  for(int i = 0; i < len; i++ ) { // each byte contains result for two ADC channels or four alarm zones
+	  // extract info from high nibble first - this shall be lower number zone
+	  res = ((payload[i] >> ZONE_ENC_BITS) & (ZONE_ERROR_MASK | ZONE_A_MASK));  // high nibble, get zone A info
+	  if(zonesDB[slave][4*i].zoneStat != res) { 								// check if zone status has changed
+		  zonesDB[slave][4*i].zoneStat = res;										  // yes, store the new status
+		  newData++;																              // mark it
+	  }
+	  res = ((payload[i] >> ZONE_ENC_BITS) & (ZONE_ERROR_MASK | ZONE_B_MASK));	// zone B
+	  if(zonesDB[slave][4*i+1].zoneStat != res) {
+		  zonesDB[slave][4*i+1].zoneStat = res; 
+		  newData++;																              // mark it
+	  }
+	  res = (payload[i] & (ZONE_ERROR_MASK | ZONE_A_MASK));			// low nibble, get zone A info	
+	  if(zonesDB[slave][4*i+2].zoneStat != res) {
+		  zonesDB[slave][4*i+2].zoneStat = res;
+		  newData++;																              // mark it
+	  }
+	  res = (payload[i] & (ZONE_ERROR_MASK | ZONE_B_MASK));			// zone B
+	  if(zonesDB[slave][4*i+3].zoneStat != res) {
+		  zonesDB[slave][4*i+3].zoneStat = res;
+		  newData++;																              // mark it
+	  }		
+	}
+	// printAlarmZones((byte *) &zonesDB, MASTER_ADDRESS, maxSlaves);
+	if(newData)
+		newZonesDataAvailable != NEW_DATA_BIT << slave;							// mark that new data are availble
+}
+//
+//
 // master process messages root function. It is called when message (should be reply)  is received at master
 // patrams: struct MSG msg - contains received message attributes
 //          global rcvMsg variable - content of the parsed message (reply)
@@ -64,14 +101,7 @@ int tmp;
 	  ErrWrite(ERR_DEBUG, "Master: Reply received for POLL_ZONES_RES\n");
 	  if(msg.dataLen > SZONERES_LEN)
 		msg.dataLen = SZONERES_LEN;
-	  for(int i = 0; i < msg.dataLen; i++ ) { // each byte contains result for two ADC channels or four alarm zones
-		  // extract info from high nibble first - this shall be lower number zone
-		  zonesDB[msg.src][4*i].zoneStat   = ((msg.payload[i] >> ZONE_ENC_BITS) & (ZONE_ERROR_MASK | ZONE_A_MASK)); // get zone A info
-		  zonesDB[msg.src][4*i+1].zoneStat = ((msg.payload[i] >> ZONE_ENC_BITS) & (ZONE_ERROR_MASK | ZONE_B_MASK)); // get zone A info
-		  zonesDB[msg.src][4*i+2].zoneStat = (msg.payload[i] & (ZONE_ERROR_MASK | ZONE_A_MASK)); // get zone A info
-		  zonesDB[msg.src][4*i+3].zoneStat = (msg.payload[i] & (ZONE_ERROR_MASK | ZONE_B_MASK)); // get zone A info	
-      }
-      //printAlarmZones((byte *) &zonesDB, MASTER_ADDRESS, maxSlaves);
+		extractSlaveZonesInfo(msg.src, msg.payload, msg.dataLen);	// extract and copy to zonesDB, set newZonesDataAvailable in case of data changed
       break;
     case SET_OUTS_RES:
       ErrWrite(ERR_INFO, "Master: Unsupported reply command received SET_OUTPUTS_RES\n");

@@ -38,7 +38,11 @@ int check4msg(RS485& Channel, byte ownAdr, unsigned long timeout) {
   }
   // check if the destination 
   if(rcvMsg.dst != ownAdr)                       // check if the destination is another board
-    return ERR_OK;                                // not for us, yes, do nothing
+    return ERR_OK;                               // not for us, yes, do nothing
+  if (rcvMsg.src > maxSlaves)  {    			 // check source 
+    ErrWrite (ERR_RCV_MSG,"Invalid source of received message\n", rcvMsg.src);  
+    return ERR_RCV_MSG;  
+  }
   // we got message for us
   else
     return MSG_READY;                               // have message
@@ -76,32 +80,6 @@ int wait4reply(unsigned long timeout) {
     waiting_for_reply = 0;                      // stop waiting after processing message
     return ERR_OK;                              // propagate upstream what masterProcessMsg received  TODO add support for err return code in masterProcessMsg
     }                                           // else
-}
-
-//
-// waits for message reply up to timeout milliseconds of REPLY_TIMEOUT, whichever comes first
-// returns: int ERR_OK -            if message processed 
-//              error code -       otherwise
-//
-void waitReply() {
-  int retCode;
-  // are we waiting for reply? MSG_READY means good msg,ERR_OK(0) means no msg,<0 means UART error or parse err
-  if (!waiting_for_reply)                        // check for message available
-    t1.yield(&master);                              // not waiting for message
-//    
-  while (ERR_OK == (retCode = check4msg(MasterMsgChannel, MASTER_ADDRESS, REPLY_TIMEOUT))) {  // ERR_OK means nothing received so far, otherwise will be error or MSG_READY
-    t1.delay();                                   // no message yet, yield all other processes
-	logger.printf("waitReply() delay\n");
-    }											// end while
-  if(retCode != MSG_READY)  {                   // we got something, either message or error             
-    ErrWrite(ERR_WARNING, "Master rcv reply error or timeout\n");    // error   
-    }
-  else {
-    masterProcessMsg(rcvMsg);                   // message, process it. 
-    }     
-  waiting_for_reply = 0;                      // stop waiting in case of error
-  logger.printf("Yielding to master loop\n");
-  t1.yield(&master);     												
 }
 //
 //
@@ -204,8 +182,8 @@ struct MSG  parse_msg(RS485& rcv_channel) {
     memcpy (tmpBuf, rcv_channel.getData (), rmsg.len);    // copy message in temp buf
     LogMsg("Parse_msg: message recv: TOTAL LEN = %d, CMD = %x, SRC|DST = %x, PAYLOAD: ", rmsg.len, tmpBuf[CMD_OFFSET], tmpBuf[DST_OFFSET], &tmpBuf[PAYLOAD_OFFSET]);
     // extract command and destination
-    rmsg.cmd = tmpBuf[CMD_OFFSET];        // cmd is the first byte
-    rmsg.dst = tmpBuf[DST_OFFSET] & DST_BITS;                 // destination is low nibble
+    rmsg.cmd = tmpBuf[CMD_OFFSET];        				  // cmd is the first byte
+    rmsg.dst = tmpBuf[DST_OFFSET] & DST_BITS;             // destination is low nibble
 	rmsg.src = ((tmpBuf[DST_OFFSET] & SRC_BITS) >> SRC_SHIFT);     // destination is low nibble
     rmsg.dataLen = rmsg.len-CMD_HEADER_LEN;                            // account for command + src|dst code
     //LogMsg("Parse_msg: message recv: PAYLOAD LEN = %d, CMD = %x, DST = %x, SRC = %x, PAYLOAD: ", rmsg.dataLen, rmsg.cmd, rmsg.dst, rmsg.src, &tmpBuf[PAYLOAD_OFFSET]);

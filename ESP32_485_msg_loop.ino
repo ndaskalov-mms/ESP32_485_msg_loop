@@ -16,24 +16,18 @@
 //
 #define ENABLE_CONFIG_CREATE false
 #define FORCE_FORMAT_FS      false
-#define FORCE_NEW_CONFIG     false
+#define FORCE_NEW_CONFIG     false          // change ENABLE_CONFIG_CREATE to true alse
 //
 // define roles
 #define MASTER
 #define SLAVE
 #define LOOPBACK
-#define MAX_SLAVES 1
+#define MAX_SLAVES 1							 // absolute max is 16
 //
 // board IDs
 enum ADDR {                                         // board adresses, MASTER is ALLWAYS 0
 	MASTER_ADDRESS =  0,
 	SLAVE_ADDRESS1,
-	SLAVE_ADDRESS2,
-	SLAVE_ADDRESS3,
-	SLAVE_ADDRESS4,
-	SLAVE_ADDRESS5,
-	SLAVE_ADDRESS6,
-	SLAVE_ADDRESS7,
 };
 //
 // debug print levels
@@ -50,19 +44,20 @@ enum ADDR {                                         // board adresses, MASTER is
 // define log and errors channel
 #define SERIAL_LOG 	true
 #define MQTT_LOG	  false
-#define ZONES_A_READ_INTERVAL 500     // read A zones at 100mS
+#define ZONES_A_READ_INTERVAL 500      // read A zones at 100mS
 #define ZONES_B_READ_INTERVAL 1000     // read system voltages (B zones) at 100mS
-#define MUX_SET_INTERVAL      10      // time to set the analog lines after mux switch
+#define MUX_SET_INTERVAL      10       // time to set the analog lines after mux switch
+#define MASTER_ZONES_READ_INTERVAL 500 // read A zones at 100mS
 
 constexpr int BITRATE = 115200;
 constexpr int LOG_BITRATE = 115200;
 HardwareSerial& logger(Serial);
 //
 #ifdef MASTER
-byte slavesSetZonesMap = 0xFF;			  // bitmap tracking if zones data are pending to  be send slaves: bit 0 cooresponds to slave 1, bit 1 oslave 2,
-byte slavesSetPgmsMap = 0xFF;			  // bitmap tracking if pgms data are pending to  be send  to slaves: bit 0 cooresponds to slave 1, bit 1 oslave 2,
 HardwareSerial& MasterUART(Serial2);
 const char configFileName[] = "/alarmConfig3.cfg";
+int newZonesDataAvailable = 0;		// bitmap to know which board data was changed, master is 1, slave 1 is 2, etc
+int maxSlaves = 0;
 #endif
 #ifdef SLAVE
 #ifdef LOOPBACK

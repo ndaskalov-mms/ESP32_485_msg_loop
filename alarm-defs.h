@@ -106,3 +106,5 @@ enum  KEYSW_ACTS_t {
 	INSTANT_ARM_ONLY,
 };
 	
+#define NEW_DATA_BIT        0x1					// actual NEW_DATA_BIT will 0x1 shifted left by  board ID 
+

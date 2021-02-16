@@ -6,6 +6,10 @@
 #define ERROR_TOPIC		""
 #define CRITICAL_TOPIC    ""
 #define ARM_TOPIC    ""
+#define PARTITIONS_STATES_TOPIC "/paradox/states/partitions/"
+#define PARTITIONS_CONTROL_TOPIC "/paradox/control/partitions/"
+#define ZONES_STATES_TOPIC "/paradox/states/zones/"
+#define ZONES_CONTROL_TOPIC "/paradox/control/zones/"
 //
 //  ReportMQTT(char * topic, char * mqtt_msg)  - called that UNRECOVERY  error occured while sending command
 //                  - this might triger some actions as send notification over MQTT, e-mail, watchdog reset, etc

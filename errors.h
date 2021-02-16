@@ -21,22 +21,22 @@ enum errorID {
   ERR_INFO = 2,                           // just print if INFO is set
   MSG_READY = 1,                          // message received
   ERR_OK = 0,                           	// no error
-  ERR_DEBUG = -1, 							          // debug print, can be enabled/disable by #define DEBUG
-  ERR_WARNING = -2, 						          // warning print  can be enabled/disable by #define WARNING
-  ERR_INV_PAYLD_LEN = -3,                   // send/rcv  message payload issue (too long or doesn't match message code payload size)
-  ERR_TRM_MSG = -4,                         // something wrong happened when transmitting, the specific error shall be reported already at the point of contact
-  ERR_RCV_MSG = -5,                         // something wrong happened when receiving, the specific error shall be reported already at the point of contact
-  ERR_BAD_CMD = -6,                         // unknown command
-  ERR_BAD_DST = -7,                         // unknown destination
-  ERR_TIMEOUT = -8,                         // send/recv message timeout at calling function
-  ERR_DB_INDEX_NOT_FND = -9,				// cannot find error in the database
-  ERR_RS485_BUF_OVERFLOW = -10,            	// RS485 class receive buffer overflow
-  ERR_RS485_INV_BYTE_CODE = -11,            // RS485 byte encodding error detected
-  ERR_RS485_BAD_CRC = -12,                  // RS485 crc error
-  ERR_RS485_TIMEOUT = -13,                  // RS485 timeout waiting for ETX when STX is received
-  ERR_RS485_FORCE_SCREW = -14 ,             // RS485 intentionally generated for testing purposes
-  ERR_RS485_NO_CALLBACK = -15,              // RS485 has no read/write/available callback 
-  ERR_CRITICAL = -16,                       // critical error occured, 
+  ERR_CRITICAL = -1,                       // critical error occured, 
+  ERR_DEBUG = -2, 							          // debug print, can be enabled/disable by #define DEBUG
+  ERR_WARNING = -3, 						          // warning print  can be enabled/disable by #define WARNING
+  ERR_INV_PAYLD_LEN = -4,                   // send/rcv  message payload issue (too long or doesn't match message code payload size)
+  ERR_TRM_MSG = -5,                         // something wrong happened when transmitting, the specific error shall be reported already at the point of contact
+  ERR_RCV_MSG = -6,                         // something wrong happened when receiving, the specific error shall be reported already at the point of contact
+  ERR_BAD_CMD = -7,                         // unknown command
+  ERR_BAD_DST = -8,                         // unknown destination
+  ERR_TIMEOUT = -9,                         // send/recv message timeout at calling function
+  ERR_DB_INDEX_NOT_FND = -10,				// cannot find error in the database
+  ERR_RS485_BUF_OVERFLOW = -11,            	// RS485 class receive buffer overflow
+  ERR_RS485_INV_BYTE_CODE = -12,            // RS485 byte encodding error detected
+  ERR_RS485_BAD_CRC = -13,                  // RS485 crc error
+  ERR_RS485_TIMEOUT = -14,                  // RS485 timeout waiting for ETX when STX is received
+  ERR_RS485_FORCE_SCREW = -15,             // RS485 intentionally generated for testing purposes
+  ERR_RS485_NO_CALLBACK = -16,              // RS485 has no read/write/available callback 
   };
 
 // Errors friendly names for UI

@@ -81,7 +81,7 @@ void master() {
   memcpy(errorsDB_backup, errorsDB, sizeof(errorsDB_backup)); // backup error DB
   master2slave();								  // send if there is sometinigh to be send
   // do master tasks here 
-  convertMasterZones();							  // at specified interval read and convert ADC values to zones statuses
+  convertMasterZones();							  // at specified interval reads and converts ADC values to zones statuses
   alarmLoop();
   //printAlarmZones((byte *) &zonesDB, MASTER_ADDRESS, MAX_SLAVES);
   if(memcmp(errorsDB, errorsDB_backup, sizeof(errorsDB))) {

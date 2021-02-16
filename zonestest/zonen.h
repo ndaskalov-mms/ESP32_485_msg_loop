@@ -13,7 +13,7 @@ enum TIMERS {
   ZONES_B_READ_TIMER = 2,
   MUX_SET_TIMER = 3,
   MASTER_ZONES_READ_TIMER = 4,
-};
+  };
 
 
 // command records structure for cmdDB

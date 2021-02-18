@@ -23,7 +23,7 @@ struct TIMER {
   unsigned long setAt;
 };
 //
-// timerss database to look-up timer params 
+// timerss database to look-up timer params TODO - move all timers staff to helpers or separate file. 
 // 
 struct TIMER timerDB[] = {{ZONES_A_READ_TIMER, ZONES_A_READ_INTERVAL,  0}, {ZONES_B_READ_TIMER, ZONES_B_READ_INTERVAL, 0},\
 						  {MUX_SET_TIMER, MUX_SET_INTERVAL, 0}, 		   {MASTER_ZONES_READ_TIMER, MASTER_ZONES_READ_INTERVAL, 0},\

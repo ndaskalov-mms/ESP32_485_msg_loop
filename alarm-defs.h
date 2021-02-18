@@ -36,12 +36,14 @@ enum  ZONE_OPTS_t {
 #define REPORT_ALARM 	0x30
 
 enum ZONE_EXT_OPT_t {
-    ZONE_FOLLOW_PANEL_ONTAMPER  = 0x1,				// true - follow gloabl tamper options, false - follow zone tamper options
-    ZONE_TAMPER_OPT = (0x2 | 0x4),  		// zone tamper opions bits - see ZONE_TAMPER_OPT_XXX
-    ZONE_FOLLOW_GLOBAL_ON_ANTIMASK  = 0x10,			// true - follow gloabl antimask options, false - follow zone antimask options
-    ZONE_ANTIMASK_OPT = (0x20 | 0x40), 	// zone antimask options bits - see ZONE_ANTI_MASK_SUPERVISION_XXX
+    ZONE_TAMPER_OPT = (0x2 | 0x1),  		// zone tamper opions bits - see ZONE_TAMPER_OPT_XXX
+    ZONE_FOLLOW_PANEL_ONTAMPER  = 0x8,		// true - follow gloabl tamper options, false - follow zone tamper options
+    ZONE_ANTIMASK_OPT = (0x20 | 0x10), 		// zone antimask options bits - see ZONE_ANTI_MASK_SUPERVISION_XXX
+    ZONE_FOLLOW_GLOBAL_ON_ANTIMASK  = 0x80,	// true - follow gloabl antimask options, false - follow zone antimask options
 };
-#define ZONE_ANTIMASK_OPT_SHIFT_BITS 4
+#define ZONE_ANTIMASK_OPT_SHIFT_CNT 4
+#define ZONE_ANTIMASK_OPT_BITS 0xF0
+#define ZONE_TAMPER_OPT_BITS 0x0F
 //
 enum RF_SUPERVISION_OPT_t {
 	RF_SUPERVISION_DISABLED =  0,

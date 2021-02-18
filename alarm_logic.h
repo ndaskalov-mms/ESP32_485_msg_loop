@@ -198,9 +198,9 @@ void unBypassZone(int board,  int zoneIdx) {
 // zone global tamper options:	alarmGlobalOpts.tamperOpts, bitmask, same as local - see #define ZONE_TAMPER_OPT_XXXXXX
 // zone local taper options:    zoneDB[zone].zoneExtOpt, see below  
 //  	ZONE_FOLLOW_PANEL_ONTAMPER  	== true - follow gloabl tamper options, false - follow zone tamper options
-//  	ZONE_TAMPER_OPT = (0x2 | 0x4) - bitmask zone tamper opions bits - see below ZONE_TAMPER_OPT_XXX
+//  	ZONE_TAMPER_OPT = (0x2 | 0x1) - bitmask zone tamper opions bits - see below ZONE_TAMPER_OPT_XXX
 //  	ZONE_FOLLOW_GLOBAL_ON_ANTIMASK  == true - follow gloabl antimask options, false - follow zone antimask options
-//  	ZONE_ANTIMASK_OPT = (0x20 | 0x40) - bitmask zone antimask options bits - see below ZONE_ANTI_MASK_SUPERVISION_XXX
+//  	ZONE_ANTIMASK_OPT = (0x20 | 0x10) - bitmask zone antimask options bits - see below ZONE_ANTI_MASK_SUPERVISION_XXX
 // ZONE_TAMPER_OPT_XXXXXX:										
 //		ZONE_TAMPER_OPT_DISABLED  =  0	 
 //		ZONE_TAMPER_OPT_TROUBLE_ONLY = 1,     
@@ -208,22 +208,42 @@ void unBypassZone(int board,  int zoneIdx) {
 //		ZONE_TAMPER_OPT_ALARM  = 3,     
 //
 //		TODO - where to check RF errors??
-//      TODO - add antimask support, currently both open line and shorted line are treated as one
+//      TODO - add antimask support, currently both open line and shorted line are treated as one. 
+//             Anti-mask opt are same as zones, but shifted left ZONE_ANTIMASK_OPT_SHIFT_BITS in zoneExtOpt 
 //
 void processZoneError(struct ALARM_ZONE zone) {
 int tamperOpt;
 //
-	if(zone.bypassed && alarmGlobalOpts.tamperBypassEn) {			// ignore tamper on bypassed zone as prescribed
+	if(zone.bypassed && alarmGlobalOpts.tamperBypassEn) {		// ignore tamper on bypassed zone if enabled in global opts
 		partitionDB[zone.zonePartition].ignorredTamperZonesCnt++;
 		return;									
 	}
-	if(zone.zoneExtOpt & ZONE_FOLLOW_PANEL_ONTAMPER)				// findout global or local options to follow
-		tamperOpt = alarmGlobalOpts.tamperOpts;						// follow the global tamper settings
+	partitionDB[zone.zonePartition].tamperZonesCnt++;			// update statistics
+	PublishMQTT(ZONES_TAMPER_STATUS_TOPIC, zone.zoneName, TAMPER_PAYLOAD) // send over MQTT
+//
+	if(zone.zoneExtOpt & ZONE_FOLLOW_PANEL_ONTAMPER)			// find out global or local options to follow
+		tamperOpt = alarmGlobalOpts.tamperOpts;					// follow the global tamper settings
 	else
-		tamperOpt = zone.zoneExtOpt;								// follow the global tamper settings
+		tamperOpt = zone.zoneExtOpt;							// follow the global tamper settings
+	tamperOpt &= ZONE_TAMPER_OPT;								// isolate tamper bits from low nibble. Hihg nibble holds antimask opt
 	switch (tamperOpt) {
-		case 
-}	
+		case ZONE_TAMPER_OPT_DISABLED:							// do nothing
+			return;													
+		case ZONE_TAMPER_OPT_TROUBLE_ONLY:
+			reportTamper(zone);									// only report the tamper, no alarms
+			break;
+		case ZONE_TAMPER_OPT_ALARM_WHEN_ARMED:
+			if(partitionDB[zone.zonePartition].armStatus == DISARMED)
+				reportTamper(zone);								// when disarmed - only report the tamper, no alarms
+			else {
+				trigerAlarm(partitionDB[zone.zonePartition]);	// when armed - generete alarm
+			break
+		case ZONE_TAMPER_OPT_ALARM:
+			trigerAlarm(partitionDB[zone.zonePartition]);
+			break;
+	}
+	return;
+}
 //
 // alarmLoop() - implement all alarm business
 //

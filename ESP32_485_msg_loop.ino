@@ -13,6 +13,7 @@
 #define SLAVE_PGM_CNT     2
 #define SZONERES_LEN      (SLAVE_ZONES_CNT/2 + SLAVE_ZONES_CNT%2)
 #define MAX_KEYSW_CNT	32
+#define MAX_MQTT_TOPIC	256
 //
 #define ENABLE_CONFIG_CREATE false
 #define FORCE_FORMAT_FS      false
@@ -98,6 +99,7 @@ RS485 SlaveMsgChannel  (SlaveRead, SlaveAvailable, SlaveWrite, ErrWrite, RxBUF_S
 int err, retCode;                         // holds error returns from some functions                         
 struct MSG rcvMsg;                        // temp structs for message tr/rcv
 byte tmpMsg [MAX_PAYLOAD_SIZE];
+byte tmpMsg [MAX_MQTT_TOPIC];
 //
 // cooperative multitasking staff
 //

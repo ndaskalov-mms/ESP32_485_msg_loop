@@ -171,6 +171,19 @@ void setAlarmDefaults(bool validFlag) {
    printAlarmPartOpts((byte*) &alarmConfig.alarmPartConfig, MAX_PARTITION); 
 }
 //
+// clean-up run time data - staistics and zone statuses TODO - update here when new data added
+//
+void cleanRTdata() {
+	 for(int j = 0; j < MAX_PARTITION; j++) {
+		openZonesCnt = bypassedZonesCnt= tamperZonesCnt = ignorredTamperZonesCnt = 0;		
+	 }
+	 for(int i = 0; i <= MAX_SLAVES; i++) {         										// for each board 
+        for(int j=0; j< (i?SLAVE_ALARM_ZONES_CNT:MASTER_ALARM_ZONES_CNT); j++) {            // for each board' zone
+           zonesDB[i][j].bypassed = zonesDB[i][j].zoneStat = 0;
+		}
+	 }
+}
+//
 //  initAlarm() - tries to load complete alarm zones data from storage
 //  if successful, sets global flag masterDataValid and remoteDataValid to true, this way enables operation.
 //  if not successful read, initialize zones database (zonesDB) and sets global flags master DataValid and remoteDataValid to false
@@ -187,11 +200,11 @@ void initAlarm() {
   	    memcpy((byte *) keyswDB, (byte *) &alarmConfig.keyswConfig, sizeof(keyswDB)); 
   		memcpy((byte *) &alarmGlobalOpts, (byte *) alarmConfig.alarmOptionsConfig, sizeof(alarmGlobalOpts)); 
   	    memcpy((byte *) &partitionDB, (byte *) alarmConfig.alarmPartConfig, sizeof(partitionDB)); 
-  		//printAlarmKeysw((byte*) &keyswDB, MAX_KEYSW_CNT); 
+		cleanRTdata();
   	    printAlarmOpts((byte*) &alarmGlobalOpts); 
   	    printAlarmPartOpts((byte*) &partitionDB, MAX_PARTITION); 
   		//printAlarmZones((byte *) &alarmConfig.zoneConfig, MASTER_ADDRESS, MAX_SLAVES);
-  		//printAlarmZones((byte *) zonesDB, 0, 1);
+		//printAlarmKeysw((byte*) &keyswDB, MAX_KEYSW_CNT); 
   		return;   
 	 }
    //   wrong or missing config file

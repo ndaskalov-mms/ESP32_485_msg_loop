@@ -1,110 +1,4 @@
 #include "alarm-defs.h"
-//
-// alarm zones records structure to hold all alarm zones related info
-//
-struct ALARM_ZONE {
-  byte  valid;					// data valid	
-  byte  bypassed;			    // true if zone is bypassed
-  byte  zoneStat;               // status of the zone switch. (open, close, short, line break
-  byte  zoneType;				// zone type - enable, entry delay, follow, instant, stay, etc
-  byte  zonePartition;          // assigned to partition X
-  byte  zoneOptions;            // auto shutdown, bypass, stay, force, alarm type, intellyzone, dealyed transission
-  byte  zoneExtOpt;             // zone tamper, tamper supervision, antimask, antimask supervision
-  //byte	lastZoneStat;			// last zone status reported
-  unsigned long reportedAt;		// the time when the zone status was reported
-  char  zoneName[16];           // user friendly name
-};        
-//
-// alarm pgms records structure to hold all alarm pgms related info
-//
-struct ALARM_PGM {
-  byte  valid; 					// data valid	
-  byte  iValue;             	// initial value
-  byte  cValue;             	// current
-  char  pgmName[16];           	// user friendly name
-};
-//
-// keyswitch related staff
-//
-struct ALARM_KEYSW {
-  byte  partition;				// Keyswitch can be assigned to one partition only. If == NO_PARTITION (0) the keyswitch is not defined/valid
-  byte  type;					// disabled, momentary, maintained,  generate utility key on open/close, .... see enum  KEYSW_OPTS_t 
-  byte  action;					// keyswitch action definition - see enum  KEYSW_ACTS_t 
-  byte	boardID;				// the board of which zone will e used as keyswitch belong. Master ID is 0	
-  byte  zoneID;                 // the number of zone that will e used as keyswitch
-  char  keyswName[16];          // user friendly name
-};  
-//
-struct ALARM_GLOBAL_OPTS_t {
-	byte maxSlaveBrds;				// how many slaves are installed. Run-time this value is copied to maxSlaves
-	int  armRestrictions;			// all DBs are sized to MAX_SLAVES compile time, means maxSlaveBrds =< maxSlave !!!!
-	byte troubleLatch;				// if trouble, latch it or not
-	byte tamperBypassEn;			// true - if zone is bypassed ignore tamper; false - follow global or local tamper settings
-	byte tamperOpts;				// global tamper optons, same as local - see #define ZONE_TAMPER_OPT_XXXXXX
-	byte antiMaskOpt;				// global antimask optons, same as local - see #define ZONE_ANTI_MASK_SUPERVISION__XXXXXX
-	byte rfSupervisionOpt;			// wireless sensors supervision see RF_SUPERVISION_XXXX
-	unsigned long entryDelay1Start;	//to store the time when entry delay 1 zone opens
-	unsigned long entryDelay2Start; //to store the time when entry delay 2 zone opens
-};
-//
-// alarm partition 
-//
-struct ALARM_PARTITION_t {
-	byte armStatus;					//  bitmask, DISARM = 0, REGULAR_ARM, FORCE_ARM, INSTANT_ARM, STAY_ARM 
-	byte forceOnRegularArm;			// allways use force arm (bypass open zones) when regular arming
-	byte forceOnStayArm;			// allways use force arm (bypass open zones) when stay arming
-	byte followZone2entryDelay2;	// if and entry delay zone is bypassed and follow zone is opens, the alarm will be postponed by EntryDelay2 
-	byte notBypassedEntyDelayZones; // used to triger follow zones to use ENTRY_DELAY2 if no more notBypassedEntyDelayZones
-	byte alarmOutputEn;				// enable to triger bell or siren once alarm condition is detected in partition
-	byte alarmCutOffTime;			// cut alarm output after 1-255 seconds
-	byte noCutOffOnFire;			// disable cut-off for fire alarms
-	byte alarmRecycleTime;			// re-enable after this time if alarm condition not fixed
-	unsigned long armTime;			// arm time
-	byte entryDelay1Interval;		// entry delay 1 delay in seconds 1-255
-	byte entryDelay2Interval;		// entry delay 2 delay in seconds 1-255
-	unsigned long entryDelay1;		// entry delay 1 delay start time in mS
-	unsigned long entryDelay2;		// entry delay 2 delay start time in mS
-	byte exitDelay;					// exit delay in seconds 1-255
-	byte partitionName[16];			// user readable name
-	byte follows[MAX_PARTITION];
-};
-//
-// zoneDB - database with all zones (master&slaves) info. Info from slaves are fetched via pul command over RS485
-// TODO - use prep to get largest zone count
-// All alarm zones zones organized as 2D array - [board][zones]. Contains data for all boards and zones in each board, incl. master
-//
-typedef struct ALARM_ZONE alarmZoneArr_t[MAX_SLAVES+1][MAX_ALARM_ZONES_PER_BOARD]; // every two zones here report for two contacts connected to one ADC channel
-alarmZoneArr_t zonesDB;
-//
-//
-// MASTER PGMs organized as 2D array. All pgms zones organized as 2D array - [board][pgms].
-//
-typedef struct ALARM_PGM alarmPgmArr_t[MAX_SLAVES+1][MAX_PGM_CNT];		        // typically master has more pgms than slave, so we use the largest denominator
-alarmPgmArr_t pgmsDB;
-//
-// alarm keysw records structure to hold all alarm pgms related info
-typedef struct ALARM_KEYSW alarmKeyswArr_t[MAX_KEYSW_CNT];		        
-alarmKeyswArr_t keyswDB;
-//
-// alarm global options storage
-struct ALARM_GLOBAL_OPTS_t  alarmGlobalOpts;
-//
-// alarm partition options storage
-typedef struct ALARM_PARTITION_t alarmPartArr_t[MAX_PARTITION];
-alarmPartArr_t partitionDB;
-//
-// Struct to store the all alarm configuration
-//
-struct CONFIG_t {
-  byte  version;
-  byte  zoneConfig[sizeof(zonesDB)];
-  byte  pgmConfig[sizeof(pgmsDB)];
-  byte  keyswConfig[sizeof(keyswDB)];
-  byte  alarmOptionsConfig[sizeof(alarmGlobalOpts)];
-  byte  alarmPartConfig[sizeof(partitionDB)];
-  byte  csum;
-} alarmConfig, tmpConfig;
-//
 #include "loadSafeConfTest/loadStore.h"
 #include "alarmHelpers.h"
 //
@@ -144,11 +38,13 @@ int partitionTimer(int timer, int oper, int partition) {
 //
 int zoneLookup( char * name, int getZoneBoard) {
 	logger.printf ("zoneLookup: looking for zone %s\n", name);
-	for (int j = MASTER_ADDRESS; j <= maxSlaves; j++) {
-        for(int i=0; i< (j?SLAVE_ALARM_ZONES_CNT:MASTER_ALARM_ZONES_CNT); i++) {             // for each board' zone
-			if(strcmp(name, zonesDB[j][i].zoneName)) {
-				logger.printf ("zoneLookup: zone found board %d index %d\n", j, i);
-				return (getZoneBoard?j:i)
+	for (int brd = MASTER_ADDRESS; brd <= maxSlaves; brd++) {
+        for(int zn=0; zn< (brd?SLAVE_ALARM_ZONES_CNT:MASTER_ALARM_ZONES_CNT); zn++) {             // for each board' zone
+			if(!zonesDB[brd][zn].valid)
+				continue;
+			if(strcmp(name, zonesDB[brd][zn].zoneName)) {
+				logger.printf ("zoneLookup: zone found board %d index %d\n", brd, zn);
+				return (getZoneBoard?brd:zn)
 		}
     }
     ErrWrite(ERR_WARNING, "zoneLookup: zone %s not found\n", name);
@@ -160,59 +56,19 @@ int zoneLookup( char * name, int getZoneBoard) {
 // params: int partIdx - index in partitionDB
 // returns: bypassed entry delay zones count
 int countBypassedEntryDelayZones(int partIdx) {
-	for (int j = MASTER_ADDRESS; j <= maxSlaves; j++) {
-		for(int i=0; i< (j?SLAVE_ALARM_ZONES_CNT:MASTER_ALARM_ZONES_CNT); i++) {  
-			if((zonesDB[j][i].zonePartition == partIdx) {
-				if((zonesDB[j][i].zoneType == ENTRY_DELAY1) || (zonesDB[j][i].zoneType == ENTRY_DELAY2) {
-					if(!zonesDB[j][i].bypassed) 
-						res++;
+	for (int brd = MASTER_ADDRESS; brd <= maxSlaves; brd++) {
+		for(int zn=0; i< (brd?SLAVE_ALARM_ZONES_CNT:MASTER_ALARM_ZONES_CNT); zn++) {  
+			if((zonesDB[brd][zn].zonePartition == partIdx) {
+				if(zonesDB[brd][zn].valid) {
+					if((zonesDB[brd][zn].zoneType == ENTRY_DELAY1) || (zonesDB[brd][zn].zoneType == ENTRY_DELAY2) {
+						if(!zonesDB[brd][zn].bypassed) 
+							res++;
+					}
 				}
 			}
 		}
     }
 	return res;
-}	
-//
-// bypassZone- baypasses zone if allowed. 
-// params: int board - board the zone belongs to (MASTER_ADDRESS, SLAVE... mazSlaves)
-//         int zoneIdx - zone index 0 .. MASTER/SLAVE_ZONES_MAX depends on board
-// returns: false - failure, true - success
-//
-int bypassZone(int board,  int zoneIdx) {
-	int res = 0; 
-	int partIdx;
-	if(!(zonesDB[board][zoneIdx].zoneOptions & BYPASS_EN))     // allowed to bypass?
-		return false;										   // no, return	
-	zonesDB[board][zoneIdx].bypassed = true;				   // yes, mark it as bypassed
-	// count unbypassed ENTRY_DELAYX zones for this partition and update  notBypassedEntyDelayZones in partition struct
-	// this is needed for follow zones to know if there is entry delay zones to follow (in case all ENTRY_DELAY zones are bypassed)
-	// and if no entry delay zones and followZone2entryDelay2 in corresponding partition opts is set, follow zones will use ENTRY_DELAY2 instead
-	partIdx = zonesDB[board][zoneIdx].zonePartition;		   // find zone's partition
-	partitonDB[partIdx].notBypassedEntyDelayZones = countBypassedEntryDelayZones(partIdx);	// mark how many entry delay zone are not bypassed
-	return true;
-}	
-//
-// unBypassZone- un- baypasses zone
-// params: int board - board the zone belongs to (MASTER_ADDRESS, SLAVE... mazSlaves)
-//         int zoneIdx - zone index 0 .. MASTER/SLAVE_ZONES_MAX depends on board
-// returns: none
-//
-void unBypassZone(int board,  int zoneIdx) {
-	int res = 0; 
-	int partIdx;
-	zonesDB[board][zoneIdx].bypassed = false;				   // yes, mark it as un bypassed
-	// count unbypassed ENTRY_DELAYX zones for this partition and update  notBypassedEntyDelayZones in partition struct
-	// this is needed for follow zones to know if there is entry delay zones to follow (in case all ENTRY_DELAY zones are bypassed)
-	// and if no entry delay zones and followZone2entryDelay2 in corresponding partition opts is set, follow zones will use ENTRY_DELAY2 instead
-	partIdx = zonesDB[board][zoneIdx].zonePartition;		   // find zone's partition
-	partitonDB[partIdx].notBypassedEntyDelayZones = countBypassedEntryDelayZones(partIdx);	// mark how many entry delay zone are not bypassed
-}		
-// process zone error, generates trouble or alarm
-//
-void processZoneError(struct ALARM_ZONE zone) {
-int tamperOpt;
-	//if(!(zone.zoneExtOpt & ZONE_TAMPER_OPT))	// if local otpions are specified
-		//tamperOpt = 								// no, follow the global tamper settings
 }	
 //
 // check arm restrictions
@@ -223,14 +79,14 @@ int tamperOpt;
 int checkArmRestrctions(byte partIdx, int action) {
 int ret = 0; 
   ErrWrite(ERR_DEBUG, "Checking arm restictions for part %d\n", partIdx);
-  for(int i = 0; i <=maxSlaves; i++) {         // for each board 
-     for(int j=0; j< (i?SLAVE_ALARM_ZONES_CNT:MASTER_ALARM_ZONES_CNT); j++) {             // for each board' zone
+  for(int brd = 0; brd <=maxSlaves; brd++) {         // for each board 
+     for(int zn=0; zn< (brd?SLAVE_ALARM_ZONES_CNT:MASTER_ALARM_ZONES_CNT); brd++) {             // for each board' zone
         //logger.printf("Looking at board %d zone %d\n", i, j);  
-        sprintf(zonesDB[i][j].zoneName, "Zone_%d", j);
-        zonesDB[i][j].zoneType = 0;
-        if(zonesDB[i][j].zonePartition == partIdx) {                         // check only zones assigned to this partition
-          if(zonesDB[i][j].valid && !zonesDB[i][j].bypassed)              // check if zone is no defined/in use or if bypassed
-            if(zonesDB[i][j].zoneStat & ZONE_ERROR_MASK)                     // tamper or antimask error in zone?
+        sprintf(zonesDB[brd][zn].zoneName, "Zone_%d", j);
+        zonesDB[brd][zn].zoneType = 0;
+        if(zonesDB[brd][zn].zonePartition == partIdx) {                         // check only zones assigned to this partition
+          if(zonesDB[brd][zn].valid && !zonesDB[brd][zn].bypassed)              // check if zone is no defined/in use or if bypassed
+            if(zonesDB[brd][zn].zoneStat & ZONE_ERROR_MASK)                     // tamper or antimask error in zone?
               ret+=1;                                                         // no error, continue
           }
         }
@@ -240,9 +96,9 @@ int ret = 0;
   return ret; 
 }
 //
-void reportArm(int partIdx) {
-  ReportMQTT(ARM_TOPIC, "Arming");
-}
+//void reportArm(int partIdx) {
+//  ReportMQTT(ARM_TOPIC, "Arming");
+//}
 //
 // arm partition 
 // params: byte partIxd - partition number (ID) to be used as index in partitionDB
@@ -289,11 +145,107 @@ void armPartition(byte partIxd, int action)  {
 		}
 }	
 //
+// bypassZone- baypasses zone if allowed. 
+// params: int board - board the zone belongs to (MASTER_ADDRESS, SLAVE... mazSlaves)
+//         int zoneIdx - zone index 0 .. MASTER/SLAVE_ZONES_MAX depends on board
+// returns: false - failure, true - success
+//
+int bypassZone(int board,  int zoneIdx) {
+	int res = 0; 
+	int partIdx;
+	if(!zonesDB[board][zoneIdx].valid) {
+		PublishMQTT(ZONES_BYPASS_STATUS_TOPIC, zonesDB[board][zoneIdx].zoneName, INVALID_ZONE_PAYLOAD);
+		return false;	
+	}
+	if(!(zonesDB[board][zoneIdx].zoneOptions & BYPASS_EN)) {   // allowed to bypass?
+		PublishMQTT(ZONES_BYPASS_STATUS_TOPIC, zonesDB[board][zoneIdx].zoneName, BYPASS_DISABLE_PAYLOAD);
+		return false;										   // no, return	
+	}
+	zonesDB[board][zoneIdx].bypassed = true;				   // yes, mark it as bypassed
+	// count unbypassed ENTRY_DELAYX zones for this partition and update  notBypassedEntyDelayZones in partition struct
+	// this is needed for follow zones to know if there is entry delay zones to follow (in case all ENTRY_DELAY zones are bypassed)
+	// and if no entry delay zones and followZone2entryDelay2 in corresponding partition opts is set, follow zones will use ENTRY_DELAY2 instead
+	partIdx = zonesDB[board][zoneIdx].zonePartition;		   // find zone's partition
+	partitonDB[partIdx].bypassedZonesCnt++;					   // update statistics
+	partitonDB[partIdx].notBypassedEntyDelayZones = countBypassedEntryDelayZones(partIdx);	// mark how many entry delay zone are not bypassed
+	newZonesDataAvailable != NEW_DATA_BIT << board;
+	PublishMQTT(ZONES_BYPASS_STATUS_TOPIC, zonesDB[board][zoneIdx].zoneName, BYPASS_PAYLOAD);
+	return true;
+}	
+//
+// unBypassZone- un- baypasses zone
+// params: int board - board the zone belongs to (MASTER_ADDRESS, SLAVE... mazSlaves)
+//         int zoneIdx - zone index 0 .. MASTER/SLAVE_ZONES_MAX depends on board
+// returns: none
+//
+void unBypassZone(int board,  int zoneIdx) {
+	int res = 0; 
+	int partIdx;
+	zonesDB[board][zoneIdx].bypassed = false;				   // yes, mark it as un bypassed
+	// count unbypassed ENTRY_DELAYX zones for this partition and update  notBypassedEntyDelayZones in partition struct
+	// this is needed for follow zones to know if there is entry delay zones to follow (in case all ENTRY_DELAY zones are bypassed)
+	// and if no entry delay zones and followZone2entryDelay2 in corresponding partition opts is set, follow zones will use ENTRY_DELAY2 instead
+	partIdx = zonesDB[board][zoneIdx].zonePartition;		   // find zone's partition
+	partitonDB[partIdx].bypassedZonesCnt--;					   // update statistics
+	partitonDB[partIdx].notBypassedEntyDelayZones = countBypassedEntryDelayZones(partIdx);	// mark how many entry delay zone are not bypassed
+	newZonesDataAvailable != NEW_DATA_BIT << board;
+	PublishMQTT(ZONES_BYPASS_STATUS_TOPIC, zonesDB[board][zoneIdx].zoneName, UNBYPASS_PAYLOAD)
+}
+//
+// process zone error, generates trouble or alarm
+// if alarmGlobalOpts.tamperBypassEn == true - if zone is bypassed ignore tamper;
+//										false - follow global or local tamper settings
+// zone global tamper options:	alarmGlobalOpts.tamperOpts, bitmask, same as local - see #define ZONE_TAMPER_OPT_XXXXXX
+// zone local taper options:    zoneDB[zone].zoneExtOpt, see below  
+//  	ZONE_FOLLOW_PANEL_ONTAMPER  	== true - follow gloabl tamper options, false - follow zone tamper options
+//  	ZONE_TAMPER_OPT = (0x2 | 0x4) - bitmask zone tamper opions bits - see below ZONE_TAMPER_OPT_XXX
+//  	ZONE_FOLLOW_GLOBAL_ON_ANTIMASK  == true - follow gloabl antimask options, false - follow zone antimask options
+//  	ZONE_ANTIMASK_OPT = (0x20 | 0x40) - bitmask zone antimask options bits - see below ZONE_ANTI_MASK_SUPERVISION_XXX
+// ZONE_TAMPER_OPT_XXXXXX:										
+//		ZONE_TAMPER_OPT_DISABLED  =  0	 
+//		ZONE_TAMPER_OPT_TROUBLE_ONLY = 1,     
+//		ZONE_TAMPER_OPT_ALARM_WHEN_ARMED  = 2,      
+//		ZONE_TAMPER_OPT_ALARM  = 3,     
+//
+//		TODO - where to check RF errors??
+//      TODO - add antimask support, currently both open line and shorted line are treated as one
+//
+void processZoneError(struct ALARM_ZONE zone) {
+int tamperOpt;
+//
+	if(zone.bypassed && alarmGlobalOpts.tamperBypassEn) {			// ignore tamper on bypassed zone as prescribed
+		partitionDB[zone.zonePartition].ignorredTamperZonesCnt++;
+		return;									
+	}
+	if(zone.zoneExtOpt & ZONE_FOLLOW_PANEL_ONTAMPER)				// findout global or local options to follow
+		tamperOpt = alarmGlobalOpts.tamperOpts;						// follow the global tamper settings
+	else
+		tamperOpt = zone.zoneExtOpt;								// follow the global tamper settings
+	switch (tamperOpt) {
+		case 
+}	
+//
 // alarmLoop() - implement all alarm business
 //
 void alarmLoop() {
-int cz, cb;
+//
+    if(timeoutOps(GET, ALARM_LOOP_TIMER) || newZonesDataAvailable)) 					// run the loop on spec intervals
+			return;																		// or when something changed
+	timeoutOps(SET, ALARM_LOOP_TIMER);													// restart timer
+	cleanRTdata();																		// clear all statistics
+	for (int brd = MASTER_ADDRESS; brd <= maxSlaves; brd++) {							// loop over all zones in all boards
+	    for(int zn=0; zn< (brd?SLAVE_ALARM_ZONES_CNT:MASTER_ALARM_ZONES_CNT); zn++) {   // for each board' zone
+			if(!zonesDB[brd][zn].valid)										 			// invalid zone, continue
+				continue;	
+			if(zonesDB[brd][zn].zoneStat & ZONE_ERROR_MASK) {                    		// tamper or antimask error in zone?
+				processZoneError(zonesDB[brd][zn]);
+			}
+		}
+    }
 
+			if(strcmp(name, zonesDB[j][i].zoneName)) {
+				logger.printf ("zoneLookup: zone found board %d index %d\n", j, i);
+				return (getZoneBoard?j:i)
 /*
   		for(cz = 0; cz < MASTER_ALARM_ZONES_CNT; cz++) {
 				if(!(zonesDB[MASTER_ADDRESS][cz].valid || zonesDB[MASTER_ADDRESS][cz].bypassed))	// check if zone is no defined/in use or if bypassed

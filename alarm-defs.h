@@ -50,7 +50,7 @@ enum RF_SUPERVISION_OPT_t {
 	RF_SUPERVISION_TROUBLE_ONLY = 0x1,
 	RF_SUPERVISION_ALARM_WHEN_ARMED = 0x2,
 	RF_SUPERVISION_ALARM  = 3,
-}
+};
 //
 enum ZONE_TAMPER_OPT_t {
 	ZONE_TAMPER_OPT_DISABLED  =  0
@@ -106,7 +106,13 @@ enum  KEYSW_ACTS_t {
 	FORCE_ARM_ONLY,
 	INSTANT_ARM_ONLY,
 };
-	
+//
+enum entryDelay_t {
+	NOT_STARTED,
+	RUNNING,
+	DONE,
+};
+//
 #define NEW_DATA_BIT        0x1					// actual NEW_DATA_BIT will 0x1 shifted left by  board ID 
 //
 //
@@ -174,11 +180,12 @@ struct ALARM_PARTITION_t {
 	byte entryDelay2Interval;		// entry delay 2 delay in seconds 1-255
 	byte exitDelay;					// exit delay in seconds 1-255
 	byte partitionName[16];			// user readable name
-	byte follows[MAX_PARTITION];
+	byte follows[MAX_PARTITION];	// array with positional info, if position x != 0 than this partition follows parititon x
 // run-time statistics  TODO - spit config and rt data in separate objects
 	unsigned long armTime;			// arm time
 	unsigned long entryDelay1;		// entry delay 1 delay start time in mS
 	unsigned long entryDelay2;		// entry delay 2 delay start time in mS
+	byte entryDelayFSM;				// current state of entry delay FSM. States are: NOT_STARTED, RUNNING, DONE
 	byte openZonesCnt;				// count of open zones
 	byte bypassedZonesCnt;			// count of bypassed zones
 	byte tamperZonesCnt;			// count of zones with tamper and anti-mask 

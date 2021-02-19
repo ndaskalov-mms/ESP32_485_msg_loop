@@ -24,7 +24,7 @@ int sendCmd(byte cmd, byte dst, byte * payload) {
     }
     cmdDB[cmd_index].last_transmitted = millis();        // register the send time
 	  len = cmdDB[cmd_index].len;                          // get payload len from cmd db 
-	  //logger.printf("cmd len = %d\n", len);
+	  //lprintf("cmd len = %d\n", len);
 	  if(len == EXTRACT_LEN_FROM_PAYLOAD) 											                       // if len == 0, the len is at index 1 of the payload (FREE CMD)
 		  len = payload[FREE_CMD_DATA_LEN_OFFSET]+FREE_CMD_HDR_LEN;								                   // sendMessage will validate it
     if (ERR_OK != (ret_code = SendMessage(MasterMsgChannel, MasterUART, cmd, dst, MASTER_ADDRESS,  payload, len))) {
@@ -123,7 +123,7 @@ int tmp;
 // uses global zoneInfoValid
 //
 int replyPollZones(byte zoneResultArr[], int len) {
-	//logger.printf("Zone info valid = %2x\n", zoneInfoValid);
+	//lprintf("Zone info valid = %2x\n", zoneInfoValid);
        if(zoneInfoValid == (ZONE_A_VALID | ZONE_B_VALID)) 				// check if all zones are read already, if not does not reply
           return SendMessage(SlaveMsgChannel, SlaveUART, (POLL_ZONES | REPLY_OFFSET), MASTER_ADDRESS, slaveAdr, zoneResultArr, len);
 	   else {

@@ -100,7 +100,7 @@ int saveConfig(const char cFileName []) {
           //Serial.printf("Read CS %d differs from calculated %d", tmpConfig.csum, cs8);
           return false;
           }
-        //logger.printf("Content of config file written\n");
+        //lprintf("Content of config file written\n");
         //printAlarmConfig((byte*) &tmpConfig);
         return true;
         }
@@ -142,10 +142,10 @@ int readConfig(const char cFileName []) {
           //Serial.printf("Read CS %d differs from calculated %d", tmpConfig.csum, cs8);
           return false;
           }
-        logger.printf("Content of config file read\n");
+        lprintf("Content of config file read\n");
         //printAlarmConfig((byte*) &tmpConfig);
         memcpy((byte*) &alarmConfig, (byte*) &tmpConfig, sizeof(alarmConfig));
-        logger.printf("Content of configured DB\n");
+        lprintf("Content of configured DB\n");
         //printAlarmConfig((byte*) &alarmConfig);
         ErrWrite(ERR_DEBUG, "Reading config file done\n");
         return true;

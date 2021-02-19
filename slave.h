@@ -5,7 +5,7 @@
 //
 //
 void slave() {
-    logger.printf("Slave loop\n");
+    lprintf("Slave loop\n");
 	memcpy(errorsDB_backup, errorsDB, sizeof(errorsDB_backup));   // backup error DB
 	retCode = check4msg(SlaveMsgChannel, slaveAdr, NO_TIMEOUT);             // message if available will stored in global rcvMSG variable
 	if(retCode == MSG_READY) {				                            // ERR_OK (0)- no message, ERR_RCV_MSG (<0) -parsing error, MSG_READY (1)- message present          

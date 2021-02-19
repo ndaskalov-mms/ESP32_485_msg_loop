@@ -102,42 +102,42 @@ struct MSG {
 void LogMsg(char *formatStr, int len, byte cmd, byte src_dst, byte *payload) {
 	if(!DEBUG)
 		return;
-  logger.printf(formatStr, len, cmd, src_dst);
+  lprintf(formatStr, len, cmd, src_dst);
   for(int i =0; i< len-CMD_HEADER_LEN; i++)
-    logger.printf ("%2x ", payload[i]);                // there is one byte cmd|dst
+    lprintf ("%2x ", payload[i]);                // there is one byte cmd|dst
   logger.println();
 }
 
 void LogMsg(char *formatStr, int len, byte cmd, byte dst, byte src, byte *payload) {
   if(!DEBUG)
 		return;
-	logger.printf(formatStr, len, cmd, dst, src);
+	lprintf(formatStr, len, cmd, dst, src);
   for(int i =0; i< len-CMD_HEADER_LEN; i++)
-    logger.printf ("%2x ", payload[i]);                // there is one byte cmd|dst
+    lprintf ("%2x ", payload[i]);                // there is one byte cmd|dst
    logger.println();
 }
 
 void LogMsg(char *formatStr, int len, byte cmd, byte src_dst, byte subCmd, int pldLen,  byte *payload) {
   if(!DEBUG)
 		return;
-	logger.printf(formatStr, len, cmd, src_dst, subCmd, pldLen);
+	lprintf(formatStr, len, cmd, src_dst, subCmd, pldLen);
   for(int i =0; i< pldLen; i++)
-    logger.printf ("%2x ", payload[i]);                // there is one byte cmd|dst
+    lprintf ("%2x ", payload[i]);                // there is one byte cmd|dst
    logger.println();
 }
 
 void LogMsg(char *formatStr, int len, byte cmd, byte dst, byte src, byte subCmd, int pldLen,  byte *payload) {
   if(!DEBUG)
     return;
-  logger.printf(formatStr, len, cmd, dst, src, subCmd, pldLen);
+  lprintf(formatStr, len, cmd, dst, src, subCmd, pldLen);
   for(int i =0; i< pldLen; i++)
-    logger.printf ("%2x ", payload[i]);                // there is one byte cmd|dst
+    lprintf ("%2x ", payload[i]);                // there is one byte cmd|dst
    logger.println();
 }
 int findCmdEntry(byte cmd) {
   //ErrWrite(ERR_DEBUG, "Looking for record for cmd code   %d \n", cmd);
   cmd = cmd & ~REPLY_OFFSET;                      // clear reply flag if any
-  //logger.printf("Looking at index  %d out of  %d:\n", cmd, sizeof(cmdDB)/sizeof(struct COMMAND)-1);
+  //lprintf("Looking at index  %d out of  %d:\n", cmd, sizeof(cmdDB)/sizeof(struct COMMAND)-1);
   for (int i = 0; i < sizeof(cmdDB)/sizeof(struct COMMAND); i++) {
     if(cmdDB[i].cmdID == cmd) {
       //ErrWrite(ERR_DEBUG,"Found cmd at  index %d\n", i);

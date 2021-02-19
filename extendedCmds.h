@@ -17,7 +17,7 @@ byte tmp = 0;
 //
 byte markSlaveAsSet(int slave, byte slaveMap) {
 		slaveMap = slaveMap & ~(1<<(--slave));
-		//logger.printf("SlaveMap = %d\n", slaveMap);
+		//lprintf("SlaveMap = %d\n", slaveMap);
 		return slaveMap;
 } 
 //
@@ -45,7 +45,7 @@ byte bitmap2slaveIdx(byte slaveMap, int max_slaves) {
   		switch(msg.subCmd) {
   			case FREE_TEXT_SUB_CMD:
   				ErrWrite(ERR_DEBUG, "Master: reply received for FREE_TEXT_SUB_CMD: ");
-                logger.printf("%s\n", msg.payload);
+                lprintf("%s\n", msg.payload);
   				break;
    			case SET_ZONE_SUB_CMD:
 			case GET_ZONE_SUB_CMD:
@@ -125,11 +125,11 @@ int j = 0; int i = 0;
 		tmpMsg[j++] = zone[i].zoneID;
 		}
 	if(DEBUG) {                                                     // debug print
-			logger.printf ("Zone set data: Zone GPIO:\tMUX:\tZoneID:\n");
+			lprintf ("Zone set data: Zone GPIO:\tMUX:\tZoneID:\n");
 		    for (i = 0; i <  j; i+=3)                                 // iterate
-				  logger.printf ("%d %d %d   ", tmpMsg[i], tmpMsg[i+1], tmpMsg[i+2]);
-			logger.printf("\n");
-			logger.printf("setSlaveZones data len: %d\n", j);
+				  lprintf ("%d %d %d   ", tmpMsg[i], tmpMsg[i+1], tmpMsg[i+2]);
+			lprintf("\n");
+			lprintf("setSlaveZones data len: %d\n", j);
 			}
 	return sendFreeCmd(SET_ZONE_SUB_CMD, dst, j, tmpMsg);
 }	
@@ -150,11 +150,11 @@ int j = 0; int i = 0;
 		tmpMsg[j++] = pgm[i].iValue;
 		}
 	if(DEBUG) {                                                     // debug print
-			logger.printf ("PGM set data: GPIO:\tID:\tinit value:\n");
+			lprintf ("PGM set data: GPIO:\tID:\tinit value:\n");
 		    for (i = 0; i <  j; i+=3)                                 // iterate
-				  logger.printf ("%d %d %d   ", tmpMsg[i], tmpMsg[i+1], tmpMsg[i+2]);
-			logger.printf("\n");
-			logger.printf("setSlavePGMs data len: %d\n", j);
+				  lprintf ("%d %d %d   ", tmpMsg[i], tmpMsg[i+1], tmpMsg[i+2]);
+			lprintf("\n");
+			lprintf("setSlavePGMs data len: %d\n", j);
 			}
 	return sendFreeCmd(SET_PGM_SUB_CMD, dst, j, tmpMsg);
 }	
@@ -165,12 +165,12 @@ int j = 0; int i = 0;
 // 
 void setSlavesZones() {
 static byte curSlave;
-	//logger.printf("Zones curSlave = %d\n", curSlave);
+	//lprintf("Zones curSlave = %d\n", curSlave);
 	if(!slavesSetZonesMap) 						// check if some board needs configuration
 		return;								// all boards set
 	if (waiting_for_reply)                  // system is busy
 		return;       
-	logger.printf("slavesSetZonesMap = %2x\n", slavesSetZonesMap);
+	lprintf("slavesSetZonesMap = %2x\n", slavesSetZonesMap);
 	curSlave = bitmap2slaveIdx(slavesSetZonesMap, MAX_SLAVES); 
 	ErrWrite(ERR_DEBUG, "Sending zones config data to slave %d\n", curSlave);
 	if(ERR_OK == sendSlaveZones(zonesDB[curSlave], curSlave))  // sendCmd handle and reports errors internally 
@@ -188,12 +188,12 @@ static byte curSlave;
 // 
 void setSlavesPgms() {
 static byte curSlave;
-	logger.printf("PGMs curSlave = %d\n", curSlave);
+	lprintf("PGMs curSlave = %d\n", curSlave);
 	if(!slavesSetPgmsMap) 						// check if some board needs configuration
 		return;								// all boards set
 	if (waiting_for_reply)                  // system is busy
 		return;       
-	logger.printf("slavesSetPgmsMap = %2x\n", slavesSetPgmsMap);
+	lprintf("slavesSetPgmsMap = %2x\n", slavesSetPgmsMap);
 	curSlave = bitmap2slaveIdx(slavesSetPgmsMap, MAX_SLAVES); 
 	ErrWrite(ERR_DEBUG, "Sending PGMs config data to slave %d\n", curSlave);
 	if(ERR_OK == sendSlavePGMs(pgmsDB[curSlave], curSlave))  // sendCmd handle and reports errors internally 
@@ -213,7 +213,7 @@ static byte curSlave;
       switch(msg.subCmd) {
         case FREE_TEXT_SUB_CMD:
           ErrWrite(ERR_DEBUG, "Slave: received for FREE_TEXT_SUB_CMD: ");
-          logger.printf("%s\n", msg.payload);
+          lprintf("%s\n", msg.payload);
           break;
         case SET_ZONE_SUB_CMD:
           ErrWrite(ERR_DEBUG, "Slave: received SET_ZONE_SUB_CMD\n");
@@ -253,11 +253,11 @@ int j = FREE_CMD_DATA_OFFSET; int i = 0;						// index where to put the payload,
 		}
 	tmpMsg[FREE_CMD_DATA_LEN_OFFSET]  = j-FREE_CMD_DATA_OFFSET;   // recalc actual paylaod len
 	if(DEBUG) {                                                     // debug print
-		logger.printf ("Zone get data: Zone GPIO:\tMUX:\tZoneID:\n");
+		lprintf ("Zone get data: Zone GPIO:\tMUX:\tZoneID:\n");
 		for (i = FREE_CMD_DATA_OFFSET; i <  j; i+=3)                                 // iterate
-			logger.printf ("%d %d %d   ", tmpMsg[i], tmpMsg[i+1], tmpMsg[i+2]);
-		logger.printf("\n");
-		logger.printf("returnSlaveZones data len: %d\n", j);
+			lprintf ("%d %d %d   ", tmpMsg[i], tmpMsg[i+1], tmpMsg[i+2]);
+		lprintf("\n");
+		lprintf("returnSlaveZones data len: %d\n", j);
 		}
 		return SendMessage(SlaveMsgChannel, SlaveUART, (FREE_CMD | REPLY_OFFSET), MASTER_ADDRESS, slaveAdr, tmpMsg, j); // one byte payload only
 }	
@@ -290,8 +290,8 @@ int replySetAlarmZones(int err) {
 	tmpMsg[FREE_CMD_DATA_LEN_OFFSET]  = 1;                    // second byte is the payload len,  which is 1 byte
 	tmpMsg[FREE_CMD_DATA_OFFSET]  = err;           			  // third is the aktual payload which in this case is no error (ERR_OK)	 
 	//for(int i =0; i< MAX_MSG_LENGHT; i++)
-	  //logger.printf ("%2d ", tmpMsg[i]);             				
-	//logger.printf("\n");
+	  //lprintf ("%2d ", tmpMsg[i]);             				
+	//lprintf("\n");
 	return SendMessage(SlaveMsgChannel, SlaveUART, (FREE_CMD | REPLY_OFFSET), MASTER_ADDRESS, slaveAdr, tmpMsg, FREE_CMD_HDR_LEN+1); // one byte payload only
 }
 
@@ -330,11 +330,11 @@ int j = FREE_CMD_DATA_OFFSET; int i = 0;						// index where to put the payload,
 		}
 	tmpMsg[FREE_CMD_DATA_LEN_OFFSET]  = j-FREE_CMD_DATA_OFFSET;   // recalc actual paylaod len
 	if(DEBUG) {                                                     // debug print
-		logger.printf ("PGM get data:  GPIO:\trNum:\tiValue:\n");
+		lprintf ("PGM get data:  GPIO:\trNum:\tiValue:\n");
 		for (i = FREE_CMD_DATA_OFFSET; i <  j; i+=3)                                 // iterate
-			logger.printf ("%d %d %d   ", tmpMsg[i], tmpMsg[i+1], tmpMsg[i+2]);
-		logger.printf("\n");
-		logger.printf("returnSlavePGMs data len: %d\n", j);
+			lprintf ("%d %d %d   ", tmpMsg[i], tmpMsg[i+1], tmpMsg[i+2]);
+		lprintf("\n");
+		lprintf("returnSlavePGMs data len: %d\n", j);
 		}
 		return SendMessage(SlaveMsgChannel, SlaveUART, (FREE_CMD | REPLY_OFFSET), MASTER_ADDRESS, slaveAdr,  tmpMsg, j); // one byte payload only
 }
@@ -379,7 +379,7 @@ void waitReply() {
 //    
   while (ERR_OK == (retCode = check4msg(MasterMsgChannel, MASTER_ADDRESS, REPLY_TIMEOUT))) {  // ERR_OK means nothing received so far, otherwise will be error or MSG_READY
     t1.delay();                                   // no message yet, yield all other processes
-	logger.printf("waitReply() delay\n");
+	lprintf("waitReply() delay\n");
     }											// end while
   if(retCode != MSG_READY)  {                   // we got something, either message or error             
     ErrWrite(ERR_WARNING, "Master rcv reply error or timeout\n");    // error   
@@ -388,7 +388,7 @@ void waitReply() {
     masterProcessMsg(rcvMsg);                   // message, process it. 
     }     
   waiting_for_reply = 0;                      // stop waiting in case of error
-  logger.printf("Yielding to master loop\n");
+  lprintf("Yielding to master loop\n");
   t1.yield(&master);     												
 }
 */

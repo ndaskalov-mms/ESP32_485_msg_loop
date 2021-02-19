@@ -43,10 +43,10 @@ void armPartition(byte partIxd, int action)  {
 	for(int i = 0; i < MAX_PARTITION; i++) {
 		if(i == partIxd)                        // skip check for current partition to avoid loops 
 			continue;                             // like part 1 follows part 1
-		logger.printf("Checking partition %d if follows partition %d\n", i, partIxd);
+		lprintf("Checking partition %d if follows partition %d\n", i, partIxd);
 		if(!partitionDB[i].follows[partIxd])		// follows is array of MAX_PARTITION bytes, if byte of idx i is true, 
 			continue;								              // it means that this partition follows partition idx = i
-		logger.printf("Found partition %d follows partition %d\n", i, partIxd);
+		lprintf("Found partition %d follows partition %d\n", i, partIxd);
 		armPartition(i, action); 		            // call recursively
 		}
 }	

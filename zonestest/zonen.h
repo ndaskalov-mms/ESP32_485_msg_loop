@@ -13,6 +13,7 @@ enum TIMERS {
   ZONES_B_READ_TIMER = 2,
   MUX_SET_TIMER = 3,
   MASTER_ZONES_READ_TIMER = 4,
+  ALARM_LOOP_TIMER = 5,
   };
 
 
@@ -27,12 +28,12 @@ struct TIMER {
 // 
 struct TIMER timerDB[] = {{ZONES_A_READ_TIMER, ZONES_A_READ_INTERVAL,  0}, {ZONES_B_READ_TIMER, ZONES_B_READ_INTERVAL, 0},\
 						  {MUX_SET_TIMER, MUX_SET_INTERVAL, 0}, 		   {MASTER_ZONES_READ_TIMER, MASTER_ZONES_READ_INTERVAL, 0},\
-						  {ALARM_LOOP_TIMER, ALARM_LOOP_INTERVAL, 0} ;
+							{ALARM_LOOP_TIMER, ALARM_LOOP_INTERVAL, 0}} ;
 //
 int findTimer(byte timer) {
   //ErrWrite(ERR_DEBUG, "Looking for record for timer ID   %d \n", timer);
     for (int i = 0; i < sizeof(timerDB)/sizeof(struct TIMER); i++) {
-    //logger.printf("Looking at index  %d out of  %d:\n", i, sizeof(cmdDB)/sizeof(struct COMMAND)-1);
+    //lprintf("Looking at index  %d out of  %d:\n", i, sizeof(cmdDB)/sizeof(struct COMMAND)-1);
     if(timerDB[i].timerID == timer) {
       //ErrWrite(ERR_DEBUG,"Found timer at  index %d\n", i);
       return  i;
@@ -79,7 +80,7 @@ unsigned long zoneTest[64];
 //
 void selectZones(int which) {         // TODO To avoid issue with the button, make pin input when selectin A zones and rely on pull-up. 
   digitalWrite(muxCtlPin, which);
-  //logger.printf("%ld: Switching mux to %s channel\n", millis(), (which?"Azones":"Bzones"));
+  //lprintf("%ld: Switching mux to %s channel\n", millis(), (which?"Azones":"Bzones"));
 }
 //
 //  fill zone data for test 
@@ -89,12 +90,12 @@ void fillZonesTestData(unsigned long zoneTest[], int zones_cnt) {
     int i; 
     int increment;
     increment = 4096/zones_cnt;
-    //logger.printf ("Zone filled data: ");
+    //lprintf ("Zone filled data: ");
     for (i = 0; i <  zones_cnt; i++) {               // iterate
        zoneTest[i] = i*increment; //+increment/3;
-       logger.printf ("%d ", zoneTest[i]);
+       lprintf ("%d ", zoneTest[i]);
     }
-    logger.printf ("\n");
+    lprintf ("\n");
     //zoneTest[0] = 4000;
 }
 //
@@ -121,7 +122,7 @@ float convert2mV (unsigned long adcVal) {
 void printZones(struct ZONE DB[], int zones_cnt) { 
     int i; 
     for (i = 0; i <  zones_cnt; i++) {                        // iterate
-       logger.printf ("Zone data: Zone ID: %d: GPIO: %2d: \tAvg ADC Value: %lu\tAvg mV val: %4.3f mV;\tZoneABstat: %x\n", DB[i].zoneID, DB[i].gpio, DB[i].accValue, DB[i].mvValue, DB[i].zoneABstat );
+       lprintf ("Zone data: Zone ID: %d: GPIO: %2d: \tAvg ADC Value: %lu\tAvg mV val: %4.3f mV;\tZoneABstat: %x\n", DB[i].zoneID, DB[i].gpio, DB[i].accValue, DB[i].mvValue, DB[i].zoneABstat );
     }
 }
 //
@@ -131,7 +132,7 @@ void printZones(struct ZONE DB[], int zones_cnt) {
 void printPGMs(struct PGM DB[], int pgm_cnt) { 
     int i; 
     for (i = 0; i <  pgm_cnt; i++) {                        // iterate
-       logger.printf ("PGM data: PGM ID: %d: GPIO: %2d: \tinit val: %d\tcur val: %d\n", DB[i].rNum, DB[i].gpio, DB[i].iValue, DB[i].cValue);
+       lprintf ("PGM data: PGM ID: %d: GPIO: %2d: \tinit val: %d\tcur val: %d\n", DB[i].rNum, DB[i].gpio, DB[i].iValue, DB[i].cValue);
     }
 }
 //
@@ -142,7 +143,7 @@ void zoneVal2Code(struct ZONE DB[], int zoneCnt) {
   for (i = 0; i < zoneCnt; i++){                              // for all zones in the array
     for (thrIndex = 0;((thrIndex < THRESHOLDS_CNT)&&(DB[i].mvValue >= thresholds[thrIndex].tMin)); thrIndex++) {// look-up the input voltage  in the input voltage ranges
       ;                                                       // keep searching while the input voltage is lower than min input voltage for the range
-      //logger.printf("zone val: %.2f ; Index: %d Threshold %.2f\n", DB[i].mvValue, thrIndex, (float)(thresholds[thrIndex].tMin));
+      //lprintf("zone val: %.2f ; Index: %d Threshold %.2f\n", DB[i].mvValue, thrIndex, (float)(thresholds[thrIndex].tMin));
       }
     //   
     if (thrIndex == THRESHOLDS_CNT)                           // check for out of range, shall never happen
@@ -150,16 +151,16 @@ void zoneVal2Code(struct ZONE DB[], int zoneCnt) {
         ErrWrite(ERR_DEBUG, "ADC value out of range!!!!!!!\n");
     thrIndex--;                                               // correct the index to point to the exact range                                           
     DB[i].zoneABstat = thresholds[thrIndex].zoneABstat;       // get zones A&B status  code   
-    //logger.printf("Index %d value %d\n",thrIndex,DB[i].zoneABstat );
+    //lprintf("Index %d value %d\n",thrIndex,DB[i].zoneABstat );
     } 
 }
 //
 void printZonesPayload(byte buffer[], int cnt) {
 int i;
-    logger.printf("Payload: ");
+    lprintf("Payload: ");
     for (i = 0; i < cnt; i++)      
-      logger.printf(" %2x", buffer[i]);
-    logger.printf("\n");
+      lprintf(" %2x", buffer[i]);
+    lprintf("\n");
 }
 //
 //  Read and convert all zone inputs
@@ -173,11 +174,11 @@ void readZones(struct ZONE DB[], int zones_cnt, int mux) {
   for (i = 0;  i < zones_cnt; i++) 
      if(mux == DB[i].mux)   {                           // init only zones selected by mux
        DB[i].accValue = 0;                              // init only records that will be read 
-       //logger.printf(" Zeroing zone %d\t GPIO: %d\n", i , DB[i].gpio);
+       //lprintf(" Zeroing zone %d\t GPIO: %d\n", i , DB[i].gpio);
        }
   for (j = 0; j< OVERSAMPLE_CNT; j++) {                 // will read and accumulate values for each zone  OVERSAMPLE_CNT times
      for (i = 0;  i < zones_cnt; i++) {                 // read zone and store value
-        //logger.printf("Reading zone index %d; mux %d; gpio %d; value %d;\n",i, mux, DB[i].gpio, DB[i].accValue ); 
+        //lprintf("Reading zone index %d; mux %d; gpio %d; value %d;\n",i, mux, DB[i].gpio, DB[i].accValue ); 
         if(mux != DB[i].mux)                            // skip the zones not selected by mux     
           continue;                                     // but the one under consideration is not muxed
         // read and convert here
@@ -187,13 +188,13 @@ void readZones(struct ZONE DB[], int zones_cnt, int mux) {
           val = analogRead(DB[i].gpio);                 // read from ADC
         DB[i].accValue = DB[i].accValue+val;            // accumulate
         //if((j==0))                                        // print once
-          //logger.printf("Reading zone %d: gpio: %d; mux %d; Acc val = %d; Current val: %d\n",DB[i].zoneID, DB[i].gpio, mux,  DB[i].accValue, val); 
+          //lprintf("Reading zone %d: gpio: %d; mux %d; Acc val = %d; Current val: %d\n",DB[i].zoneID, DB[i].gpio, mux,  DB[i].accValue, val); 
         }                                               // zones loop
      }                                                  // oversample loop
     // convert values to voltages
     for (i = 0; i <  zones_cnt; i++) {    // convert acumulated values to voltages 
       DB[i].mvValue = convert2mV(DB[i].accValue);    // full scale (4096) represent 3.2V, and value is oversampled 8 times
-      //logger.printf ("Converted zone zone %d: GPIO: %2d \tAvg ADC Value %lu = \t%4.3f mV\n",DB[i].zoneID, DB[i].gpio, DB[i].accValue, DB[i].mvValue );
+      //lprintf ("Converted zone zone %d: GPIO: %2d \tAvg ADC Value %lu = \t%4.3f mV\n",DB[i].zoneID, DB[i].gpio, DB[i].accValue, DB[i].mvValue );
     }
 }
 //
@@ -214,14 +215,14 @@ void convertZones(struct ZONE DB[], int zoneCnt, byte zoneResult[]) {
   lastRead = millis();                                    // to calculate how much time we spend in here
   if(muxState == Azones) {
     if(timeoutOps(GET, ZONES_A_READ_TIMER)) {                // time to read A zones?
-      logger.printf("%ld: Reading A zones\n", millis());
+      lprintf("%ld: Reading A zones\n", millis());
 	  zoneInfoValid |=	ZONE_A_VALID;					  // mark as valid to avoid sending invalid info	
       readZones(DB, zoneCnt, muxState);                   // do read
       timeoutOps(SET, ZONES_A_READ_TIMER);                   // remember when
       }
     else if(timeoutOps(GET, ZONES_B_READ_TIMER)) {           // time to read B zones?
       timeoutOps(SET, MUX_SET_TIMER);                        // start mux settle time
-      logger.printf("%ld: Mux B timeout started\n", millis());
+      lprintf("%ld: Mux B timeout started\n", millis());
       selectZones(muxState = Bzones);                     // switch mux
       return;                                             // nothing to do, wait mux timeout to expire
       }
@@ -229,12 +230,12 @@ void convertZones(struct ZONE DB[], int zoneCnt, byte zoneResult[]) {
       return;											  // do nothing, time to read did not came yet	
   }
   else {                                                  // time to read zones B, mux is set and setup time interval expired                   
-    logger.printf("%ld: Reading B zones\n", millis());
+    lprintf("%ld: Reading B zones\n", millis());
     readZones(DB, zoneCnt, muxState);                     // do read
 	zoneInfoValid |=	ZONE_B_VALID;					  // mark as valid to avoid sending invalid info	
     timeoutOps(SET, ZONES_B_READ_TIMER);                     // remember when    
     timeoutOps(SET, MUX_SET_TIMER);                          // start mux settle time switching back to A channel
-    logger.printf("%ld: Mux A timeout started\n", millis());
+    lprintf("%ld: Mux A timeout started\n", millis());
     selectZones(muxState = Azones);   					   // switching back to A channel	
     }
   zoneVal2Code(DB, zoneCnt);                               // convert analog values to digital status
@@ -249,7 +250,7 @@ void convertZones(struct ZONE DB[], int zoneCnt, byte zoneResult[]) {
     zoneResult[i/2] = ((zoneResult[i/2] << ZONE_ENC_BITS) & ~ZONE_ENC_MASK) | DB[i].zoneABstat ;
     }  
   //printZonesPayload(zoneResult, zoneCnt%2?(zoneCnt/2+1):zoneCnt/2);
-  //logger.printf ("Elapsed time %d millisec\n", (unsigned long)(millis() - lastRead));
+  //lprintf ("Elapsed time %d millisec\n", (unsigned long)(millis() - lastRead));
 #endif
 }
 //
@@ -267,7 +268,7 @@ void pgmSetup(struct PGM pDB[], const int pgmCnt) {
 //
 void setPgm(struct PGM pDB[], byte idx, bool val, const int pgmCnt) {
   for (int i = 0; i < pgmCnt; i++) {
-    //logger.printf("Looking at index  %d out of  %d:\n", idx, pgmCnt-1);
+    //lprintf("Looking at index  %d out of  %d:\n", idx, pgmCnt-1);
     if(idx == pDB[i].rNum)  
       digitalWrite(pDB[i].gpio, val);               // set output value
     } 
@@ -277,7 +278,7 @@ void setPgm(struct PGM pDB[], byte idx, bool val, const int pgmCnt) {
 //
 bool getPgm(struct PGM pDB[], byte idx, const int pgmCnt) {
   for (int i = 0; i < pgmCnt; i++) {
-    //logger.printf("Looking at index  %d out of  %d:\n", idx, pgmCnt-1);
+    //lprintf("Looking at index  %d out of  %d:\n", idx, pgmCnt-1);
     if(idx == pDB[i].rNum) 
       return pDB[i].cValue;               // read output value
     }

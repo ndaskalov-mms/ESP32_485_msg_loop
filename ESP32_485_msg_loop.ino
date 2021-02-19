@@ -1,4 +1,10 @@
 #define SW_VERSION  100				// UPDATE ON EVERY CHANGE OF ZONEs, PGMs, etc
+#define VCS true					// to compile for debug with Visual studio
+#ifdef VCS
+typedef unsigned char byte;
+#define HIGH 1
+#define LOW 0
+#endif
 //
 // define maximal configuration per board. IF MODIFIED, COMPILE AND CHANGE SIMULTANEOUSLY BOTH MASTER AND SLAVES!!!!
 #define SLAVE_ZONES_CNT	  18		// number of zones (physical ADC channels)  on slave board	
@@ -49,10 +55,12 @@ enum ADDR {                                         // board adresses, MASTER is
 #define ZONES_B_READ_INTERVAL 1000     // read system voltages (B zones) at 100mS
 #define MUX_SET_INTERVAL      10       // time to set the analog lines after mux switch
 #define MASTER_ZONES_READ_INTERVAL 500 // read A zones at 100mS
+#define ALARM_LOOP_INTERVAL	  1000	   // how often to run the alarm loop	
 
 constexpr int BITRATE = 115200;
 constexpr int LOG_BITRATE = 115200;
 HardwareSerial& logger(Serial);
+#define lprintf logger.printf
 //
 #ifdef MASTER
 HardwareSerial& MasterUART(Serial2);
@@ -99,7 +107,7 @@ RS485 SlaveMsgChannel  (SlaveRead, SlaveAvailable, SlaveWrite, ErrWrite, RxBUF_S
 int err, retCode;                         // holds error returns from some functions                         
 struct MSG rcvMsg;                        // temp structs for message tr/rcv
 byte tmpMsg [MAX_PAYLOAD_SIZE];
-byte tmpMsg [MAX_MQTT_TOPIC];
+byte tempMQTTbuf [MAX_MQTT_TOPIC];
 //
 // cooperative multitasking staff
 //
@@ -128,7 +136,7 @@ Task t2(3, TASK_FOREVER, &slave, &taskScheduler, true);
 void setup() {
   delay(500);
   logger.begin(LOG_BITRATE,SERIAL_8N1);
-  logger.printf("\n\nStarting setup\n\n");
+  lprintf("\n\nStarting setup\n\n");
 //
 #ifdef SLAVE
    slaveAdr = readOwnAdr();		       // Slave destination ---------   TODO - only for loopback testing
@@ -139,20 +147,20 @@ void setup() {
   SlaveUART.begin(BITRATE,SERIAL_8N1,)
 #endif
 #endif
-  logger.printf("MAX_MSG_LENGHT = %d\n", MAX_MSG_LENGHT  );
-  logger.printf("MAX_PAYLOAD_SIZE = %d\n", MAX_PAYLOAD_SIZE );
-  logger.printf("Size of test msg: %d\n", FREE_CMD_DATA_LEN);
+  lprintf("MAX_MSG_LENGHT = %d\n", MAX_MSG_LENGHT  );
+  lprintf("MAX_PAYLOAD_SIZE = %d\n", MAX_PAYLOAD_SIZE );
+  lprintf("Size of test msg: %d\n", FREE_CMD_DATA_LEN);
   zoneHWSetup();                                  // init mux for zones selection
   pgmSetup(SpgmDB, SLAVE_PGM_CNT);              // init PGMs (output and default value)
   //printErrorsDB();
-  logger.printf("\n\nSetup finished\n\n");
+  lprintf("\n\nSetup finished\n\n");
 //
 #ifdef MASTER
    MasterUART.begin(BITRATE,SERIAL_8N1);  
    MasterMsgChannel.begin ();                 // allocate data buffers and init message encoding/decoding engines (485_non_blocking library)
    if(!storageSetup()) {                      // mount file system
       while(true) {                           // loop forever
-        ReportMQTT(ERROR_TOPIC, "Error initializing storage");
+        PublishMQTT(ERROR_TOPIC, "Error initializing storage");
         delay(60000);                         // wait a minute before send again
       }
    }

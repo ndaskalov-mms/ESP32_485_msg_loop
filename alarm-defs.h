@@ -53,11 +53,11 @@ enum RF_SUPERVISION_OPT_t {
 };
 //
 enum ZONE_TAMPER_OPT_t {
-	ZONE_TAMPER_OPT_DISABLED  =  0
+	ZONE_TAMPER_OPT_DISABLED  =  0,
 	ZONE_TAMPER_OPT_TROUBLE_ONLY = 1,
 	ZONE_TAMPER_OPT_ALARM_WHEN_ARMED  = 2, 
 	ZONE_TAMPER_OPT_ALARM  = 3,
-}
+};
 //    
 enum PARTITIONS {
     PARTITION1 = 0,
@@ -227,4 +227,3 @@ struct CONFIG_t {
   byte  alarmPartConfig[sizeof(partitionDB)];
   byte  csum;
 } alarmConfig, tmpConfig;
-

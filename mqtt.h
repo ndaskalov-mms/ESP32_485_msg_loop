@@ -26,8 +26,8 @@
 //
 
 void  PublishMQTT(char * topic, char * mqtt_msg) {
-		sprintf(tempMQTTbuf, 
-     logger.printf("MQTT topic: %s MSG: %s\n", topic, mqtt_msg);
+		 //sprintf(tempMQTTbuf, 
+     lprintf("MQTT topic: %s MSG: %s\n", topic, mqtt_msg);
 }
 //
 //  PublishMQTT(char * topic, char * subtopic, char * payload)  - called that UNRECOVERY  error occured while sending command
@@ -38,6 +38,6 @@ void  PublishMQTT(char * topic, char * mqtt_msg) {
 //
 
 void  PublishMQTT(char * topic, char * subtopic, char * payload) {
-	 sprintf(tempMQTTbuf, 
-     logger.printf("MQTT topic: %s/%s MSG: %s\n", topic, subtopic, mqtt_msg);
+	   //sprintf(tempMQTTbuf, 
+     lprintf("MQTT topic: %s/%s MSG: %s\n", topic, subtopic, payload);
 }

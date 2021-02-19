@@ -93,7 +93,7 @@ struct t_ERROR errorsDBtitles[sizeof(errorsDB)/sizeof(struct ERROR_REC)] = {{ERR
 int ErrWrite (int err_code, char * what)           // callback to dump info to serial console from inside RS485 library
 {
   int index = 0;
-  //logger.printf ("error code %d received in errors handling callback\n------------------------", err_code);
+  //lprintf ("error code %d received in errors handling callback\n------------------------", err_code);
   // update errors struct here
   switch (err_code)
   {
@@ -102,39 +102,39 @@ int ErrWrite (int err_code, char * what)           // callback to dump info to s
     //  break;
     case ERR_OK:    
       if(SERIAL_LOG)
-		  logger.printf (what);
+		  lprintf (what);
 	  if(MQTT_LOG)
-		   ReportMQTT(LOG_TOPIC, what);
+		   PublishMQTT(LOG_TOPIC, what);
       break;    
   case ERR_DEBUG:    
       if(DEBUG) {
 		  if(SERIAL_LOG)
-			logger.printf (what);
+			lprintf (what);
 		  if(MQTT_LOG)
-			 ReportMQTT(DEBUG_TOPIC, what);
+			 PublishMQTT(DEBUG_TOPIC, what);
 	      }
       break;
   case ERR_INFO:    
 	  if(INFO) {
 		  if(SERIAL_LOG)
-			logger.printf (what);
+			lprintf (what);
 		  if(MQTT_LOG)
-			 ReportMQTT(INFO_TOPIC, what);
+			 PublishMQTT(INFO_TOPIC, what);
 		  }
       break;
   case ERR_WARNING:    
       if(WARNING) {
 		  if(SERIAL_LOG)
-			logger.printf (what);
+			lprintf (what);
 		  if(MQTT_LOG)
-			 ReportMQTT(WARNING_TOPIC, what);
+			 PublishMQTT(WARNING_TOPIC, what);
 	      }
       break; 
   case ERR_CRITICAL:    
       if(SERIAL_LOG)
-        logger.printf (what);
+        lprintf (what);
       if(MQTT_LOG)
-         ReportMQTT(CRITICAL_TOPIC, what);
+         PublishMQTT(CRITICAL_TOPIC, what);
       break; 
 	case ERR_INV_PAYLD_LEN:
 	case ERR_BAD_CMD:
@@ -152,23 +152,23 @@ int ErrWrite (int err_code, char * what)           // callback to dump info to s
     errorsDB[index].errorCnt++;
 	  if(ERROR) {
 		  if(SERIAL_LOG)
-			  logger.printf (what);
+			  lprintf (what);
 		  if(MQTT_LOG)
-			   ReportMQTT(ERROR_TOPIC, what);
+			   PublishMQTT(ERROR_TOPIC, what);
       }
     break;
    default:
     if(SERIAL_LOG) {
-		  logger.printf ("-----------------Invalid error code %d received in errors handling callback\n------------------------", (int)err_code);
+		  lprintf ("-----------------Invalid error code %d received in errors handling callback\n------------------------", (int)err_code);
   		if(what)
-            logger.printf("%s\n", what);
+            lprintf("%s\n", what);
   	  }
       if(MQTT_LOG) {
         char tmpBuf[256];                         
         sprintf(tmpBuf,"Invalid err code %d for CMD %d rcvd in err handling callback\n", err_code, waiting_for_reply);                           
-         ReportMQTT(ERROR_TOPIC,tmpBuf);
+         PublishMQTT(ERROR_TOPIC,tmpBuf);
         if(what)
-           ReportMQTT(ERROR_TOPIC, what);
+           PublishMQTT(ERROR_TOPIC, what);
 	      }
 	  break;
   }
@@ -183,7 +183,7 @@ int ErrWrite (int err_code, char* formatStr, int arg)   {        // format str i
 int findErrorEntry(int err_code, struct ERROR_REC errorsArray[]) {
   //ErrWrite(ERR_DEBUG, "Looking for record for error code   %d \n", err_code);
   for (int i = 0; i < sizeof(errorsDB)/sizeof(struct ERROR_REC); i++) {
-    //logger.printf("Looking at index  %d out of  %d:\n", err_code, sizeof(errorsDB)/sizeof(struct ERROR_REC)-1);
+    //lprintf("Looking at index  %d out of  %d:\n", err_code, sizeof(errorsDB)/sizeof(struct ERROR_REC)-1);
     if(errorsArray[i].errorID == err_code) {
       //ErrWrite(ERR_DEBUG,"Found error index %d\n", i);
       return  i;
@@ -196,7 +196,7 @@ int findErrorEntry(int err_code, struct ERROR_REC errorsArray[]) {
 void printErrorsDB() {
   ErrWrite(ERR_DEBUG,"Printing errorsDB\n");
   for (int i = 0; i < sizeof(errorsDBtitles)/sizeof(struct t_ERROR); i++)     // print title first
-        logger.printf("ErrorID = %01x hex %d Dec; count = %ld; title = %s \n", errorsDB[i].errorID, errorsDB[i].errorID, errorsDB[i].errorCnt, errorsDBtitles[i].err_title);
+        lprintf("ErrorID = %01x hex %d Dec; count = %ld; title = %s \n", errorsDB[i].errorID, errorsDB[i].errorID, errorsDB[i].errorCnt, errorsDBtitles[i].err_title);
 }
 
 
@@ -204,6 +204,6 @@ void printNewErrors() {
   ErrWrite(ERR_DEBUG,"Printing new errors \n");
   for (int i = 0; i < sizeof(errorsDBtitles)/sizeof(struct t_ERROR); i++)  {   // print title first
         if(errorsDB[i].errorCnt != errorsDB_backup[i].errorCnt)
-          logger.printf("%ld\t- %s \n", errorsDB[i].errorCnt, errorsDBtitles[i].err_title);     
+          lprintf("%ld\t- %s \n", errorsDB[i].errorCnt, errorsDBtitles[i].err_title);     
   }
 }

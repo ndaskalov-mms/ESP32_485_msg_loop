@@ -24,7 +24,7 @@ int partitionTimer(int timer, int oper, int partition) {
 	return ((unsigned long)(millis() - partitionDB[partition].entryDelay1) > ((unsigned long)partitionDB[partition].entryDelay1Interval)*1000);
   else if (timer == ENTRY_DELAY2)
 	return ((unsigned long)(millis() - partitionDB[partition].entryDelay2) > ((unsigned long)partitionDB[partition].entryDelay2Interval)*1000);
-  else	
+  else	{
 	ErrWrite(ERR_CRITICAL, "partitionTimer: Invalid entry delay param for partition %d\n", partition);
 	return ERR_OK;
   }	
@@ -37,17 +37,18 @@ int partitionTimer(int timer, int oper, int partition) {
 //          ERR_CRITICAL if name is not found
 //
 int zoneLookup( char * name, int getZoneBoard) {
-	logger.printf ("zoneLookup: looking for zone %s\n", name);
+	lprintf ("zoneLookup: looking for zone %s\n", name);
 	for (int brd = MASTER_ADDRESS; brd <= maxSlaves; brd++) {
-        for(int zn=0; zn< (brd?SLAVE_ALARM_ZONES_CNT:MASTER_ALARM_ZONES_CNT); zn++) {             // for each board' zone
+    for(int zn=0; zn< (brd?SLAVE_ALARM_ZONES_CNT:MASTER_ALARM_ZONES_CNT); zn++) {             // for each board' zone
 			if(!zonesDB[brd][zn].valid)
 				continue;
 			if(strcmp(name, zonesDB[brd][zn].zoneName)) {
-				logger.printf ("zoneLookup: zone found board %d index %d\n", brd, zn);
-				return (getZoneBoard?brd:zn)
-		}
+				lprintf ("zoneLookup: zone found board %d index %d\n", brd, zn);
+				return (getZoneBoard?brd:zn);
+	    }
     }
-    ErrWrite(ERR_WARNING, "zoneLookup: zone %s not found\n", name);
+	}  
+  ErrWrite(ERR_WARNING, "zoneLookup: zone  not found\n");
 	return ERR_WARNING;										// zone is not found
 }
 //
@@ -56,11 +57,12 @@ int zoneLookup( char * name, int getZoneBoard) {
 // params: int partIdx - index in partitionDB
 // returns: bypassed entry delay zones count
 int countBypassedEntryDelayZones(int partIdx) {
+int res;
 	for (int brd = MASTER_ADDRESS; brd <= maxSlaves; brd++) {
-		for(int zn=0; i< (brd?SLAVE_ALARM_ZONES_CNT:MASTER_ALARM_ZONES_CNT); zn++) {  
-			if((zonesDB[brd][zn].zonePartition == partIdx) {
+		for(int zn=0; zn< (brd?SLAVE_ALARM_ZONES_CNT:MASTER_ALARM_ZONES_CNT); zn++) {  
+			if(zonesDB[brd][zn].zonePartition == partIdx) {
 				if(zonesDB[brd][zn].valid) {
-					if((zonesDB[brd][zn].zoneType == ENTRY_DELAY1) || (zonesDB[brd][zn].zoneType == ENTRY_DELAY2) {
+					if((zonesDB[brd][zn].zoneType == ENTRY_DELAY1) || (zonesDB[brd][zn].zoneType == ENTRY_DELAY2)) {
 						if(!zonesDB[brd][zn].bypassed) 
 							res++;
 					}
@@ -81,8 +83,8 @@ int ret = 0;
   ErrWrite(ERR_DEBUG, "Checking arm restictions for part %d\n", partIdx);
   for(int brd = 0; brd <=maxSlaves; brd++) {         // for each board 
      for(int zn=0; zn< (brd?SLAVE_ALARM_ZONES_CNT:MASTER_ALARM_ZONES_CNT); brd++) {             // for each board' zone
-        //logger.printf("Looking at board %d zone %d\n", i, j);  
-        sprintf(zonesDB[brd][zn].zoneName, "Zone_%d", j);
+        //lprintf("Looking at board %d zone %d\n", brd, zn);  
+        sprintf(zonesDB[brd][zn].zoneName, "Zone_%d", zn);
         zonesDB[brd][zn].zoneType = 0;
         if(zonesDB[brd][zn].zonePartition == partIdx) {                         // check only zones assigned to this partition
           if(zonesDB[brd][zn].valid && !zonesDB[brd][zn].bypassed)              // check if zone is no defined/in use or if bypassed
@@ -91,7 +93,7 @@ int ret = 0;
           }
         }
     }
-  logger.printf("Found %d alarm zones of partition %d in error condition\n", ret, partIdx);
+  lprintf("Found %d alarm zones of partition %d in error condition\n", ret, partIdx);
   //printAlarmZones((byte *) zonesDB, i, i);
   return ret; 
 }
@@ -117,7 +119,7 @@ void armPartition(byte partIxd, int action)  {
 		case STAY_ARM:
 	    if(action != DISARM) {
 		  if(ERR_OK != checkArmRestrctions(partIxd, action)) {
-		     ReportMQTT(ARM_TOPIC, "Partition not armed due to restrictions");
+		     PublishMQTT(ARM_TOPIC, "Partition not armed due to restrictions");
 		     return; 
 		  }
 	    }
@@ -127,7 +129,7 @@ void armPartition(byte partIxd, int action)  {
 		}
 		partitionDB[partIxd].armStatus = action;
 		partitionDB[partIxd].armTime = millis();
-		reportArm(partIxd);
+		//reportArm(partIxd);
 		break;
 	default:
 		ErrWrite(ERR_WARNING, "Request to arm/disarm invalid partition %d\n", partIxd);
@@ -135,12 +137,12 @@ void armPartition(byte partIxd, int action)  {
 	}
 	// fix follows partitions RECURSIVELLY
 	for(int i = 0; i < MAX_PARTITION; i++) {
-		if(i == partIxd)                        // skip check for current partition to avoid loops 
-			continue;                             // like part 1 follows part 1
-		//logger.printf("Checking partition %d if follows partition %d\n", i, partIxd);
+		if(i == partIxd)                        	// skip check for current partition to avoid loops 
+			continue;                             	// like part 1 follows part 1
+		//lprintf("Checking partition %d if follows partition %d\n", i, partIxd);
 		if(!partitionDB[i].follows[partIxd])		// follows is array of MAX_PARTITION bytes, if byte of idx i is true, 
-			continue;								              // it means that this partition follows partition idx = i
-		//logger.printf("Found partition %d follows partition %d\n", i, partIxd);
+			continue;								// it means that this partition follows partition idx = i
+		//lprintf("Found partition %d follows partition %d\n", i, partIxd);
 		armPartition(i, action); 		            // call recursively
 		}
 }	
@@ -166,8 +168,8 @@ int bypassZone(int board,  int zoneIdx) {
 	// this is needed for follow zones to know if there is entry delay zones to follow (in case all ENTRY_DELAY zones are bypassed)
 	// and if no entry delay zones and followZone2entryDelay2 in corresponding partition opts is set, follow zones will use ENTRY_DELAY2 instead
 	partIdx = zonesDB[board][zoneIdx].zonePartition;		   // find zone's partition
-	partitonDB[partIdx].bypassedZonesCnt++;					   // update statistics
-	partitonDB[partIdx].notBypassedEntyDelayZones = countBypassedEntryDelayZones(partIdx);	// mark how many entry delay zone are not bypassed
+	partitionDB[partIdx].bypassedZonesCnt++;					   // update statistics
+	partitionDB[partIdx].notBypassedEntyDelayZones = countBypassedEntryDelayZones(partIdx);	// mark how many entry delay zone are not bypassed
 	newZonesDataAvailable != NEW_DATA_BIT << board;
 	PublishMQTT(ZONES_BYPASS_STATUS_TOPIC, zonesDB[board][zoneIdx].zoneName, BYPASS_PAYLOAD);
 	return true;
@@ -186,10 +188,28 @@ void unBypassZone(int board,  int zoneIdx) {
 	// this is needed for follow zones to know if there is entry delay zones to follow (in case all ENTRY_DELAY zones are bypassed)
 	// and if no entry delay zones and followZone2entryDelay2 in corresponding partition opts is set, follow zones will use ENTRY_DELAY2 instead
 	partIdx = zonesDB[board][zoneIdx].zonePartition;		   // find zone's partition
-	partitonDB[partIdx].bypassedZonesCnt--;					   // update statistics
-	partitonDB[partIdx].notBypassedEntyDelayZones = countBypassedEntryDelayZones(partIdx);	// mark how many entry delay zone are not bypassed
+	partitionDB[partIdx].bypassedZonesCnt--;					   // update statistics
+	partitionDB[partIdx].notBypassedEntyDelayZones = countBypassedEntryDelayZones(partIdx);	// mark how many entry delay zone are not bypassed
 	newZonesDataAvailable != NEW_DATA_BIT << board;
-	PublishMQTT(ZONES_BYPASS_STATUS_TOPIC, zonesDB[board][zoneIdx].zoneName, UNBYPASS_PAYLOAD)
+	PublishMQTT(ZONES_BYPASS_STATUS_TOPIC, zonesDB[board][zoneIdx].zoneName, UNBYPASS_PAYLOAD);
+}
+//
+//  triger alarm as specified by partition options:
+// 		alarmOutputEn - enable to triger bell or siren once alarm condition is detected in partition
+//		alarmCutOffTime -cut alarm output after 1-255 seconds
+//		noCutOffOnFire - disable cut-off for fire alarms
+//		alarmRecycleTime -re-enable after this time if alarm condition not fixed
+// TODO - implement me
+//
+void trigerAlarm(struct ALARM_PARTITION_t part) {
+//	
+}
+//
+// reportTamper - reports to MQTT, panel, etc that tamper occured in partition/zone
+// TODO - implement me
+//
+void reportTamper(struct ALARM_ZONE zone) {
+//
 }
 //
 // process zone error, generates trouble or alarm
@@ -219,7 +239,7 @@ int tamperOpt;
 		return;									
 	}
 	partitionDB[zone.zonePartition].tamperZonesCnt++;			// update statistics
-	PublishMQTT(ZONES_TAMPER_STATUS_TOPIC, zone.zoneName, TAMPER_PAYLOAD) // send over MQTT
+	PublishMQTT(ZONES_TAMPER_STATUS_TOPIC, zone.zoneName, TAMPER_PAYLOAD); // send over MQTT
 //
 	if(zone.zoneExtOpt & ZONE_FOLLOW_PANEL_ONTAMPER)			// find out global or local options to follow
 		tamperOpt = alarmGlobalOpts.tamperOpts;					// follow the global tamper settings
@@ -233,11 +253,11 @@ int tamperOpt;
 			reportTamper(zone);									// only report the tamper, no alarms
 			break;
 		case ZONE_TAMPER_OPT_ALARM_WHEN_ARMED:
-			if(partitionDB[zone.zonePartition].armStatus == DISARMED)
+			if(partitionDB[zone.zonePartition].armStatus == DISARM)
 				reportTamper(zone);								// when disarmed - only report the tamper, no alarms
-			else {
+			else 
 				trigerAlarm(partitionDB[zone.zonePartition]);	// when armed - generete alarm
-			break
+			break;
 		case ZONE_TAMPER_OPT_ALARM:
 			trigerAlarm(partitionDB[zone.zonePartition]);
 			break;
@@ -249,10 +269,12 @@ int tamperOpt;
 //
 void alarmLoop() {
 //
-    if(timeoutOps(GET, ALARM_LOOP_TIMER) || newZonesDataAvailable)) 					// run the loop on spec intervals
+    if(timeoutOps(GET, ALARM_LOOP_TIMER) || newZonesDataAvailable) 					// run the loop on spec intervals
 			return;																		// or when something changed
 	timeoutOps(SET, ALARM_LOOP_TIMER);													// restart timer
-	cleanRTdata();																		// clear all statistics
+	for(int i = 0; i < MAX_PARTITION; i++) {											// clean real-time statistics
+		partitionDB[i].openZonesCnt = partitionDB[i].bypassedZonesCnt = partitionDB[i].tamperZonesCnt = partitionDB[i].ignorredTamperZonesCnt = 0;  
+	}																	// clear all statistics
 	for (int brd = MASTER_ADDRESS; brd <= maxSlaves; brd++) {							// loop over all zones in all boards
 	    for(int zn=0; zn< (brd?SLAVE_ALARM_ZONES_CNT:MASTER_ALARM_ZONES_CNT); zn++) {   // for each board' zone
 			if(!zonesDB[brd][zn].valid)										 			// invalid zone, continue
@@ -262,11 +284,10 @@ void alarmLoop() {
 			}
 		}
     }
-
-			if(strcmp(name, zonesDB[j][i].zoneName)) {
-				logger.printf ("zoneLookup: zone found board %d index %d\n", j, i);
-				return (getZoneBoard?j:i)
 /*
+			if(strcmp(name, zonesDB[j][i].zoneName)) {
+				lprintf ("zoneLookup: zone found board %d index %d\n", j, i);
+				return (getZoneBoard?j:i)
   		for(cz = 0; cz < MASTER_ALARM_ZONES_CNT; cz++) {
 				if(!(zonesDB[MASTER_ADDRESS][cz].valid || zonesDB[MASTER_ADDRESS][cz].bypassed))	// check if zone is no defined/in use or if bypassed
 					continue;									// yes, continue with next one

@@ -258,6 +258,6 @@ int isTimeFor(byte cmd, unsigned long timeout) {
       ErrWrite(ERR_DB_INDEX_NOT_FND, "IsTimeFor: CMD %d not found\n", cmd);
 	  return false;                                      // this is a bit ugly, but will notify the world  
     }                                                    // that we cannot send this command 
-	//logger.printf("IsTimeFor: CMD = %d, sent =  %ul, now =  %ul tout = %ul\n", cmd, cmdDB[cmd_index].last_transmitted, millis(), timeout);
+	//lprintf("IsTimeFor: CMD = %d, sent =  %ul, now =  %ul tout = %ul\n", cmd, cmdDB[cmd_index].last_transmitted, millis(), timeout);
     return ((unsigned long)(millis() - (unsigned long)(cmdDB[cmd_index].last_transmitted)) > (unsigned long)timeout);
 }
